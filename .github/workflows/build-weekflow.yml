@@ -36,6 +36,22 @@ jobs:
           mkdir -p app/src/main/assets
 
           cat > settings.gradle <<'EOF'
+          pluginManagement {
+            repositories {
+              google()
+              mavenCentral()
+              gradlePluginPortal()
+            }
+          }
+
+          dependencyResolutionManagement {
+            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            repositories {
+              google()
+              mavenCentral()
+            }
+          }
+
           rootProject.name = "WeekFlow"
           include ':app'
           EOF
@@ -209,6 +225,6 @@ jobs:
       - name: Upload WeekFlow APK
         uses: actions/upload-artifact@v4
         with:
-          name: WeekFlow-v4.1-APK
+          name: WeekFlow-v4.2-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
