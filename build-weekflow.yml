@@ -1,0 +1,658 @@
+name: Build WeekFlow APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK
+        shell: bash
+        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Create WeekFlow Android project
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p app/src/main/java/com/weekflow/app app/src/main/res/values app/src/main/res/drawable app/src/main/assets
+
+          cat > settings.gradle <<'EOF'
+          pluginManagement {
+            repositories {
+              google()
+              mavenCentral()
+              gradlePluginPortal()
+            }
+          }
+          dependencyResolutionManagement {
+            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            repositories {
+              google()
+              mavenCentral()
+            }
+          }
+          rootProject.name = "WeekFlow"
+          include ':app'
+          EOF
+
+          cat > build.gradle <<'EOF'
+          plugins {
+            id 'com.android.application' version '8.5.2' apply false
+          }
+          EOF
+
+          cat > gradle.properties <<'EOF'
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          android.useAndroidX=false
+          android.nonTransitiveRClass=true
+          EOF
+
+          cat > app/build.gradle <<'EOF'
+          plugins {
+            id 'com.android.application'
+          }
+
+          android {
+            namespace 'com.weekflow.app'
+            compileSdk 34
+
+            defaultConfig {
+              applicationId "com.weekflow.app"
+              minSdk 24
+              targetSdk 34
+              versionCode 15
+              versionName "1.4.7.3"
+            }
+
+            buildTypes {
+              debug { minifyEnabled false }
+              release {
+                minifyEnabled false
+                proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+              }
+            }
+
+            compileOptions {
+              sourceCompatibility JavaVersion.VERSION_17
+              targetCompatibility JavaVersion.VERSION_17
+            }
+          }
+
+          configurations.configureEach {
+            exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+            exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+          }
+
+          dependencies {
+          }
+          EOF
+
+          cat > app/proguard-rules.pro <<'EOF'
+          # WeekFlow
+          EOF
+
+          cat > app/src/main/AndroidManifest.xml <<'EOF'
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+            <application android:allowBackup="true" android:label="WeekFlow" android:icon="@drawable/weekflow_icon" android:roundIcon="@drawable/weekflow_icon" android:theme="@style/Theme.WeekFlow">
+              <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="portrait" android:windowSoftInputMode="adjustResize">
+                <intent-filter>
+                  <action android:name="android.intent.action.MAIN" />
+                  <category android:name="android.intent.category.LAUNCHER" />
+                </intent-filter>
+              </activity>
+            </application>
+          </manifest>
+          EOF
+
+          cat > app/src/main/res/values/styles.xml <<'EOF'
+          <resources>
+            <style name="Theme.WeekFlow" parent="@android:style/Theme.Material.NoActionBar">
+              <item name="android:fontFamily">sans</item>
+              <item name="android:windowActionModeOverlay">true</item>
+              <item name="android:colorAccent">#2F80FF</item>
+              <item name="android:statusBarColor">#06111F</item>
+              <item name="android:navigationBarColor">#06111F</item>
+              <item name="android:windowLightStatusBar">false</item>
+              <item name="android:windowLightNavigationBar">false</item>
+              <item name="android:windowBackground">#06111F</item>
+            </style>
+          </resources>
+          EOF
+
+          cat > app/src/main/res/drawable/weekflow_icon.xml <<'EOF'
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="108"
+              android:viewportHeight="108">
+            <path
+                android:fillColor="#071326"
+                android:pathData="M20,4 L88,4 Q104,4 104,20 L104,88 Q104,104 88,104 L20,104 Q4,104 4,88 L4,20 Q4,4 20,4 Z"/>
+            <path
+                android:strokeColor="#174EA6"
+                android:strokeWidth="2"
+                android:fillColor="@android:color/transparent"
+                android:pathData="M20,4 L88,4 Q104,4 104,20 L104,88 Q104,104 88,104 L20,104 Q4,104 4,88 L4,20 Q4,4 20,4 Z"/>
+            <path
+                android:strokeColor="#2F80FF"
+                android:strokeWidth="12"
+                android:strokeLineCap="round"
+                android:strokeLineJoin="round"
+                android:fillColor="@android:color/transparent"
+                android:pathData="M18,60 C28,32 39,32 48,61 C57,86 67,87 76,58 C84,36 91,37 96,55"/>
+            <path
+                android:strokeColor="#67C6FF"
+                android:strokeWidth="5"
+                android:strokeLineCap="round"
+                android:fillColor="@android:color/transparent"
+                android:pathData="M20,56 C29,37 39,38 47,59 C55,77 64,78 72,58"/>
+            <path
+                android:fillColor="#FFB21A"
+                android:pathData="M82,20 a7,7 0,1 0,14 0 a7,7 0,1 0,-14 0"/>
+          </vector>
+          EOF
+
+          cat > app/src/main/java/com/weekflow/app/MainActivity.java <<'EOF'
+          package com.weekflow.app;
+
+          import android.annotation.SuppressLint;
+          import android.app.Activity;
+          import android.graphics.Color;
+          import android.os.Bundle;
+          import android.webkit.WebChromeClient;
+          import android.webkit.WebSettings;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
+
+          public class MainActivity extends Activity {
+            private WebView webView;
+
+            @SuppressLint("SetJavaScriptEnabled")
+            @Override
+            protected void onCreate(Bundle savedInstanceState) {
+              super.onCreate(savedInstanceState);
+              getWindow().setStatusBarColor(Color.parseColor("#06111F"));
+              getWindow().setNavigationBarColor(Color.parseColor("#06111F"));
+
+              webView = new WebView(this);
+              setContentView(webView);
+
+              WebSettings settings = webView.getSettings();
+              settings.setJavaScriptEnabled(true);
+              settings.setDomStorageEnabled(true);
+              settings.setAllowFileAccess(true);
+              settings.setLoadWithOverviewMode(true);
+              settings.setUseWideViewPort(true);
+              settings.setBuiltInZoomControls(false);
+              settings.setDisplayZoomControls(false);
+
+              webView.setBackgroundColor(Color.parseColor("#06111F"));
+              webView.setWebViewClient(new WebViewClient());
+              webView.setWebChromeClient(new WebChromeClient());
+              webView.loadUrl("file:///android_asset/index.html");
+            }
+
+            @Override
+            public void onBackPressed() {
+              if (webView != null && webView.canGoBack()) webView.goBack();
+              else super.onBackPressed();
+            }
+          }
+          EOF
+
+          cat > app/src/main/assets/index.html <<'WEEKFLOW_HTML'
+          <!DOCTYPE html>
+          <html lang="es">
+          <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+          <title>WeekFlow v4.5</title>
+          <style>
+          :root{
+            --bg:#06111f;--bg2:#0a1a31;--card:#0d1c34;--card2:#102542;
+            --line:rgba(125,166,235,.14);--text:#f6f8ff;--muted:#8fa2c5;
+            --blue:#2f80ff;--blue2:#5aa6ff;--green:#48d597;--amber:#ffbd55;
+            --danger:#ff6f7d;--radius:24px;
+          }
+          *{box-sizing:border-box}
+          html,body{margin:0;background:radial-gradient(120% 80% at 15% 0%,#102c62 0%,var(--bg) 36%,#040b13 100%);
+          color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;height:100%;overflow:hidden}
+          button,input,select{font:inherit}
+          .app{max-width:460px;height:100dvh;margin:0 auto;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top) + 10px) 16px calc(env(safe-area-inset-bottom) + 8px)}
+          .top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 2px 10px}
+          .brand{display:flex;align-items:center;gap:10px}.logo{width:42px;height:42px;border-radius:14px;background:#0b1f3d;display:grid;place-items:center;border:1px solid var(--line)}
+          .brand h1{font-size:20px;margin:0}.brand h1 span{color:var(--blue2)}.brand small{color:var(--muted)}
+          .topActions{display:flex;gap:8px}.pill,.icon{border:1px solid var(--line);background:rgba(13,30,58,.9);color:#eaf1ff;border-radius:16px;padding:9px 12px}.icon{width:42px;padding:0;display:grid;place-items:center}
+          .content{flex:1;overflow:auto;scrollbar-width:none;padding-bottom:8px}.content::-webkit-scrollbar{display:none}
+          .view{display:none}.view.active{display:block}
+          .hero{padding:2px 0 10px}.eyebrow{margin:0 0 6px;color:var(--blue2);font-size:11px;letter-spacing:.19em;text-transform:uppercase;font-weight:800}
+          .hero h2{font-size:42px;line-height:1;letter-spacing:-.055em;margin:0;font-weight:900}.hero h2 b{color:var(--blue2)}
+          .hero p{margin:10px 0 0;color:#c8d6ef;font-size:14px;line-height:1.42;max-width:36ch}
+          .sectionTitle{font-size:12px;letter-spacing:.2em;color:var(--blue2);font-weight:800;margin:14px 2px 8px}
+          .card{background:linear-gradient(180deg,rgba(15,34,63,.96),rgba(9,23,43,.98));border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:0 16px 36px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.03)}
+          .checkCompact{display:flex;align-items:center;justify-content:space-between;gap:12px}
+          .checkCompact .state{display:flex;gap:10px;align-items:center}.bubble{width:44px;height:44px;border-radius:14px;background:rgba(47,128,255,.14);display:grid;place-items:center;font-size:24px;border:1px solid rgba(90,166,255,.25)}
+          .checkCompact h3{margin:0;font-size:16px}.checkCompact p{margin:3px 0 0;color:var(--muted);font-size:13px}
+          .linkBtn{border:0;background:transparent;color:var(--blue2);font-weight:700}
+          .moods{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+          .mood{border:1px solid var(--line);background:rgba(255,255,255,.025);color:#e9f1ff;border-radius:18px;padding:10px 6px;text-align:center}.mood span{font-size:22px;display:block}.mood b{font-size:12px}.mood.active{border-color:rgba(90,166,255,.5);background:rgba(47,128,255,.15)}
+          .hidden{display:none!important}
+          .liveTop{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center}
+          .liveIcon{width:54px;height:54px;border-radius:50%;border:2px solid rgba(73,136,255,.8);display:grid;place-items:center;font-size:25px;box-shadow:0 0 0 6px rgba(47,128,255,.07)}
+          .liveTop h3{margin:0;font-size:18px}.liveTop .time{color:var(--blue2);font-weight:800;margin-top:3px}.rightMeta{color:var(--muted);font-size:13px;white-space:nowrap}
+          .bar{height:9px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin:14px 0}.bar span{display:block;height:100%;width:50%;background:linear-gradient(90deg,var(--blue),var(--blue2));border-radius:999px}
+          .primary{width:100%;border:0;border-radius:17px;padding:15px;background:linear-gradient(180deg,#2f80ff,#1765e6);color:white;font-weight:900}
+          .primary.secondaryState{background:rgba(255,255,255,.06);border:1px solid var(--line);color:#d9e6ff}
+          .afterList{display:grid;gap:9px}.afterRow{display:grid;grid-template-columns:auto 1fr auto;gap:11px;align-items:center;padding:13px;border:1px solid rgba(143,163,201,.08);background:rgba(255,255,255,.02);border-radius:17px}
+          .afterIcon{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);font-size:20px}
+          .afterRow h4{margin:0;font-size:15px}.afterRow p{margin:3px 0 0;color:var(--muted);font-size:12px}.chev{color:#93b8ff;font-size:20px}
+          .insight{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:flex-start}.insightIcon{width:50px;height:50px;border-radius:50%;display:grid;place-items:center;background:rgba(255,189,85,.08);border:1px solid rgba(255,189,85,.18);font-size:24px}
+          .insight p{margin:0;color:#dce7fb;line-height:1.45;font-size:14px}.insight small{display:block;color:var(--muted);margin-top:8px}
+          .bottom{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:8px;padding:8px;background:rgba(8,18,34,.88);border:1px solid var(--line);border-radius:21px}
+          .tab{border:0;background:transparent;color:#90a5ca;padding:7px 2px;border-radius:14px;font-size:11px;display:grid;gap:3px;place-items:center}.tab i{font-style:normal;font-size:19px}.tab.active{color:#fff;background:rgba(47,128,255,.14)}
+          .weekHead,.panelHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-end;margin-bottom:12px}.weekHead h2,.panelHead h2{margin:0;font-size:27px;letter-spacing:-.03em}.weekHead p,.panelHead p{margin:5px 0 0;color:var(--muted)}
+          .secondary{border:1px solid var(--line);background:rgba(255,255,255,.04);color:#e5edff;border-radius:15px;padding:10px 13px}
+          .dayList{display:grid;gap:10px}.day{padding:14px;border:1px solid var(--line);border-radius:19px;background:rgba(255,255,255,.025)}.dayTop{display:flex;justify-content:space-between;gap:12px}.badge{font-size:11px;color:#c3d9ff;border:1px solid rgba(90,166,255,.25);background:rgba(47,128,255,.12);border-radius:999px;padding:6px 9px}
+          .miniMoments{display:grid;gap:7px;margin-top:10px}.miniMoment{display:flex;justify-content:space-between;gap:10px;background:rgba(255,255,255,.02);padding:9px 10px;border-radius:13px;color:#dfe9fb}.miniMoment small{color:var(--muted)}
+          .form{display:grid;gap:10px}.input,.select{width:100%;background:#091932;border:1px solid var(--line);color:#fff;border-radius:14px;padding:12px}.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+          .pillars{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.pillar{padding:15px;border:1px solid var(--line);border-radius:19px;background:rgba(255,255,255,.025)}.pillar b{display:block;margin:8px 0 5px}.pillar p{margin:0;color:var(--muted);font-size:12px;line-height:1.4}
+          .assistants{display:grid;gap:9px}.assistant{border:1px solid var(--line);background:rgba(255,255,255,.025);color:#fff;border-radius:18px;padding:13px;text-align:left}.assistant.active{background:rgba(47,128,255,.14);border-color:rgba(90,166,255,.45)}.assistant small{display:block;color:var(--muted);margin-top:4px}
+          @media(max-width:380px){.hero h2{font-size:36px}.moods{grid-template-columns:repeat(2,1fr)}.liveTop{grid-template-columns:auto 1fr}.rightMeta{grid-column:1/-1}}
+          
+          /* WeekFlow v4.7 Core Stabilization */
+          .brainNote{margin-top:10px;padding:11px 12px;border-radius:15px;background:rgba(47,128,255,.08);border:1px solid rgba(90,166,255,.16);color:#bfd4f8;font-size:12px;line-height:1.4}
+          .coreGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+          .coreStat{padding:10px;border-radius:14px;background:rgba(255,255,255,.025);border:1px solid rgba(143,163,201,.08)}
+          .coreStat b{display:block;font-size:13px}.coreStat small{display:block;color:var(--muted);margin-top:3px;font-size:11px}
+          .notice{margin-top:10px;padding:12px;border-radius:16px;background:rgba(72,213,151,.08);border:1px solid rgba(72,213,151,.16);color:#ccefe0;font-size:13px;line-height:1.4}
+          .notice.warn{background:rgba(255,189,85,.08);border-color:rgba(255,189,85,.17);color:#ffe4b7}
+          .settingsGrid{display:grid;gap:9px;margin-top:10px}
+          .settingRow{display:grid;grid-template-columns:1fr 92px;gap:10px;align-items:center}
+          .settingRow label{font-size:13px;color:#dfe9fb}
+          .settingRow input{width:100%;padding:10px 11px;border-radius:13px;background:#091932;border:1px solid var(--line);color:#fff}
+          
+          </style>
+          </head>
+          <body>
+          <div class="app">
+          <header class="top">
+            <div class="brand">
+              <div class="logo">
+                <svg width="30" height="30" viewBox="0 0 64 64" fill="none"><circle cx="52" cy="11" r="7" fill="#FDB52F"/><path d="M6 39c5-13 11-16 17-16 13 0 13 22 26 22 5 0 8-2 11-8" stroke="#57A2FF" stroke-width="9" stroke-linecap="round"/><path d="M6 39c5-13 11-16 17-16 13 0 13 22 26 22" stroke="#2F80FF" stroke-width="9" stroke-linecap="round"/></svg>
+              </div>
+              <div><h1>Week<span>Flow</span></h1><small>Flujo & Equilibrio</small></div>
+            </div>
+            <div class="topActions"><div class="pill">Build 1.4.7.3</div><button class="icon">🔔</button></div>
+          </header>
+          
+          <main class="content">
+          <section id="view-ahora" class="view active">
+            <div class="hero">
+              <p class="eyebrow">Ahora</p>
+              <h2>Tu semana<br>fluye contigo<b>.</b></h2>
+              <p>Más inteligente, más adaptativa, más tuya.</p>
+            </div>
+          
+            
+          <div class="card" id="brainStrip" style="margin-bottom:10px">
+            <div class="checkCompact">
+              <div class="state"><div class="bubble">🧠</div><div><h3>WeekFlow Brain</h3><p id="brainSummary">Sincronizando tu día…</p></div></div>
+            </div>
+            <div class="coreGrid">
+              <div class="coreStat"><b id="brainShift">—</b><small>Turno</small></div>
+              <div class="coreStat"><b id="brainCommute">—</b><small>Traslado</small></div>
+              <div class="coreStat"><b id="brainEnergy">—</b><small>Energía</small></div>
+            </div>
+          </div>
+          
+          <p class="sectionTitle">CHECK-IN</p>
+            <div class="card" id="checkCard">
+              <div class="checkCompact">
+                <div class="state"><div class="bubble" id="moodBubble">🙂</div><div><h3 id="moodSummary">Hoy te sientes: Bien</h3><p>WeekFlow adapta la carga a tu energía.</p></div></div>
+                <button class="linkBtn" id="changeMood">Cambiar</button>
+              </div>
+              <div class="moods hidden" id="moods"></div>
+            </div>
+          
+            <p class="sectionTitle">DÍA VIVO</p>
+            <div class="card">
+              <div class="liveTop">
+                <div class="liveIcon" id="liveIcon">💼</div>
+                <div><h3 id="liveTitle">Estás trabajando</h3><div class="time" id="liveTime">07:00 – 16:00</div></div>
+                <div class="rightMeta" id="liveMeta">4h 25m restantes</div>
+              </div>
+              <div class="bar"><span id="liveBar"></span></div>
+              <button class="primary" id="liveButton">✓ Ya salí</button>
+              <div id="recalcNotice" class="notice hidden"></div>
+            </div>
+          
+            <p class="sectionTitle">DESPUÉS</p>
+            <div class="card"><div class="afterList" id="afterList"></div></div>
+          
+            <div class="card" style="margin-top:12px"><div class="insight"><div class="insightIcon" id="insightIcon">🌙</div><div><p id="insightText"></p><small>💡 WeekFlow lo tiene en cuenta.</small></div></div></div>
+          </section>
+          
+          <section id="view-semana" class="view">
+            <div class="weekHead"><div><p class="eyebrow">Semana</p><h2>Tu semana organizada</h2><p id="weekRange"></p></div><button class="secondary" id="editWeek">Editar</button></div>
+            <div class="card hidden" id="setup"><div class="panelHead"><div><h2 style="font-size:20px">Base semanal</h2><p>El trabajo es el input. WeekFlow organiza alrededor.</p></div></div><div class="form" id="shiftForm"></div>
+            <div class="brainNote"><b>Logística base</b><br>WeekFlow calcula hacia atrás desde el turno: salida → preparación → comida → despertar.</div>
+            <div class="settingsGrid">
+              <div class="settingRow"><label>🚇 Traslado estimado</label><input id="commuteMin" type="number" min="0" max="240" step="5"></div>
+              <div class="settingRow"><label>🧥 Preparación</label><input id="prepMin" type="number" min="0" max="180" step="5"></div>
+              <div class="settingRow"><label>🛡️ Margen seguridad</label><input id="bufferMin" type="number" min="0" max="120" step="5"></div>
+              <div class="settingRow"><label>😴 Sueño objetivo</label><input id="sleepHours" type="number" min="5" max="12" step="0.5"></div>
+            </div>
+            <button class="primary" id="saveWeek" style="margin-top:12px">Guardar semana</button></div>
+            <div class="card" style="margin-top:12px"><div class="dayList" id="weekDays"></div></div>
+          </section>
+          
+          <section id="view-pilares" class="view"><div class="hero"><p class="eyebrow">Pilares</p><h2 style="font-size:34px">Lo que WeekFlow está cuidando.</h2><p>Equilibrio real según tus turnos, energía y disponibilidad.</p></div><div class="pillars" id="pillarGrid"></div></section>
+          <section id="view-jardin" class="view"><div class="hero"><p class="eyebrow">Jardín</p><h2 style="font-size:34px">Crece cada día.</h2><p>Constancia, no perfección.</p></div><div class="card"><div style="font-size:72px;text-align:center">🌱</div><div class="afterList"><div class="afterRow"><div class="afterIcon">💧</div><div><h4>Energía de hoy</h4><p id="gardenEnergy">Bien</p></div><div class="chev">›</div></div><div class="afterRow"><div class="afterIcon">🌿</div><div><h4>Ritmo semanal</h4><p>4 de 7 días acompañados</p></div><div class="chev">›</div></div></div></div></section>
+          <section id="view-asistente" class="view"><div class="hero"><p class="eyebrow">Asistente</p><h2 style="font-size:34px">Tu estilo de compañía.</h2><p>El tono cambia; el criterio de WeekFlow se mantiene.</p></div><div class="assistants" id="assistantList"></div><div class="card" id="assistantPreview" style="margin-top:10px;color:#dce7fb;line-height:1.45"></div></section>
+          </main>
+          
+          <nav class="bottom">
+          <button class="tab active" data-view="ahora"><i>⦿</i>Ahora</button>
+          <button class="tab" data-view="semana"><i>🗓️</i>Semana</button>
+          <button class="tab" data-view="pilares"><i>▤</i>Pilares</button>
+          <button class="tab" data-view="jardin"><i>🌿</i>Jardín</button>
+          <button class="tab" data-view="asistente"><i>✦</i>Asistente</button>
+          </nav>
+          </div>
+          
+          <script>
+          const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+          const store={get(k,f){try{return JSON.parse(localStorage.getItem(k))??f}catch{return f}},set(k,v){localStorage.setItem(k,JSON.stringify(v))}};
+          const moods=[['vigoroso','⚡','Vigoroso'],['bien','🙂','Bien'],['cansado','😮‍💨','Cansado'],['agotado','🪫','Agotado']];
+          const assistants={
+           buddy:['Buddy','Cercano y apañador.','Listoco 😎 Si algo cambia, movemos solo lo flexible. Lo fijo se respeta.'],
+           warm:['Warm','Amable y contenedor.','WeekFlow protege primero recuperación y compromisos. Lo demás se adapta a tu energía.'],
+           coach:['Coach','Claro y motivador.','Tu semana tiene estructura. El Brain recalcula sin sacrificar descanso ni compromisos fijos.'],
+           pro:['Pro','Limpio y funcional.','Estado sincronizado. Prioridades: compromisos fijos, recuperación, logística y alimentación.']
+          };
+          const defaultShifts=[
+           {day:'Lunes',type:'morning',start:'07:00',end:'16:00'},
+           {day:'Martes',type:'morning',start:'07:00',end:'16:00'},
+           {day:'Miércoles',type:'afternoon',start:'14:00',end:'22:00'},
+           {day:'Jueves',type:'off',start:'',end:''},
+           {day:'Viernes',type:'morning',start:'07:00',end:'16:00'},
+           {day:'Sábado',type:'afternoon',start:'15:00',end:'23:00'},
+           {day:'Domingo',type:'off',start:'',end:''}
+          ];
+          const defaultBrain={
+           mood:'bien',
+           assistant:'buddy',
+           shifts:defaultShifts,
+           logistics:{commuteMin:75,prepMin:35,bufferMin:15,sleepHours:8},
+           actualLeaveByDate:{},
+           dayEventsByDate:{},
+           view:'ahora'
+          };
+          let brain=store.get('weekflow_brain_v473',defaultBrain);
+          brain.logistics={...defaultBrain.logistics,...(brain.logistics||{})};
+          brain.shifts=Array.isArray(brain.shifts)&&brain.shifts.length===7?brain.shifts:defaultShifts;
+          brain.actualLeaveByDate=brain.actualLeaveByDate||{};
+          brain.dayEventsByDate=brain.dayEventsByDate||{};
+
+          function save(){store.set('weekflow_brain_v473',brain)}
+          function mins(t){if(!t)return 0;let [h,m]=t.split(':').map(Number);return h*60+m}
+          function fmtMin(n){n=(n+1440)%1440;return `${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`}
+          function nowMin(){let d=new Date();return d.getHours()*60+d.getMinutes()}
+          function todayIdx(){return (new Date().getDay()+6)%7}
+          function dateKey(d=new Date()){return d.toISOString().slice(0,10)}
+          function currentShift(){return brain.shifts[todayIdx()]||brain.shifts[0]}
+          function crossesMidnight(s){return s&&s.start&&s.end&&mins(s.end)<=mins(s.start)}
+          function isDuringShift(s,n){if(!s||s.type==='off'||!s.start||!s.end)return false;let a=mins(s.start),b=mins(s.end);return crossesMidnight(s)?(n>=a||n<b):(n>=a&&n<b)}
+          function isBeforeShift(s,n){if(!s||s.type==='off'||!s.start)return false;let a=mins(s.start);if(crossesMidnight(s))return n<a&&n>=mins(s.end);return n<a}
+          function diffToEnd(s,n){let d=mins(s.end)-n;if(d<0)d+=1440;return d}
+          function diffText(d){let h=Math.floor(d/60),m=d%60;return h?`${h}h ${m}m restantes`:`${m}m restantes`}
+          function actualLeaveToday(){return brain.actualLeaveByDate[dateKey()]||null}
+          function eventsToday(){let k=dateKey();brain.dayEventsByDate[k]=brain.dayEventsByDate[k]||{};return brain.dayEventsByDate[k]}
+          function markEvent(name){eventsToday()[name]=new Date().toISOString();save()}
+          function eventTime(name){return eventsToday()[name]||null}
+          function timeLabel(iso){if(!iso)return '';let d=new Date(iso);return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
+          function shiftLabel(s){return ({morning:'Mañana',afternoon:'Tarde',night:'Noche',off:'Libre',custom:'Personalizado'})[s.type]||'Personalizado'}
+          function moodInfo(){return moods.find(x=>x[0]===brain.mood)||moods[1]}
+          function energyLoad(){
+           if(brain.mood==='vigoroso')return 'alta';
+           if(brain.mood==='bien')return 'normal';
+           if(brain.mood==='cansado')return 'reducida';
+           return 'mínima';
+          }
+          function preShiftTimes(s){
+           if(!s||s.type==='off'||!s.start)return {};
+           const L=brain.logistics;
+           let shift=mins(s.start);
+           let depart=shift-L.commuteMin-L.bufferMin;
+           let prep=depart-L.prepMin;
+           let meal=prep-45;
+           let wake=meal-30;
+           return {shift,depart,prep,meal,wake};
+          }
+          function nextShift(){
+           for(let offset=1;offset<=7;offset++){
+            let i=(todayIdx()+offset)%7;
+            if(brain.shifts[i]?.type!=='off')return {shift:brain.shifts[i],offset};
+           }
+           return null;
+          }
+          function recommendedSleep(){
+           let nxt=nextShift(); if(!nxt)return null;
+           let t=preShiftTimes(nxt.shift);
+           return fmtMin(t.wake-brain.logistics.sleepHours*60);
+          }
+
+          function renderBrainStrip(){
+           let s=currentShift(),m=moodInfo(),mode=getDayMode()[0];
+           $('#brainShift').textContent=s.type==='off'?'Libre':`${s.start}–${s.end}`;
+           $('#brainCommute').textContent=`${brain.logistics.commuteMin} min`;
+           $('#brainEnergy').textContent=m[2];
+           let summary='Estado único sincronizado entre Ahora y Semana.';
+           if(mode==='leave-home')summary='La salida recomendada ya llegó. Esperando confirmación real.';
+           if(mode==='commute-work')summary='En camino al trabajo. La hora real manda sobre la planificada.';
+           if(mode==='arrived-work')summary='Llegada registrada. WeekFlow espera el inicio del turno.';
+           if(mode==='during')summary='Turno activo. El Brain protege lo fijo y prepara lo que viene.';
+           if(mode==='commute-home')summary='Regreso a casa en curso. Recalculando desde tu salida real.';
+           if(mode==='home')summary='Ya estás en casa. WeekFlow deja un margen antes de lo siguiente.';
+           if(mode==='night')summary='Madrugada sin turno activo: prioridad de recuperación.';
+           $('#brainSummary').textContent=summary;
+          }
+
+          function renderMoods(){
+           let box=$('#moods');box.innerHTML='';
+           moods.forEach(([id,icon,label])=>{
+            let b=document.createElement('button');b.className='mood'+(brain.mood===id?' active':'');b.innerHTML=`<span>${icon}</span><b>${label}</b>`;
+            b.onclick=()=>{brain.mood=id;save();renderAll();$('#moods').classList.add('hidden')};box.appendChild(b);
+           });
+           let m=moodInfo();$('#moodBubble').textContent=m[1];$('#moodSummary').textContent=`Hoy te sientes: ${m[2]}`;
+          }
+          $('#changeMood').onclick=()=>$('#moods').classList.toggle('hidden');
+
+          function getDayMode(){
+           const s=currentShift(),n=nowMin(),hour=new Date().getHours(),e=eventsToday();
+           if(hour>=1&&hour<5&&!isDuringShift(s,n)&&!e.leftHome)return ['night',s];
+           if(s.type==='off')return ['off',s];
+           if(e.arrivedHome)return ['home',s];
+           if(e.leftWork||actualLeaveToday())return ['commute-home',s];
+           if(e.arrivedWork && !isDuringShift(s,n))return ['arrived-work',s];
+           if(e.leftHome && !e.arrivedWork)return ['commute-work',s];
+           if(isDuringShift(s,n))return ['during',s];
+           if(isBeforeShift(s,n)){
+            let t=preShiftTimes(s);
+            if(n>=t.depart)return ['leave-home',s];
+            if(n>=t.prep)return ['prepare',s];
+            if(n>=t.meal)return ['meal',s];
+            return ['before',s];
+           }
+           return ['after',s];
+          }
+
+          function afterItems(mode,s){
+           const load=energyLoad(),t=preShiftTimes(s);
+           if(mode==='night')return [['😴','Dormir / recuperar','Prioridad ahora','fixed'],['💧','Agua / higiene','Antes de acostarte','fixed']];
+           if(['before','meal','prepare','leave-home'].includes(mode)){
+            return [['🍽️','Comer antes del turno',fmtMin(t.meal),'fixed'],['🧥','Prepararte',fmtMin(t.prep),'fixed'],['🚇','Salir de casa',fmtMin(t.depart),'fixed'],['💼','Inicio de turno',s.start,'fixed']];
+           }
+           if(mode==='commute-work')return [['🚇','En camino al trabajo',`Saliste ${timeLabel(eventTime('leftHome'))}`,'fixed'],['💼','Inicio de turno',s.start,'fixed']];
+           if(mode==='arrived-work')return [['💼','Inicio de turno',s.start,'fixed'],['🍽️','Próxima comida','Según tu jornada','recovery']];
+           if(mode==='commute-home'){
+            let leave=eventTime('leftWork')||actualLeaveToday();
+            let leaveMin=leave?new Date(leave).getHours()*60+new Date(leave).getMinutes():mins(s.end);
+            return [['🏠','Llegar a casa',fmtMin(leaveMin+brain.logistics.commuteMin),'fixed'],['🍽️','Comer / recuperar','Después de llegar','recovery'],['🏃',load==='alta'||load==='normal'?'Move':'Movimiento suave',load==='mínima'?'Opcional':'Más tarde','flex']];
+           }
+           if(mode==='home'){
+            let list=[['🍽️','Comer / recuperar','Cuando corresponda','recovery']];
+            if(load==='alta'||load==='normal')list.push(['🏃','Move','Más tarde','flex']);
+            else list.push(['🌿','Movimiento suave','Solo si te ayuda','flex']);
+            list.push(['❤️','Tiempo personal / relaciones','Flexible','flex']);
+            return list;
+           }
+           if(mode==='off')return [['🌿','Tiempo personal','Disponible','flex'],['🏠','Hogar / pendientes','Flexible','flex'],['🏃','Move',load==='mínima'?'Opcional':'Cuando tengas energía','flex']];
+           return [['🏠','Llegar a casa','Cuando termines el traslado','fixed'],['🍽️','Comer / recuperar','Luego','recovery']];
+          }
+          function renderAfter(items){
+           let box=$('#afterList');box.innerHTML='';
+           items.forEach(([icon,title,sub,type])=>{
+            let r=document.createElement('div');r.className='afterRow';
+            let tag=type==='fixed'?'Fijo':type==='recovery'?'Recuperación':'Flexible';
+            r.innerHTML=`<div class="afterIcon">${icon}</div><div><h4>${title}</h4><p>${sub} · ${tag}</p></div><div class="chev">›</div>`;box.appendChild(r)
+           });
+          }
+          function renderInsight(mode,s){
+           let txt='WeekFlow ajusta el resto del día según tu energía, logística y próximo compromiso.',icon='💡';
+           let sleep=recommendedSleep(),nxt=nextShift();
+           if(mode==='leave-home'){txt='La hora recomendada de salida ya pasó. Confirma cuando realmente salgas y WeekFlow continuará desde esa hora.';icon='🚇'}
+           else if(mode==='commute-work'){txt='Tu hora real de salida ya está registrada. El Brain usa ese dato para entender el resto del trayecto.';icon='📍'}
+           else if(mode==='home'){txt='Ya llegaste a casa. WeekFlow deja un pequeño margen antes de proponerte comida, Move u otra actividad.';icon='🏠'}
+           else if(mode==='night'){txt='No hay turno activo a esta hora. El Brain evita meter actividad intensa y prioriza recuperación.';icon='🌙'}
+           else if(nxt&&nxt.shift.type==='morning'){txt=`Tu próximo turno empieza a las ${nxt.shift.start}. Con tu logística actual, una buena referencia de cierre es alrededor de las ${sleep}.`;icon='🌙'}
+           else if(nxt&&nxt.shift.type==='afternoon'){txt='Tu próximo turno es de tarde. La mañana queda disponible para comida, movimiento o responsabilidades sin apuro.';icon='☀️'}
+           else if(nxt&&nxt.shift.type==='night'){txt='Tu próximo turno es nocturno. WeekFlow protegerá descanso previo y una comida útil antes de salir.';icon='🌙'}
+           $('#insightText').textContent=txt;$('#insightIcon').textContent=icon;
+          }
+          function renderLive(){
+           let [mode,s]=getDayMode(),n=nowMin(),t=preShiftTimes(s);
+           let icon='🌿',title='Tiempo para ti',time='Ahora',meta='Disponible',bar='24%',btn='Ver opciones suaves',secondary=true;
+           if(mode==='before'){icon='🕒';title=`Tu turno empieza a las ${s.start}`;time=`Salida recomendada: ${fmtMin(t.depart)}`;meta='Todavía tienes margen';bar='10%';btn='Ver preparación'}
+           if(mode==='meal'){icon='🍽️';title='Come antes de salir';time=`Referencia: ${fmtMin(t.meal)}`;meta=`Turno ${s.start}`;bar='22%';btn='✓ Ya comí';secondary=false}
+           if(mode==='prepare'){icon='🧥';title='Prepárate para salir';time=`Salida recomendada: ${fmtMin(t.depart)}`;meta=`Turno ${s.start}`;bar='34%';btn='✓ Estoy listo';secondary=false}
+           if(mode==='leave-home'){icon='🚇';title='Es hora de salir';time=`Tu turno empieza a las ${s.start}`;meta=`Salida estimada ${fmtMin(t.depart)}`;bar='45%';btn='✓ Ya salí de casa';secondary=false}
+           if(mode==='commute-work'){icon='🚇';title='En camino al trabajo';time=`Saliste a las ${timeLabel(eventTime('leftHome'))}`;meta=`Llegada estimada ${fmtMin((new Date(eventTime('leftHome')).getHours()*60+new Date(eventTime('leftHome')).getMinutes())+brain.logistics.commuteMin)}`;bar='58%';btn='✓ Ya llegué';secondary=false}
+           if(mode==='arrived-work'){icon='📍';title='Ya llegaste al trabajo';time=`Llegaste a las ${timeLabel(eventTime('arrivedWork'))}`;meta=`Turno ${s.start}`;bar='68%';btn='Esperar inicio';secondary=true}
+           if(mode==='during'){icon='💼';title='Estás trabajando';time=`${s.start} – ${s.end}`;meta=diffText(diffToEnd(s,n));let total=(mins(s.end)-mins(s.start)+1440)%1440,done=(n-mins(s.start)+1440)%1440;bar=`${Math.max(5,Math.min(95,done/total*100))}%`;btn='✓ Ya salí del trabajo';secondary=false}
+           if(mode==='commute-home'){icon='🏠';title='De vuelta a casa';time=`Saliste del trabajo a las ${timeLabel(eventTime('leftWork')||actualLeaveToday())}`;meta='Regreso en curso';bar='86%';btn='✓ Ya llegué a casa';secondary=false}
+           if(mode==='home'){icon='🏠';title='Ya estás en casa';time=`Llegaste a las ${timeLabel(eventTime('arrivedHome'))}`;meta='Un momento antes de seguir';bar='100%';btn='Ver lo que sigue';secondary=true}
+           if(mode==='after'){icon='🏠';title='Tu jornada ya terminó';time='Puedes registrar tu salida real';meta='Pendiente';bar='88%';btn='✓ Ya salí del trabajo';secondary=false}
+           if(mode==='night'){icon='🌙';title='Hora de cerrar el día';time='Prioridad: descanso';meta='Madrugada';bar='100%';btn='Ir a descanso'}
+           if(mode==='off'){icon='🌿';title='Día libre';time='WeekFlow deja espacio';meta='Sin urgencias';bar='20%';btn='Ver opciones suaves'}
+           $('#liveIcon').textContent=icon;$('#liveTitle').textContent=title;$('#liveTime').textContent=time;$('#liveMeta').textContent=meta;$('#liveBar').style.width=bar;
+           let b=$('#liveButton');b.textContent=btn;b.classList.toggle('secondaryState',secondary);b.dataset.mode=mode;
+           renderAfter(afterItems(mode,s));renderInsight(mode,s);renderBrainStrip();
+          }
+          function setNotice(text,warn=false){
+           let n=$('#recalcNotice');n.textContent=text;n.classList.remove('hidden','warn');if(warn)n.classList.add('warn');
+          }
+          $('#liveButton').onclick=()=>{
+           let mode=$('#liveButton').dataset.mode;
+           if(mode==='meal'){markEvent('ate');renderAll();setNotice(`Comida registrada a las ${timeLabel(eventTime('ate'))}. WeekFlow avanza al siguiente paso.`)}
+           else if(mode==='prepare'){markEvent('ready');renderAll();setNotice(`Preparación registrada a las ${timeLabel(eventTime('ready'))}.`)}
+           else if(mode==='leave-home'){markEvent('leftHome');renderAll();setNotice(`Saliste de casa a las ${timeLabel(eventTime('leftHome'))}. Desde ahora la hora real manda sobre la planificada.`)}
+           else if(mode==='commute-work'){markEvent('arrivedWork');renderAll();setNotice(`Llegada registrada a las ${timeLabel(eventTime('arrivedWork'))}.`)}
+           else if(mode==='during'||mode==='after'){
+            let now=new Date();markEvent('leftWork');brain.actualLeaveByDate[dateKey()]=eventTime('leftWork');save();
+            let planned=currentShift().end,delta=nowMin()-mins(planned),phrase=Math.abs(delta)<10?'casi a la hora':delta>0?`${delta} min más tarde`:`${Math.abs(delta)} min antes`;
+            renderAll();setNotice(`Saliste del trabajo a las ${timeLabel(eventTime('leftWork'))} (${phrase}). Recalculé el regreso y solo moví lo flexible.`);
+           }
+           else if(mode==='commute-home'){markEvent('arrivedHome');renderAll();setNotice(`Llegaste a casa a las ${timeLabel(eventTime('arrivedHome'))}. WeekFlow deja un margen antes de lo siguiente.`)}
+           else if(mode==='before'){setNotice(`Tu turno empieza a las ${currentShift().start}. La salida recomendada es ${fmtMin(preShiftTimes(currentShift()).depart)}.`)}
+           else if(mode==='off'){setNotice('Nada urgente. WeekFlow deja este espacio libre a propósito.')}
+           else if(mode==='night'){setNotice('Descanso primero. Las actividades flexibles quedan para después de recuperar.')}
+          };
+
+          function renderWeek(){
+           let start=new Date(),d=(start.getDay()+6)%7;start.setDate(start.getDate()-d);let end=new Date(start);end.setDate(start.getDate()+6);
+           $('#weekRange').textContent=`${start.toLocaleDateString('es-CL',{day:'numeric',month:'long'})} — ${end.toLocaleDateString('es-CL',{day:'numeric',month:'long'})}`;
+           let box=$('#weekDays');box.innerHTML='';
+           brain.shifts.forEach(s=>{
+            let pre=preShiftTimes(s);
+            let logistics=s.type==='off'?'Nada urgente':`Salir ${fmtMin(pre.depart)} · preparar ${fmtMin(pre.prep)}`;
+            let el=document.createElement('div');el.className='day';
+            el.innerHTML=`<div class="dayTop"><div><b>${s.day}</b><div style="color:var(--muted);margin-top:3px">${s.type==='off'?'Día libre':`${s.start}–${s.end}`}</div></div><span class="badge">${shiftLabel(s)}</span></div><div class="brainNote">${logistics}</div>`;
+            box.appendChild(el)
+           })
+          }
+          function renderShiftForm(){
+           let f=$('#shiftForm');f.innerHTML='';
+           brain.shifts.forEach((s,i)=>{
+            let w=document.createElement('div');w.className='pillar';
+            w.innerHTML=`<b>${s.day}</b><select class="select type"><option value="morning">🌅 Mañana</option><option value="afternoon">🌇 Tarde</option><option value="night">🌙 Noche</option><option value="off">🌿 Libre</option><option value="custom">🕐 Personalizado</option></select><div class="row2" style="margin-top:8px"><input class="input start" type="time" value="${s.start||'07:00'}"><input class="input end" type="time" value="${s.end||'16:00'}"></div>`;
+            f.appendChild(w);let type=w.querySelector('.type');type.value=s.type;let a=w.querySelector('.start'),b=w.querySelector('.end');a.disabled=b.disabled=s.type==='off';
+            type.onchange=e=>{s.type=e.target.value;if(s.type==='morning'){s.start='07:00';s.end='16:00'}if(s.type==='afternoon'){s.start='14:00';s.end='22:00'}if(s.type==='night'){s.start='23:00';s.end='07:00'}if(s.type==='off'){s.start='';s.end=''}if(s.type==='custom'&&!s.start){s.start='09:00';s.end='17:00'}save();renderAll()};
+            a.onchange=e=>{s.start=e.target.value;save();renderAll()};b.onchange=e=>{s.end=e.target.value;save();renderAll()}
+           });
+           $('#commuteMin').value=brain.logistics.commuteMin;$('#prepMin').value=brain.logistics.prepMin;$('#bufferMin').value=brain.logistics.bufferMin;$('#sleepHours').value=brain.logistics.sleepHours;
+          }
+          $('#editWeek').onclick=()=>$('#setup').classList.toggle('hidden');
+          $('#saveWeek').onclick=()=>{
+           brain.logistics.commuteMin=Math.max(0,+$('#commuteMin').value||0);
+           brain.logistics.prepMin=Math.max(0,+$('#prepMin').value||0);
+           brain.logistics.bufferMin=Math.max(0,+$('#bufferMin').value||0);
+           brain.logistics.sleepHours=Math.max(5,+$('#sleepHours').value||8);
+           save();$('#setup').classList.add('hidden');renderAll()
+          };
+          
+          const pillarData=[['😴','Descanso','Sueño y recuperación mandan antes de extras.'],['🍽️','Alimentación','Comidas ubicadas alrededor de turnos y traslado.'],['🏃','Movimiento','Flexible según energía real.'],['❤️','Relaciones','Se conserva cuando no choca con lo fijo.'],['🧠','Bienestar','Margen de transición después del trabajo.'],['🏠','Hogar','Flexible y sin sobrecarga.']];
+          function renderPillars(){let b=$('#pillarGrid');b.innerHTML='';pillarData.forEach(x=>{let e=document.createElement('div');e.className='pillar';e.innerHTML=`<div style="font-size:28px">${x[0]}</div><b>${x[1]}</b><p>${x[2]}</p>`;b.appendChild(e)})}
+          function renderGarden(){let m=moodInfo();$('#gardenEnergy').textContent=m[2]}
+          function renderAssistants(){let b=$('#assistantList');b.innerHTML='';Object.entries(assistants).forEach(([id,a])=>{let e=document.createElement('button');e.className='assistant'+(brain.assistant===id?' active':'');e.innerHTML=`<b>${a[0]}</b><small>${a[1]}</small>`;e.onclick=()=>{brain.assistant=id;save();renderAssistants()};b.appendChild(e)});$('#assistantPreview').textContent=assistants[brain.assistant][2]}
+          function setView(v){brain.view=v;save();$$('.view').forEach(x=>x.classList.toggle('active',x.id===`view-${v}`));$$('.tab').forEach(x=>x.classList.toggle('active',x.dataset.view===v))}
+          $$('.tab').forEach(t=>t.onclick=()=>setView(t.dataset.view));
+          
+          function renderAll(){renderMoods();renderWeek();renderShiftForm();renderPillars();renderGarden();renderAssistants();renderLive();setView(brain.view)}
+          renderAll();setInterval(()=>{renderLive();renderBrainStrip()},60000);
+          </script>
+          </body>
+          </html>
+          WEEKFLOW_HTML
+          test -s app/src/main/assets/index.html
+          test -s app/src/main/res/drawable/weekflow_icon.xml
+          grep -q "DÍA VIVO" app/src/main/assets/index.html
+          grep -q "WeekFlow Brain" app/src/main/assets/index.html
+          grep -q "Ya salí de casa" app/src/main/assets/index.html
+          grep -q "En camino al trabajo" app/src/main/assets/index.html
+          grep -q "Ya llegué a casa" app/src/main/assets/index.html
+          grep -q "Hora de cerrar el día" app/src/main/assets/index.html
+          grep -q "Build 1.4.7.3" app/src/main/assets/index.html
+          echo "WeekFlow v4.7.3 project created successfully."
+
+      - name: Verify generated Android project
+        shell: bash
+        run: |
+          gradle :app:dependencies --configuration debugRuntimeClasspath | grep -i "kotlin-stdlib" || true
+
+      - name: Build WeekFlow APK
+        shell: bash
+        run: gradle :app:assembleDebug --stacktrace
+
+      - name: Upload WeekFlow APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: WeekFlow-v4.7.3-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
