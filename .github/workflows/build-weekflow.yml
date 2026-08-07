@@ -23,188 +23,182 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: "8.9"
 
-      - name: Create WeekFlow v3 project
+      - name: Create WeekFlow Android project
         shell: bash
-        env:
-          WEEKFLOW_HTML_GZ: |
-            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
         run: |
           set -euo pipefail
-          mkdir -p app/src/main/java/com/weekflow/app app/src/main/assets
+          mkdir -p app/src/main/java/com/weekflow/app
+          mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/xml
+          mkdir -p app/src/main/assets
 
           cat > settings.gradle <<'EOF'
-          pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
-          dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }
           rootProject.name = "WeekFlow"
           include ':app'
           EOF
 
           cat > build.gradle <<'EOF'
           plugins {
-              id 'com.android.application' version '8.7.3' apply false
+            id 'com.android.application' version '8.5.2' apply false
           }
           EOF
 
+          cat > gradle.properties <<'EOF'
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          android.useAndroidX=true
+          android.nonTransitiveRClass=true
+          EOF
+
           cat > app/build.gradle <<'EOF'
-          plugins { id 'com.android.application' }
+          plugins {
+            id 'com.android.application'
+          }
 
           android {
-              namespace 'com.weekflow.app'
-              compileSdk 35
+            namespace 'com.weekflow.app'
+            compileSdk 35
 
-              defaultConfig {
-                  applicationId 'com.weekflow.app'
-                  minSdk 24
-                  targetSdk 35
-                  versionCode 3
-                  versionName '0.3-core-dia-vivo'
+            defaultConfig {
+              applicationId "com.weekflow.app"
+              minSdk 24
+              targetSdk 35
+              versionCode 4
+              versionName "1.4"
+            }
+
+            buildTypes {
+              debug {
+                minifyEnabled false
               }
+              release {
+                minifyEnabled false
+                proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+              }
+            }
+
+            compileOptions {
+              sourceCompatibility JavaVersion.VERSION_17
+              targetCompatibility JavaVersion.VERSION_17
+            }
+
+            buildFeatures {
+              buildConfig true
+            }
           }
+
+          dependencies {
+            implementation 'androidx.appcompat:appcompat:1.7.0'
+            implementation 'androidx.webkit:webkit:1.11.0'
+            implementation 'androidx.core:core:1.13.1'
+          }
+          EOF
+
+          cat > app/proguard-rules.pro <<'EOF'
+          # No custom rules needed for debug / simple release.
           EOF
 
           cat > app/src/main/AndroidManifest.xml <<'EOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application
-                  android:allowBackup="true"
-                  android:label="WeekFlow"
-                  android:theme="@android:style/Theme.Material.NoActionBar">
-                  <activity
-                      android:name=".MainActivity"
-                      android:screenOrientation="portrait"
-                      android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-              </application>
+            <application
+              android:allowBackup="true"
+              android:label="WeekFlow"
+              android:icon="@android:drawable/sym_def_app_icon"
+              android:theme="@style/Theme.WeekFlow">
+              <activity
+                android:name=".MainActivity"
+                android:exported="true"
+                android:screenOrientation="portrait"
+                android:windowSoftInputMode="adjustResize">
+                <intent-filter>
+                  <action android:name="android.intent.action.MAIN" />
+                  <category android:name="android.intent.category.LAUNCHER" />
+                </intent-filter>
+              </activity>
+            </application>
           </manifest>
+          EOF
+
+          cat > app/src/main/res/values/styles.xml <<'EOF'
+          <resources>
+            <style name="Theme.WeekFlow" parent="Theme.AppCompat.DayNight.NoActionBar">
+              <item name="android:statusBarColor">#071326</item>
+              <item name="android:navigationBarColor">#071326</item>
+              <item name="android:windowBackground">#071326</item>
+            </style>
+          </resources>
+          EOF
+
+          cat > app/src/main/res/xml/backup_rules.xml <<'EOF'
+          <full-backup-content />
+          EOF
+
+          cat > app/src/main/res/xml/data_extraction_rules.xml <<'EOF'
+          <data-extraction-rules />
           EOF
 
           cat > app/src/main/java/com/weekflow/app/MainActivity.java <<'EOF'
           package com.weekflow.app;
 
-          import android.app.Activity;
+          import android.annotation.SuppressLint;
           import android.graphics.Color;
           import android.os.Bundle;
-          import android.view.View;
-          import android.view.Window;
+          import android.webkit.WebChromeClient;
           import android.webkit.WebSettings;
           import android.webkit.WebView;
           import android.webkit.WebViewClient;
+          import androidx.appcompat.app.AppCompatActivity;
+          import androidx.core.view.WindowCompat;
+          import androidx.core.view.WindowInsetsControllerCompat;
 
-          public class MainActivity extends Activity {
-              private WebView webView;
+          public class MainActivity extends AppCompatActivity {
+            private WebView webView;
 
-              @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-                  Window w = getWindow();
-                  w.setStatusBarColor(Color.rgb(7,17,31));
-                  w.setNavigationBarColor(Color.rgb(7,17,31));
-                  w.getDecorView().setSystemUiVisibility(0);
+            @SuppressLint("SetJavaScriptEnabled")
+            @Override
+            protected void onCreate(Bundle savedInstanceState) {
+              super.onCreate(savedInstanceState);
 
-                  webView = new WebView(this);
-                  webView.setBackgroundColor(Color.rgb(7,17,31));
-                  webView.setOnApplyWindowInsetsListener((v, insets) -> {
-                      v.setPadding(0, insets.getSystemWindowInsetTop(), 0, insets.getSystemWindowInsetBottom());
-                      return insets;
-                  });
-                  setContentView(webView);
+              WindowCompat.setDecorFitsSystemWindows(getWindow(), true);
+              getWindow().setStatusBarColor(Color.parseColor("#071326"));
+              getWindow().setNavigationBarColor(Color.parseColor("#071326"));
+              WindowInsetsControllerCompat controller = new WindowInsetsControllerCompat(getWindow(), getWindow().getDecorView());
+              controller.setAppearanceLightStatusBars(false);
+              controller.setAppearanceLightNavigationBars(false);
 
-                  WebSettings settings = webView.getSettings();
-                  settings.setJavaScriptEnabled(true);
-                  settings.setDomStorageEnabled(true);
-                  settings.setAllowFileAccess(true);
-                  settings.setDefaultTextEncodingName("UTF-8");
-                  webView.setWebViewClient(new WebViewClient());
-                  webView.loadUrl("file:///android_asset/index.html");
-              }
+              webView = new WebView(this);
+              setContentView(webView);
 
-              @Override
-              public void onBackPressed() {
-                  if (webView.canGoBack()) webView.goBack();
-                  else super.onBackPressed();
-              }
+              WebSettings settings = webView.getSettings();
+              settings.setJavaScriptEnabled(true);
+              settings.setDomStorageEnabled(true);
+              settings.setAllowFileAccess(true);
+              settings.setLoadWithOverviewMode(true);
+              settings.setUseWideViewPort(true);
+              settings.setBuiltInZoomControls(false);
+              settings.setDisplayZoomControls(false);
+
+              webView.setBackgroundColor(Color.parseColor("#071326"));
+              webView.setWebViewClient(new WebViewClient());
+              webView.setWebChromeClient(new WebChromeClient());
+              webView.loadUrl("file:///android_asset/index.html");
+            }
+
+            @Override
+            public void onBackPressed() {
+              if (webView != null && webView.canGoBack()) webView.goBack();
+              else super.onBackPressed();
+            }
           }
           EOF
 
+          export WEEKFLOW_HTML_GZ='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'
           printf '%s' "$WEEKFLOW_HTML_GZ" | base64 -d | gzip -d > app/src/main/assets/index.html
           test -s app/src/main/assets/index.html
+          grep -q "Tu semana" app/src/main/assets/index.html
           grep -q "DÍA VIVO" app/src/main/assets/index.html
           grep -q "Jardín" app/src/main/assets/index.html
-          echo "WeekFlow v3 project created successfully."
+          echo "WeekFlow v4 project created successfully."
 
       - name: Build WeekFlow APK
         shell: bash
@@ -213,6 +207,6 @@ jobs:
       - name: Upload WeekFlow APK
         uses: actions/upload-artifact@v4
         with:
-          name: WeekFlow-v3-APK
+          name: WeekFlow-v4-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
