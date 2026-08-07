@@ -23,6 +23,8 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
 
       - name: Create WeekFlow Android project
         shell: bash
@@ -63,8 +65,8 @@ jobs:
               applicationId "com.weekflow.app"
               minSdk 24
               targetSdk 35
-              versionCode 4
-              versionName "1.4"
+              versionCode 5
+              versionName "1.4.1"
             }
 
             buildTypes {
@@ -198,7 +200,7 @@ jobs:
           grep -q "Tu semana" app/src/main/assets/index.html
           grep -q "DÍA VIVO" app/src/main/assets/index.html
           grep -q "Jardín" app/src/main/assets/index.html
-          echo "WeekFlow v4 project created successfully."
+          echo "WeekFlow v4.1 project created successfully."
 
       - name: Build WeekFlow APK
         shell: bash
@@ -207,6 +209,6 @@ jobs:
       - name: Upload WeekFlow APK
         uses: actions/upload-artifact@v4
         with:
-          name: WeekFlow-v4-APK
+          name: WeekFlow-v4.1-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
