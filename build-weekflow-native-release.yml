@@ -1,0 +1,96 @@
+name: Build WeekFlow Native APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.13'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Create WeekFlow Android icon
+        shell: bash
+        run: |
+          mkdir -p assets
+          python3 - <<'PY'
+          from PIL import Image, ImageDraw
+          S=1024
+          im=Image.new("RGBA",(S,S),(6,16,31,255))
+          d=ImageDraw.Draw(im)
+          d.rounded_rectangle((70,70,954,954), radius=210, fill=(11,35,71,255), outline=(23,58,112,255), width=18)
+          pts1=[(170,610),(250,400),(355,390),(470,650),(600,650),(700,420),(820,420)]
+          pts2=[(170,610),(250,450),(355,445),(470,700),(600,700),(700,485),(820,485)]
+          d.line(pts2, fill=(47,128,255,255), width=90, joint="curve")
+          d.line(pts1, fill=(87,162,255,255), width=64, joint="curve")
+          d.ellipse((760,170,860,270), fill=(253,181,47,255))
+          im.save("assets/icon.png")
+          im.save("assets/adaptive-icon.png")
+          PY
+
+      - name: Patch Expo icon config
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const p = 'app.json';
+          const j = JSON.parse(fs.readFileSync(p,'utf8'));
+          j.expo = j.expo || {};
+          j.expo.icon = './assets/icon.png';
+          j.expo.android = j.expo.android || {};
+          j.expo.android.adaptiveIcon = {
+            foregroundImage: './assets/adaptive-icon.png',
+            backgroundColor: '#06101F'
+          };
+          fs.writeFileSync(p, JSON.stringify(j, null, 2) + '\n');
+          NODE
+
+      - name: Generate Android project
+        run: npx expo prebuild --platform android --no-install --clean
+
+      - name: Build standalone release APK
+        working-directory: android
+        env:
+          NODE_ENV: production
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Prepare artifact
+        shell: bash
+        run: |
+          mkdir -p output
+          APK="$(find android/app/build/outputs/apk/release -name '*.apk' | head -n 1)"
+          if [ -z "$APK" ]; then
+            echo "No release APK found"
+            exit 1
+          fi
+          cp "$APK" output/WeekFlow-v4.8.0-Standalone.apk
+          ls -lh output/
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: WeekFlow-v4.8.0-Standalone-APK
+          path: output/WeekFlow-v4.8.0-Standalone.apk
+          if-no-files-found: error
