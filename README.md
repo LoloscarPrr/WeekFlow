@@ -2,35 +2,33 @@
 
 **Tu semana. Tu ritmo. Tu equilibrio.**
 
-## v4.8.2 — Core / Día Vivo persistente
+## v4.8.3 — Semana y turnos persistentes
 
-Esta versión continúa el camino canónico: primero estabilizar Core / Día Vivo antes de OCR o de profundizar módulos secundarios.
+Esta versión completa el siguiente bloque canónico del Core: la semana real pasa a ser la fuente de verdad para Día Vivo.
 
 ### Qué cambia
 
-- `src/state/persistence.ts` guarda el contexto del día en SQLite.
-- Energía, turno base, tiempos de traslado/preparación y salida real sobreviven al cierre de la app.
-- `app/index.tsx` carga el estado persistido y alimenta al mismo WeekFlow Brain.
-- `Ya salí` registra la hora real del usuario.
-- `src/brain/engine.ts` replanifica desde esa salida real:
-  - actualiza el regreso a casa,
-  - recalcula la descompresión,
-  - mueve solo los bloques flexibles posteriores.
-- Trabajo, descanso protegido y demás bloques fijos no se destruyen para acomodar una salida tardía.
-- Ida y regreso continúan siendo tiempos separados.
-- La salida real solo se aplica al día en que fue registrada.
+- `src/state/persistence.ts` guarda dos contextos separados pero coordinados en SQLite:
+  - estado del día: energía, tiempos y salida real,
+  - estado de semana: siete turnos persistentes.
+- El turno demo deja de ser la fuente del Brain.
+- `shiftForDate()` resuelve automáticamente el turno correspondiente al día actual.
+- `app/index.tsx` permite editar cada día como trabajo o libre y definir entrada/salida.
+- Cambiar el turno de hoy invalida una salida real antigua para evitar contradicciones.
+- Día Vivo, energía y `Ya salí` siguen alimentando el mismo WeekFlow Brain.
+- Se mantiene la migración desde el formato v4.8.2 para no perder tiempos ya guardados.
 
 ### Principio de producto
 
-La planificación se adapta a la realidad, no al revés. Una modificación real del día debe propagarse por el mismo Core en lugar de generar estados contradictorios entre pantallas.
+Una sola realidad, un solo Core. Semana no puede decir una cosa mientras Ahora calcula otra.
 
 ### Arquitectura
 
 - `src/brain/`: reglas y planificación.
-- `src/state/`: persistencia del estado real.
-- `app/`: experiencia nativa que consume Brain + State.
+- `src/state/`: persistencia canónica de Día Vivo + Semana.
+- `app/`: experiencia nativa que consume esa única fuente de estado.
 - GitHub Actions: compilación, no lógica de producto.
 
 ### Siguiente etapa canónica
 
-Consolidar **turnos y semana persistentes** como una única fuente de verdad nativa. Después de eso: importación/OCR de horarios y confirmación antes de guardar.
+Preparar el **flujo de importación/OCR con confirmación antes de guardar**. OCR no deberá escribir directamente sobre la semana: primero propone turnos detectados, el usuario confirma y recién entonces se actualiza el estado canónico.
