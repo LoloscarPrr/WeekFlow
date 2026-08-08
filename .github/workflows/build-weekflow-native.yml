@@ -48,12 +48,14 @@ jobs:
       - name: Install Pillow
         run: python3 -m pip install pillow
 
-      - name: Create WeekFlow Android icon
+      - name: Create WeekFlow Android and splash assets
         shell: bash
         run: |
           mkdir -p assets
           python3 - <<'PY'
           from PIL import Image, ImageDraw
+
+          # Launcher icon
           S=1024
           im=Image.new("RGBA",(S,S),(6,16,31,255))
           d=ImageDraw.Draw(im)
@@ -65,6 +67,16 @@ jobs:
           d.ellipse((760,170,860,270), fill=(253,181,47,255))
           im.save("assets/icon.png")
           im.save("assets/adaptive-icon.png")
+
+          # Splash mark: transparent W + sun, without the white/default Android panel.
+          splash=Image.new("RGBA",(600,600),(0,0,0,0))
+          s=ImageDraw.Draw(splash)
+          p1=[(95,360),(155,230),(225,225),(300,385),(370,385),(430,245),(505,245)]
+          p2=[(95,360),(155,265),(225,260),(300,420),(370,420),(430,285),(505,285)]
+          s.line(p2, fill=(47,128,255,255), width=54, joint="curve")
+          s.line(p1, fill=(87,162,255,255), width=38, joint="curve")
+          s.ellipse((445,100,515,170), fill=(253,181,47,255))
+          splash.save("assets/splash-icon.png")
           PY
 
       - name: Patch Expo icon config
