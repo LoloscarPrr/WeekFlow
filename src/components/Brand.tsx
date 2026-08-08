@@ -1,12 +1,13 @@
 import { View, Text, StyleSheet, Image } from 'react-native';
-import { WEEKFLOW_ICON_DATA_URI } from '@/src/brand/canonicalIcon';
 import { colors } from '@/src/theme/colors';
+
+const OFFICIAL_ICON = require('../../assets/brand/weekflow-icon.webp');
 
 export function Brand() {
   return (
     <View style={styles.row}>
       <Image
-        source={{ uri: WEEKFLOW_ICON_DATA_URI }}
+        source={OFFICIAL_ICON}
         style={styles.logo}
         resizeMode="cover"
         accessibilityLabel="Logo oficial de WeekFlow"
