@@ -2,15 +2,17 @@
   "expo": {
     "name": "WeekFlow",
     "slug": "weekflow",
-    "version": "4.8.5",
+    "version": "0.1.0",
     "orientation": "portrait",
     "scheme": "weekflow",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
+    "icon": "./assets/icon.png",
     "android": {
       "package": "com.weekflow.app",
-      "versionCode": 21,
+      "versionCode": 22,
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#071326"
       }
     },
@@ -21,12 +23,12 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#071326",
-          "image": "./assets/splash-icon.png",
-          "imageWidth": 180,
+          "image": "./assets/splash-official.png",
+          "imageWidth": 320,
           "resizeMode": "contain",
           "dark": {
             "backgroundColor": "#071326",
-            "image": "./assets/splash-icon.png"
+            "image": "./assets/splash-official.png"
           }
         }
       ]
