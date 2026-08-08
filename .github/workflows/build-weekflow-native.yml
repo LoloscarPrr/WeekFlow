@@ -26,10 +26,20 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Read WeekFlow version
+        id: version
+        shell: bash
+        run: |
+          VERSION="$(node -p "require('./app.json').expo.version")"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Building WeekFlow v$VERSION"
+
       - name: Install dependencies
         run: npm install
+
       - name: Install Pillow
         run: python3 -m pip install pillow
+
       - name: Create WeekFlow Android icon
         shell: bash
         run: |
@@ -80,18 +90,19 @@ jobs:
       - name: Prepare artifact
         shell: bash
         run: |
+          VERSION="${{ steps.version.outputs.version }}"
           mkdir -p output
           APK="$(find android/app/build/outputs/apk/release -name '*.apk' | head -n 1)"
           if [ -z "$APK" ]; then
             echo "No release APK found"
             exit 1
           fi
-          cp "$APK" output/WeekFlow-v4.8.0-Standalone.apk
+          cp "$APK" "output/WeekFlow-v${VERSION}-Standalone.apk"
           ls -lh output/
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: WeekFlow-v4.8.0-Standalone-APK
-          path: output/WeekFlow-v4.8.0-Standalone.apk
+          name: WeekFlow-v${{ steps.version.outputs.version }}-Standalone-APK
+          path: output/WeekFlow-v${{ steps.version.outputs.version }}-Standalone.apk
           if-no-files-found: error
