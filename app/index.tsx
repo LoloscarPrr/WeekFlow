@@ -1,11 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScrollView, View, Text, StyleSheet, Pressable } from 'react-native';
+import { ScrollView, View, Text, StyleSheet, Pressable, TextInput } from 'react-native';
 import { Brand } from '@/src/components/Brand';
 import { buildBrainPlan, replanAfterActualExit } from '@/src/brain/engine';
-import type { BrainSnapshot, Energy } from '@/src/brain/types';
-import { loadDayState, saveDayState, type PersistedDayState } from '@/src/state/persistence';
+import type { BrainSnapshot, Energy, ShiftType } from '@/src/brain/types';
+import {
+  loadDayState,
+  loadWeekState,
+  saveDayState,
+  saveWeekState,
+  shiftForDate,
+  type PersistedDayState,
+  type PersistedWeekState,
+} from '@/src/state/persistence';
 import { colors } from '@/src/theme/colors';
+
+const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
 const energyOptions: { value: Energy; label: string; icon: string }[] = [
   { value: 'vigoroso', label: 'Vigoroso', icon: '🔋' },
@@ -30,12 +40,33 @@ function isToday(iso: string | null) {
   );
 }
 
+function todayIndex() {
+  return (new Date().getDay() + 6) % 7;
+}
+
+function normalizeTime(value: string) {
+  const clean = value.replace(/[^0-9:]/g, '').slice(0, 5);
+  return clean;
+}
+
+function classifyShift(start: string, end: string): ShiftType {
+  if (!start || !end) return 'off';
+  const hour = Number(start.split(':')[0]);
+  const endHour = Number(end.split(':')[0]);
+  if (hour >= 18 || endHour <= 8 || end < start) return 'night';
+  if (hour < 11) return 'morning';
+  if (hour < 18) return 'afternoon';
+  return 'custom';
+}
+
 export default function NowScreen() {
   const [dayState, setDayState] = useState<PersistedDayState>(() => loadDayState());
+  const [weekState, setWeekState] = useState<PersistedWeekState>(() => loadWeekState());
 
+  const todayShift = useMemo(() => shiftForDate(weekState), [weekState]);
   const snapshot = useMemo<BrainSnapshot>(
-    () => ({ ...dayState.snapshot, energy: dayState.energy }),
-    [dayState.energy, dayState.snapshot],
+    () => ({ ...dayState.settings, shift: todayShift, energy: dayState.energy }),
+    [dayState.energy, dayState.settings, todayShift],
   );
 
   const basePlan = useMemo(() => buildBrainPlan(snapshot), [snapshot]);
@@ -48,9 +79,8 @@ export default function NowScreen() {
     [basePlan, dayState.actualExit, hasActualExit, snapshot],
   );
 
-  useEffect(() => {
-    saveDayState(dayState);
-  }, [dayState]);
+  useEffect(() => saveDayState(dayState), [dayState]);
+  useEffect(() => saveWeekState(weekState), [weekState]);
 
   function updateEnergy(energy: Energy) {
     setDayState((current) => ({ ...current, energy }));
@@ -65,13 +95,49 @@ export default function NowScreen() {
     }));
   }
 
+  function updateShift(day: number, patch: { start?: string; end?: string; off?: boolean }) {
+    setWeekState((current) => {
+      const shifts = current.shifts.map((item) => {
+        if (item.day !== day) return item;
+        if (patch.off === true) return { ...item, start: '', end: '', type: 'off' as ShiftType };
+
+        const start = patch.start !== undefined ? normalizeTime(patch.start) : item.start;
+        const end = patch.end !== undefined ? normalizeTime(patch.end) : item.end;
+        return { ...item, start, end, type: classifyShift(start, end) };
+      });
+      return { shifts };
+    });
+
+    if (day === todayIndex()) {
+      setDayState((current) => ({ ...current, actualExit: null, actualExitAt: null }));
+    }
+  }
+
+  function setWorkDay(day: number) {
+    setWeekState((current) => {
+      const shifts = current.shifts.map((item) =>
+        item.day === day
+          ? {
+              ...item,
+              start: item.start || '09:00',
+              end: item.end || '17:00',
+              type: classifyShift(item.start || '09:00', item.end || '17:00'),
+            }
+          : item,
+      );
+      return { shifts };
+    });
+  }
+
+  const shiftLabel = snapshot.shift.type === 'off' ? 'Libre' : `${snapshot.shift.start}–${snapshot.shift.end}`;
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.top}>
           <Brand />
           <View style={styles.build}>
-            <Text style={styles.buildText}>Build 4.8.2</Text>
+            <Text style={styles.buildText}>Build 4.8.3</Text>
           </View>
         </View>
 
@@ -80,7 +146,7 @@ export default function NowScreen() {
           <Text style={styles.title}>
             Tu semana{'\n'}fluye contigo<Text style={styles.blue}>.</Text>
           </Text>
-          <Text style={styles.subtitle}>Día Vivo ya recuerda tu estado y reacciona a la hora real.</Text>
+          <Text style={styles.subtitle}>Ahora Día Vivo nace de tu semana real, no de un turno demo.</Text>
         </View>
 
         <View style={styles.card}>
@@ -93,7 +159,7 @@ export default function NowScreen() {
           </View>
 
           <View style={styles.stats}>
-            <Stat value={`${snapshot.shift.start}–${snapshot.shift.end}`} label="Turno" />
+            <Stat value={shiftLabel} label="Hoy" />
             <Stat value={`${snapshot.commuteOutMin}/${snapshot.commuteBackMin}`} label="Ida / vuelta" />
             <Stat value={energyLabel(dayState.energy)} label="Energía" />
           </View>
@@ -162,15 +228,69 @@ export default function NowScreen() {
           ))}
         </View>
 
+        <Text style={styles.section}>TU SEMANA</Text>
+        <View style={styles.weekCard}>
+          <Text style={styles.weekIntro}>Estos turnos se guardan en SQLite y son la única fuente que usa Día Vivo.</Text>
+          {weekState.shifts.map((shift) => {
+            const isTodayRow = shift.day === todayIndex();
+            const off = shift.type === 'off';
+            return (
+              <View key={shift.day} style={[styles.dayRow, isTodayRow && styles.dayRowToday]}>
+                <View style={styles.dayHeader}>
+                  <View>
+                    <Text style={styles.dayName}>{DAYS[shift.day]}{isTodayRow ? ' · Hoy' : ''}</Text>
+                    <Text style={styles.dayState}>{off ? '🌿 Libre' : `💼 ${shift.start || '--:--'}–${shift.end || '--:--'}`}</Text>
+                  </View>
+                  <Pressable
+                    style={[styles.dayToggle, off ? styles.dayToggleOff : styles.dayToggleWork]}
+                    onPress={() => off ? setWorkDay(shift.day) : updateShift(shift.day, { off: true })}
+                  >
+                    <Text style={styles.dayToggleText}>{off ? 'Agregar turno' : 'Marcar libre'}</Text>
+                  </Pressable>
+                </View>
+
+                {!off ? (
+                  <View style={styles.timeRow}>
+                    <View style={styles.timeField}>
+                      <Text style={styles.fieldLabel}>Entrada</Text>
+                      <TextInput
+                        value={shift.start}
+                        onChangeText={(value) => updateShift(shift.day, { start: value })}
+                        placeholder="09:00"
+                        placeholderTextColor="#55708F"
+                        maxLength={5}
+                        keyboardType="numbers-and-punctuation"
+                        style={styles.timeInput}
+                      />
+                    </View>
+                    <View style={styles.timeField}>
+                      <Text style={styles.fieldLabel}>Salida</Text>
+                      <TextInput
+                        value={shift.end}
+                        onChangeText={(value) => updateShift(shift.day, { end: value })}
+                        placeholder="17:00"
+                        placeholderTextColor="#55708F"
+                        maxLength={5}
+                        keyboardType="numbers-and-punctuation"
+                        style={styles.timeInput}
+                      />
+                    </View>
+                  </View>
+                ) : null}
+              </View>
+            );
+          })}
+        </View>
+
         <View style={styles.info}>
-          <Text style={styles.infoTitle}>Core / Día Vivo v4.8.2</Text>
+          <Text style={styles.infoTitle}>Core / Semana v4.8.3</Text>
           <Text style={styles.infoText}>
-            • energía y estado del día persisten en SQLite{'\n'}
-            • cerrar y abrir la app ya no reinicia el contexto{'\n'}
-            • “Ya salí” guarda la hora real{'\n'}
-            • el Brain reprograma regreso, recuperación y bloques flexibles{'\n'}
-            • ida y regreso siguen siendo independientes{'\n'}
-            • el siguiente bloque canónico es consolidar turnos/semanas persistentes
+            • los siete días se guardan como semana persistente{'\n'}
+            • Día Vivo lee automáticamente el turno de hoy{'\n'}
+            • se eliminó el turno demo como fuente del Brain{'\n'}
+            • cambiar hoy invalida una salida real antigua{'\n'}
+            • energía, tiempos y “Ya salí” siguen conectados al mismo Core{'\n'}
+            • la siguiente etapa puede preparar importación/OCR con confirmación antes de guardar
           </Text>
         </View>
       </ScrollView>
@@ -239,6 +359,21 @@ const styles = StyleSheet.create({
   timelineIcon: { width: 25, fontSize: 19 },
   timelineTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
   timelineDetail: { color: colors.muted, fontSize: 13, lineHeight: 18, marginTop: 3 },
+  weekCard: { backgroundColor: '#09182C', borderWidth: 1, borderColor: '#173151', borderRadius: 26, padding: 14 },
+  weekIntro: { color: colors.muted, fontSize: 14, lineHeight: 20, marginBottom: 8 },
+  dayRow: { padding: 14, borderRadius: 19, backgroundColor: '#0C1B32', borderWidth: 1, borderColor: '#173151', marginTop: 9 },
+  dayRowToday: { borderColor: '#2D75D8', backgroundColor: '#0D2340' },
+  dayHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
+  dayName: { color: colors.text, fontWeight: '900', fontSize: 16 },
+  dayState: { color: colors.muted, fontSize: 13, marginTop: 4 },
+  dayToggle: { paddingHorizontal: 11, paddingVertical: 9, borderRadius: 14, borderWidth: 1 },
+  dayToggleOff: { backgroundColor: '#102B4E', borderColor: '#245A97' },
+  dayToggleWork: { backgroundColor: '#16271F', borderColor: '#315E43' },
+  dayToggleText: { color: colors.text, fontWeight: '800', fontSize: 12 },
+  timeRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
+  timeField: { flex: 1 },
+  fieldLabel: { color: colors.muted, fontSize: 11, fontWeight: '800', marginBottom: 5 },
+  timeInput: { color: colors.text, fontSize: 16, fontWeight: '800', borderWidth: 1, borderColor: '#234466', backgroundColor: '#071526', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 11 },
   info: { marginTop: 14, padding: 20, borderRadius: 24, backgroundColor: '#071526', borderWidth: 1, borderColor: '#15304E' },
   infoTitle: { color: colors.text, fontWeight: '800', fontSize: 18 },
   infoText: { color: colors.muted, fontSize: 15, lineHeight: 24, marginTop: 10 },
