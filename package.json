@@ -1,6 +1,6 @@
 {
   "name": "weekflow",
-  "version": "4.8.1",
+  "version": "4.8.2",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
