@@ -2,14 +2,14 @@
   "expo": {
     "name": "WeekFlow",
     "slug": "weekflow",
-    "version": "4.8.1",
+    "version": "4.8.2",
     "orientation": "portrait",
     "scheme": "weekflow",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "android": {
       "package": "com.weekflow.app",
-      "versionCode": 17,
+      "versionCode": 18,
       "adaptiveIcon": {
         "backgroundColor": "#06101F"
       }
