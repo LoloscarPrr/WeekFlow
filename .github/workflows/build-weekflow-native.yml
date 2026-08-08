@@ -28,7 +28,8 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-
+      - name: Install Pillow
+        run: python3 -m pip install pillow
       - name: Create WeekFlow Android icon
         shell: bash
         run: |
