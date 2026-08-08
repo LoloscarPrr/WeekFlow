@@ -79,6 +79,8 @@ jobs:
           const version = require('./app.json').expo.version;
           const path = 'app/index.tsx';
           let source = fs.readFileSync(path, 'utf8');
+          source = source.replace(/Build \d+\.\d+\.\d+/g, `Alpha ${version}`);
+          source = source.replace(/UX \/ Semana v\d+\.\d+\.\d+/g, `UX / Semana · Alpha ${version}`);
           source = source.replace(/Alpha \d+\.\d+\.\d+/g, `Alpha ${version}`);
           fs.writeFileSync(path, source);
           NODE
