@@ -7,6 +7,7 @@ on:
     paths:
       - "app/**"
       - "src/**"
+      - "assets/brand/**"
       - "app.json"
       - "package.json"
       - ".github/workflows/build-weekflow-native.yml"
@@ -40,7 +41,7 @@ jobs:
         run: |
           VERSION="$(node -p "require('./app.json').expo.version")"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Building WeekFlow v$VERSION"
+          echo "Building WeekFlow Alpha v$VERSION"
 
       - name: Install dependencies
         run: npm install
@@ -48,55 +49,29 @@ jobs:
       - name: Install Pillow
         run: python3 -m pip install pillow
 
-      - name: Materialize canonical WeekFlow logo
-        shell: bash
-        run: |
-          mkdir -p assets
-          node <<'NODE'
-          const fs = require('fs');
-          const source = fs.readFileSync('src/brand/canonicalIcon.ts', 'utf8');
-          const match = source.match(/WEEKFLOW_ICON_BASE64\s*=\s*`([^`]+)`/s);
-          if (!match) throw new Error('Canonical WeekFlow logo was not found.');
-          fs.writeFileSync('assets/weekflow-canonical.png', Buffer.from(match[1], 'base64'));
-          NODE
-
-      - name: Prepare launcher, adaptive and splash assets from canonical logo
+      - name: Prepare Android assets from locked official artwork
         shell: bash
         run: |
           python3 - <<'PY'
           from PIL import Image
+          from pathlib import Path
 
-          src = Image.open('assets/weekflow-canonical.png').convert('RGBA')
-          bg = src.getpixel((0, 0))[:3]
+          icon_source = Path('assets/brand/weekflow-icon.webp')
+          splash_source = Path('assets/brand/weekflow-splash.webp')
+          if not icon_source.exists() or not splash_source.exists():
+              raise RuntimeError('Missing locked WeekFlow brand assets.')
 
-          # Launcher: exact approved artwork, only resized to Android's recommended canvas.
-          launcher = src.resize((1024, 1024), Image.Resampling.LANCZOS)
-          launcher.save('assets/icon.png')
+          # No redraw, recolor, background removal or reinterpretation is allowed here.
+          # Only platform-required resizing/format conversion is performed.
+          icon = Image.open(icon_source).convert('RGB')
+          icon.resize((1024, 1024), Image.Resampling.LANCZOS).save('assets/icon.png')
+          icon.resize((1024, 1024), Image.Resampling.LANCZOS).save('assets/adaptive-icon.png')
 
-          # Adaptive/splash: remove only the canonical flat navy background.
-          mark = src.copy()
-          pixels = mark.load()
-          for y in range(mark.height):
-              for x in range(mark.width):
-                  r, g, b, a = pixels[x, y]
-                  if abs(r-bg[0]) <= 2 and abs(g-bg[1]) <= 2 and abs(b-bg[2]) <= 2:
-                      pixels[x, y] = (r, g, b, 0)
-
-          bbox = mark.getbbox()
-          if not bbox:
-              raise RuntimeError('Canonical WeekFlow mark is empty.')
-          mark = mark.crop(bbox)
-
-          canvas = Image.new('RGBA', (1024, 1024), (0, 0, 0, 0))
-          scale = min(620 / mark.width, 620 / mark.height)
-          size = (round(mark.width * scale), round(mark.height * scale))
-          mark = mark.resize(size, Image.Resampling.LANCZOS)
-          canvas.alpha_composite(mark, ((1024-size[0])//2, (1024-size[1])//2))
-          canvas.save('assets/adaptive-icon.png')
-          canvas.save('assets/splash-icon.png')
+          splash = Image.open(splash_source).convert('RGB')
+          splash.save('assets/splash-official.png')
           PY
 
-      - name: Keep visible build label synchronized
+      - name: Keep visible alpha label synchronized
         shell: bash
         run: |
           node <<'NODE'
@@ -104,26 +79,8 @@ jobs:
           const version = require('./app.json').expo.version;
           const path = 'app/index.tsx';
           let source = fs.readFileSync(path, 'utf8');
-          source = source.replace(/Build \d+\.\d+\.\d+/g, `Build ${version}`);
-          source = source.replace(/v\d+\.\d+\.\d+/g, `v${version}`);
+          source = source.replace(/Alpha \d+\.\d+\.\d+/g, `Alpha ${version}`);
           fs.writeFileSync(path, source);
-          NODE
-
-      - name: Patch Expo canonical icon config
-        shell: bash
-        run: |
-          node <<'NODE'
-          const fs = require('fs');
-          const p = 'app.json';
-          const j = JSON.parse(fs.readFileSync(p,'utf8'));
-          j.expo = j.expo || {};
-          j.expo.icon = './assets/icon.png';
-          j.expo.android = j.expo.android || {};
-          j.expo.android.adaptiveIcon = {
-            foregroundImage: './assets/adaptive-icon.png',
-            backgroundColor: '#071326'
-          };
-          fs.writeFileSync(p, JSON.stringify(j, null, 2) + '\n');
           NODE
 
       - name: Generate Android project
@@ -147,12 +104,12 @@ jobs:
             echo "No release APK found"
             exit 1
           fi
-          cp "$APK" "output/WeekFlow-v${VERSION}-Standalone.apk"
+          cp "$APK" "output/WeekFlow-Alpha-v${VERSION}-Standalone.apk"
           ls -lh output/
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: WeekFlow-v${{ steps.version.outputs.version }}-Standalone-APK
-          path: output/WeekFlow-v${{ steps.version.outputs.version }}-Standalone.apk
+          name: WeekFlow-Alpha-v${{ steps.version.outputs.version }}-Standalone-APK
+          path: output/WeekFlow-Alpha-v${{ steps.version.outputs.version }}-Standalone.apk
           if-no-files-found: error
