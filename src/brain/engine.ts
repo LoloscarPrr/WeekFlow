@@ -87,23 +87,23 @@ function buildWorkDay(snapshot: BrainSnapshot): BrainPlan {
 
   const moments = [
     moment(pre.wake, '☀️', 'Despertar', `Calculado desde tu entrada a las ${snapshot.shift.start}.`, 'wake', false),
-    moment(pre.meal, '🍽️', 'Comer antes del turno', 'Un bloque breve antes de prepararte.', 'food'),
+    moment(pre.meal, '🍽️', 'Comer antes de la jornada', 'Un bloque breve antes de prepararte.', 'food'),
     moment(pre.prep, '🚿', 'Prepararte', `${snapshot.prepMin} min reservados.`, 'prep', false),
     moment(pre.leave, '🚇', 'Salir hacia el trabajo', `${snapshot.commuteOutMin} min de traslado + ${snapshot.bufferMin} min de margen.`, 'commute-out', false),
-    moment(snapshot.shift.start, '💼', 'Turno de trabajo', `${snapshot.shift.start}–${snapshot.shift.end}`, 'work', false),
+    moment(snapshot.shift.start, '💼', 'Jornada de trabajo', `${snapshot.shift.start}–${snapshot.shift.end}`, 'work', false),
     moment(snapshot.shift.end, '🚇', 'Regreso a casa', `${snapshot.commuteBackMin} min estimados de regreso.`, 'commute-back', false),
     moment(recovery, '🧠', 'Descompresión', 'Bajar revoluciones después de llegar.', 'recovery'),
   ];
 
   if (snapshot.energy !== 'agotado') {
     moments.push(
-      moment(addMinutes(recovery, 45), '🍽️', 'Comer / recuperar', 'Bloque simple después del turno.', 'food'),
+      moment(addMinutes(recovery, 45), '🍽️', 'Comer / recuperar', 'Bloque simple después de la jornada.', 'food'),
     );
   }
 
   return {
     mode: 'workday',
-    headline: 'Tu turno marca el ritmo',
+    headline: 'Tu jornada marca el ritmo',
     summary: 'El Brain calcula hacia atrás para que llegar al trabajo no destruya el resto del día.',
     primary: moment(pre.leave, '🚇', 'Salir a tiempo', `Salida sugerida: ${pre.leave}.`, 'commute-out', false),
     moments,
@@ -120,17 +120,17 @@ function buildNightShift(snapshot: BrainSnapshot): BrainPlan {
     moment(snapshot.shift.end, '🚇', 'Regreso a casa', `${snapshot.commuteBackMin} min estimados de regreso.`, 'commute-back', false),
     moment(recovery, '🧠', 'Bajar revoluciones', 'Después de la noche, Rest gana prioridad.', 'recovery'),
     moment(sleep, '😴', 'Dormir / recuperar', 'Protegemos recuperación antes de añadir extras.', 'rest', false),
-    moment(pre.wake, '☀️', 'Despertar', 'Calculado hacia atrás desde el próximo turno.', 'wake', false),
-    moment(pre.meal, '🍲', 'Comer antes del turno', 'Evitar improvisar durante la noche.', 'food'),
+    moment(pre.wake, '☀️', 'Despertar', 'Calculado hacia atrás desde la próxima jornada.', 'wake', false),
+    moment(pre.meal, '🍲', 'Comer antes de la jornada', 'Evitar improvisar durante la noche.', 'food'),
     moment(pre.prep, '🚿', 'Prepararte', `${snapshot.prepMin} min reservados.`, 'prep', false),
     moment(pre.leave, '🚇', 'Salir hacia el trabajo', `${snapshot.commuteOutMin} min de traslado + ${snapshot.bufferMin} min de margen.`, 'commute-out', false),
-    moment(snapshot.shift.start, '💼', 'Turno de trabajo', `${snapshot.shift.start}–${snapshot.shift.end}`, 'work', false),
+    moment(snapshot.shift.start, '💼', 'Jornada de trabajo', `${snapshot.shift.start}–${snapshot.shift.end}`, 'work', false),
   ];
 
   return {
     mode: 'night-shift',
     headline: 'Primero recuperarte',
-    summary: 'En turno nocturno, WeekFlow protege sueño y recuperación antes de colocar lo flexible.',
+    summary: 'En una jornada nocturna, WeekFlow protege sueño y recuperación antes de colocar lo flexible.',
     primary: moment(sleep, '😴', 'Dormir / recuperar', `Ventana sugerida desde ${sleep}.`, 'rest', false),
     moments,
   };
@@ -191,7 +191,7 @@ export function replanAfterActualExit(
 
   return {
     ...currentPlan,
-    headline: 'Turno terminado · día actualizado',
+    headline: 'Jornada terminada · día actualizado',
     summary: `Tomé ${actualExit} como tu salida real y moví solo lo flexible.`,
     primary: moment(
       actualExit,
