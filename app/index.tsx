@@ -1,20 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView, View, Text, StyleSheet, Pressable } from 'react-native';
 import { Brand } from '@/src/components/Brand';
-import { buildBrainPlan } from '@/src/brain/engine';
+import { buildBrainPlan, replanAfterActualExit } from '@/src/brain/engine';
 import type { BrainSnapshot, Energy } from '@/src/brain/types';
+import { loadDayState, saveDayState, type PersistedDayState } from '@/src/state/persistence';
 import { colors } from '@/src/theme/colors';
-
-const baseSnapshot: Omit<BrainSnapshot, 'energy'> = {
-  shift: { start: '12:30', end: '21:30', type: 'afternoon' },
-  commuteOutMin: 75,
-  commuteBackMin: 75,
-  prepMin: 35,
-  bufferMin: 15,
-  mealMin: 25,
-  recoveryMin: 30,
-};
 
 const energyOptions: { value: Energy; label: string; icon: string }[] = [
   { value: 'vigoroso', label: 'Vigoroso', icon: '🔋' },
@@ -23,14 +14,56 @@ const energyOptions: { value: Energy; label: string; icon: string }[] = [
   { value: 'agotado', label: 'Agotado', icon: '😴' },
 ];
 
+function currentHm() {
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+}
+
+function isToday(iso: string | null) {
+  if (!iso) return false;
+  const date = new Date(iso);
+  const today = new Date();
+  return (
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate()
+  );
+}
+
 export default function NowScreen() {
-  const [energy, setEnergy] = useState<Energy>('bien');
+  const [dayState, setDayState] = useState<PersistedDayState>(() => loadDayState());
 
   const snapshot = useMemo<BrainSnapshot>(
-    () => ({ ...baseSnapshot, energy }),
-    [energy],
+    () => ({ ...dayState.snapshot, energy: dayState.energy }),
+    [dayState.energy, dayState.snapshot],
   );
-  const plan = useMemo(() => buildBrainPlan(snapshot), [snapshot]);
+
+  const basePlan = useMemo(() => buildBrainPlan(snapshot), [snapshot]);
+  const hasActualExit = Boolean(dayState.actualExit && isToday(dayState.actualExitAt));
+  const plan = useMemo(
+    () =>
+      hasActualExit && dayState.actualExit
+        ? replanAfterActualExit(snapshot, basePlan, dayState.actualExit)
+        : basePlan,
+    [basePlan, dayState.actualExit, hasActualExit, snapshot],
+  );
+
+  useEffect(() => {
+    saveDayState(dayState);
+  }, [dayState]);
+
+  function updateEnergy(energy: Energy) {
+    setDayState((current) => ({ ...current, energy }));
+  }
+
+  function markActualExit() {
+    const now = new Date();
+    setDayState((current) => ({
+      ...current,
+      actualExit: currentHm(),
+      actualExitAt: now.toISOString(),
+    }));
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -38,7 +71,7 @@ export default function NowScreen() {
         <View style={styles.top}>
           <Brand />
           <View style={styles.build}>
-            <Text style={styles.buildText}>Build 4.8.1</Text>
+            <Text style={styles.buildText}>Build 4.8.2</Text>
           </View>
         </View>
 
@@ -47,7 +80,7 @@ export default function NowScreen() {
           <Text style={styles.title}>
             Tu semana{'\n'}fluye contigo<Text style={styles.blue}>.</Text>
           </Text>
-          <Text style={styles.subtitle}>El Brain real ya vive dentro de la app nativa.</Text>
+          <Text style={styles.subtitle}>Día Vivo ya recuerda tu estado y reacciona a la hora real.</Text>
         </View>
 
         <View style={styles.card}>
@@ -61,20 +94,20 @@ export default function NowScreen() {
 
           <View style={styles.stats}>
             <Stat value={`${snapshot.shift.start}–${snapshot.shift.end}`} label="Turno" />
-            <Stat value={`${snapshot.commuteOutMin} min`} label="Ida" />
-            <Stat value={energyLabel(energy)} label="Energía" />
+            <Stat value={`${snapshot.commuteOutMin}/${snapshot.commuteBackMin}`} label="Ida / vuelta" />
+            <Stat value={energyLabel(dayState.energy)} label="Energía" />
           </View>
         </View>
 
         <Text style={styles.section}>¿CÓMO LLEGAS HOY?</Text>
         <View style={styles.energyGrid}>
           {energyOptions.map((item) => {
-            const active = item.value === energy;
+            const active = item.value === dayState.energy;
             return (
               <Pressable
                 key={item.value}
                 style={[styles.energyButton, active && styles.energyButtonActive]}
-                onPress={() => setEnergy(item.value)}
+                onPress={() => updateEnergy(item.value)}
               >
                 <Text style={styles.energyIcon}>{item.icon}</Text>
                 <Text style={[styles.energyText, active && styles.energyTextActive]}>{item.label}</Text>
@@ -93,12 +126,24 @@ export default function NowScreen() {
             </View>
           </View>
           <Text style={styles.liveCopy}>{plan.primary.detail}</Text>
-          <View style={styles.button}>
-            <Text style={styles.buttonText}>Brain 4.8.1 activo ✓</Text>
-          </View>
+
+          {snapshot.shift.type !== 'off' && !hasActualExit ? (
+            <Pressable style={styles.exitButton} onPress={markActualExit}>
+              <Text style={styles.exitButtonText}>✓ Ya salí</Text>
+            </Pressable>
+          ) : hasActualExit ? (
+            <View style={styles.confirmation}>
+              <Text style={styles.confirmationText}>Salida real registrada · {dayState.actualExit}</Text>
+              <Text style={styles.confirmationMuted}>Solo movimos lo flexible. Tu turno y prioridades siguen protegidos.</Text>
+            </View>
+          ) : (
+            <View style={styles.button}>
+              <Text style={styles.buttonText}>Día libre · dejamos espacio real</Text>
+            </View>
+          )}
         </View>
 
-        <Text style={styles.section}>PLAN GENERADO</Text>
+        <Text style={styles.section}>LO QUE VIENE</Text>
         <View style={styles.timelineCard}>
           {plan.moments.map((item, index) => (
             <View
@@ -118,13 +163,14 @@ export default function NowScreen() {
         </View>
 
         <View style={styles.info}>
-          <Text style={styles.infoTitle}>Migración v4.8.1</Text>
+          <Text style={styles.infoTitle}>Core / Día Vivo v4.8.2</Text>
           <Text style={styles.infoText}>
-            • src/brain/engine.ts contiene la lógica real{'\n'}
-            • la pantalla consume BrainPlan, no horarios escritos a mano{'\n'}
-            • energía modifica el plan al instante{'\n'}
-            • ida y regreso ya son tiempos independientes{'\n'}
-            • el siguiente paso puede conectar estado persistente y “Ya salí”
+            • energía y estado del día persisten en SQLite{'\n'}
+            • cerrar y abrir la app ya no reinicia el contexto{'\n'}
+            • “Ya salí” guarda la hora real{'\n'}
+            • el Brain reprograma regreso, recuperación y bloques flexibles{'\n'}
+            • ida y regreso siguen siendo independientes{'\n'}
+            • el siguiente bloque canónico es consolidar turnos/semanas persistentes
           </Text>
         </View>
       </ScrollView>
@@ -181,6 +227,11 @@ const styles = StyleSheet.create({
   liveCopy: { color: '#BCCBE0', fontSize: 16, lineHeight: 23, marginTop: 20 },
   button: { backgroundColor: '#17345E', borderWidth: 1, borderColor: '#2C5C9B', borderRadius: 20, padding: 17, alignItems: 'center', marginTop: 20 },
   buttonText: { color: colors.text, fontWeight: '800', fontSize: 16 },
+  exitButton: { backgroundColor: colors.blue, borderRadius: 20, padding: 17, alignItems: 'center', marginTop: 20 },
+  exitButtonText: { color: '#FFFFFF', fontWeight: '900', fontSize: 17 },
+  confirmation: { backgroundColor: '#0D322F', borderWidth: 1, borderColor: '#1E6B61', borderRadius: 20, padding: 16, marginTop: 20 },
+  confirmationText: { color: '#8EEBD8', fontWeight: '900', fontSize: 15 },
+  confirmationMuted: { color: '#91BEB6', fontSize: 13, lineHeight: 19, marginTop: 5 },
   timelineCard: { backgroundColor: '#09182C', borderWidth: 1, borderColor: '#173151', borderRadius: 26, paddingHorizontal: 18 },
   timelineRow: { flexDirection: 'row', gap: 11, paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#132A47' },
   timelineRowLast: { borderBottomWidth: 0 },
