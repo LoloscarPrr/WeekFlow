@@ -141,4 +141,68 @@ export function buildBrainPlan(snapshot: BrainSnapshot): BrainPlan {
   return isNightShift(snapshot) ? buildNightShift(snapshot) : buildWorkDay(snapshot);
 }
 
+export function replanAfterActualExit(
+  snapshot: BrainSnapshot,
+  currentPlan: BrainPlan,
+  actualExit: string,
+): BrainPlan {
+  if (snapshot.shift.type === 'off') return currentPlan;
+
+  const homeAt = addMinutes(actualExit, snapshot.commuteBackMin);
+  const recoveryAt = addMinutes(homeAt, snapshot.recoveryMin);
+  let flexibleCursor = toMinutes(recoveryAt);
+
+  const moments = currentPlan.moments.map((item) => {
+    if (item.type === 'commute-back') {
+      return {
+        ...item,
+        time: actualExit,
+        detail: `Salida real ${actualExit} · ${snapshot.commuteBackMin} min estimados de regreso.`,
+      };
+    }
+
+    if (item.type === 'recovery') {
+      flexibleCursor = toMinutes(recoveryAt) + 45;
+      return {
+        ...item,
+        time: recoveryAt,
+        detail: 'Reprogramado desde tu salida real. Primero bajar revoluciones.',
+      };
+    }
+
+    if (item.flexible && ['food', 'move', 'personal'].includes(item.type)) {
+      const originalTime = toMinutes(item.time);
+      const shiftEnd = toMinutes(snapshot.shift.end);
+      const occursAfterShift = originalTime >= shiftEnd || snapshot.shift.end < snapshot.shift.start;
+
+      if (occursAfterShift) {
+        const time = formatMinutes(flexibleCursor);
+        flexibleCursor += 45;
+        return {
+          ...item,
+          time,
+          detail: `${item.detail} · Reprogramado por tu salida real.`,
+        };
+      }
+    }
+
+    return item;
+  });
+
+  return {
+    ...currentPlan,
+    headline: 'Turno terminado · día actualizado',
+    summary: `Tomé ${actualExit} como tu salida real y moví solo lo flexible.`,
+    primary: moment(
+      actualExit,
+      '✓',
+      'Ya saliste',
+      `Regreso estimado a casa: ${homeAt}.`,
+      'commute-back',
+      false,
+    ),
+    moments,
+  };
+}
+
 export const brainTime = { toMinutes, formatMinutes, addMinutes };
