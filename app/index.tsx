@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScrollView, View, Text, StyleSheet, Pressable, TextInput } from 'react-native';
+import { ScrollView, View, Text, StyleSheet, Pressable } from 'react-native';
+import DateTimePicker from '@expo/ui/community/datetime-picker';
 import { Brand } from '@/src/components/Brand';
 import { buildBrainPlan, replanAfterActualExit } from '@/src/brain/engine';
 import type { BrainSnapshot, Energy, ShiftType } from '@/src/brain/types';
@@ -24,6 +25,12 @@ const energyOptions: { value: Energy; label: string; icon: string }[] = [
   { value: 'agotado', label: 'Agotado', icon: '😴' },
 ];
 
+type TimePickerTarget = {
+  day: number;
+  field: 'start' | 'end';
+  value: Date;
+};
+
 function currentHm() {
   const now = new Date();
   return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -44,11 +51,6 @@ function todayIndex() {
   return (new Date().getDay() + 6) % 7;
 }
 
-function normalizeTime(value: string) {
-  const clean = value.replace(/[^0-9:]/g, '').slice(0, 5);
-  return clean;
-}
-
 function classifyShift(start: string, end: string): ShiftType {
   if (!start || !end) return 'off';
   const hour = Number(start.split(':')[0]);
@@ -59,9 +61,22 @@ function classifyShift(start: string, end: string): ShiftType {
   return 'custom';
 }
 
+function dateFromTime(value: string, fallback: string) {
+  const source = /^\d{2}:\d{2}$/.test(value) ? value : fallback;
+  const [hours, minutes] = source.split(':').map(Number);
+  const date = new Date();
+  date.setHours(hours, minutes, 0, 0);
+  return date;
+}
+
+function timeFromDate(date: Date) {
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+
 export default function NowScreen() {
   const [dayState, setDayState] = useState<PersistedDayState>(() => loadDayState());
   const [weekState, setWeekState] = useState<PersistedWeekState>(() => loadWeekState());
+  const [timePicker, setTimePicker] = useState<TimePickerTarget | null>(null);
 
   const todayShift = useMemo(() => shiftForDate(weekState), [weekState]);
   const snapshot = useMemo<BrainSnapshot>(
@@ -101,8 +116,8 @@ export default function NowScreen() {
         if (item.day !== day) return item;
         if (patch.off === true) return { ...item, start: '', end: '', type: 'off' as ShiftType };
 
-        const start = patch.start !== undefined ? normalizeTime(patch.start) : item.start;
-        const end = patch.end !== undefined ? normalizeTime(patch.end) : item.end;
+        const start = patch.start !== undefined ? patch.start : item.start;
+        const end = patch.end !== undefined ? patch.end : item.end;
         return { ...item, start, end, type: classifyShift(start, end) };
       });
       return { shifts };
@@ -129,7 +144,25 @@ export default function NowScreen() {
     });
   }
 
-  const shiftLabel = snapshot.shift.type === 'off' ? 'Libre' : `${snapshot.shift.start}–${snapshot.shift.end}`;
+  function openTimePicker(day: number, field: 'start' | 'end', value: string) {
+    setTimePicker({
+      day,
+      field,
+      value: dateFromTime(value, field === 'start' ? '09:00' : '17:00'),
+    });
+  }
+
+  function applyPickedTime(selectedDate: Date) {
+    if (!timePicker) return;
+    const value = timeFromDate(selectedDate);
+    updateShift(
+      timePicker.day,
+      timePicker.field === 'start' ? { start: value } : { end: value },
+    );
+    setTimePicker(null);
+  }
+
+  const jornadaLabel = snapshot.shift.type === 'off' ? 'Libre' : `${snapshot.shift.start}–${snapshot.shift.end}`;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -137,7 +170,7 @@ export default function NowScreen() {
         <View style={styles.top}>
           <Brand />
           <View style={styles.build}>
-            <Text style={styles.buildText}>Build 4.8.3</Text>
+            <Text style={styles.buildText}>Build 4.8.4</Text>
           </View>
         </View>
 
@@ -146,7 +179,7 @@ export default function NowScreen() {
           <Text style={styles.title}>
             Tu semana{'\n'}fluye contigo<Text style={styles.blue}>.</Text>
           </Text>
-          <Text style={styles.subtitle}>Ahora Día Vivo nace de tu semana real, no de un turno demo.</Text>
+          <Text style={styles.subtitle}>Día Vivo nace de tu semana real y se adapta a cada jornada.</Text>
         </View>
 
         <View style={styles.card}>
@@ -159,7 +192,7 @@ export default function NowScreen() {
           </View>
 
           <View style={styles.stats}>
-            <Stat value={shiftLabel} label="Hoy" />
+            <Stat value={jornadaLabel} label="Jornada de hoy" />
             <Stat value={`${snapshot.commuteOutMin}/${snapshot.commuteBackMin}`} label="Ida / vuelta" />
             <Stat value={energyLabel(dayState.energy)} label="Energía" />
           </View>
@@ -200,7 +233,7 @@ export default function NowScreen() {
           ) : hasActualExit ? (
             <View style={styles.confirmation}>
               <Text style={styles.confirmationText}>Salida real registrada · {dayState.actualExit}</Text>
-              <Text style={styles.confirmationMuted}>Solo movimos lo flexible. Tu turno y prioridades siguen protegidos.</Text>
+              <Text style={styles.confirmationMuted}>Solo movimos lo flexible. Tu jornada y prioridades siguen protegidas.</Text>
             </View>
           ) : (
             <View style={styles.button}>
@@ -230,7 +263,7 @@ export default function NowScreen() {
 
         <Text style={styles.section}>TU SEMANA</Text>
         <View style={styles.weekCard}>
-          <Text style={styles.weekIntro}>Estos turnos se guardan en SQLite y son la única fuente que usa Día Vivo.</Text>
+          <Text style={styles.weekIntro}>Tus jornadas se guardan en SQLite y son la única fuente que usa Día Vivo.</Text>
           {weekState.shifts.map((shift) => {
             const isTodayRow = shift.day === todayIndex();
             const off = shift.type === 'off';
@@ -245,7 +278,7 @@ export default function NowScreen() {
                     style={[styles.dayToggle, off ? styles.dayToggleOff : styles.dayToggleWork]}
                     onPress={() => off ? setWorkDay(shift.day) : updateShift(shift.day, { off: true })}
                   >
-                    <Text style={styles.dayToggleText}>{off ? 'Agregar turno' : 'Marcar libre'}</Text>
+                    <Text style={styles.dayToggleText}>{off ? 'Agregar jornada' : 'Marcar libre'}</Text>
                   </Pressable>
                 </View>
 
@@ -253,27 +286,27 @@ export default function NowScreen() {
                   <View style={styles.timeRow}>
                     <View style={styles.timeField}>
                       <Text style={styles.fieldLabel}>Entrada</Text>
-                      <TextInput
-                        value={shift.start}
-                        onChangeText={(value) => updateShift(shift.day, { start: value })}
-                        placeholder="09:00"
-                        placeholderTextColor="#55708F"
-                        maxLength={5}
-                        keyboardType="numbers-and-punctuation"
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`Cambiar entrada del ${DAYS[shift.day]}`}
                         style={styles.timeInput}
-                      />
+                        onPress={() => openTimePicker(shift.day, 'start', shift.start)}
+                      >
+                        <Text style={styles.timeInputText}>{shift.start || '09:00'}</Text>
+                        <Text style={styles.timeInputHint}>Tocar para cambiar</Text>
+                      </Pressable>
                     </View>
                     <View style={styles.timeField}>
                       <Text style={styles.fieldLabel}>Salida</Text>
-                      <TextInput
-                        value={shift.end}
-                        onChangeText={(value) => updateShift(shift.day, { end: value })}
-                        placeholder="17:00"
-                        placeholderTextColor="#55708F"
-                        maxLength={5}
-                        keyboardType="numbers-and-punctuation"
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`Cambiar salida del ${DAYS[shift.day]}`}
                         style={styles.timeInput}
-                      />
+                        onPress={() => openTimePicker(shift.day, 'end', shift.end)}
+                      >
+                        <Text style={styles.timeInputText}>{shift.end || '17:00'}</Text>
+                        <Text style={styles.timeInputHint}>Tocar para cambiar</Text>
+                      </Pressable>
                     </View>
                   </View>
                 ) : null}
@@ -283,17 +316,30 @@ export default function NowScreen() {
         </View>
 
         <View style={styles.info}>
-          <Text style={styles.infoTitle}>Core / Semana v4.8.3</Text>
+          <Text style={styles.infoTitle}>UX / Semana v4.8.4</Text>
           <Text style={styles.infoText}>
-            • los siete días se guardan como semana persistente{'\n'}
-            • Día Vivo lee automáticamente el turno de hoy{'\n'}
-            • se eliminó el turno demo como fuente del Brain{'\n'}
-            • cambiar hoy invalida una salida real antigua{'\n'}
-            • energía, tiempos y “Ya salí” siguen conectados al mismo Core{'\n'}
-            • la siguiente etapa puede preparar importación/OCR con confirmación antes de guardar
+            • “Jornada” reemplaza “turno” en la interfaz{'\n'}
+            • Entrada y Salida usan el selector de hora nativo{'\n'}
+            • ya no tienes que borrar ni escribir HH:MM manualmente{'\n'}
+            • la splash oficial usa la identidad WeekFlow{'\n'}
+            • el modelo interno conserva Shift para no romper datos existentes{'\n'}
+            • Core, Día Vivo y “Ya salí” siguen compartiendo la misma semana persistente
           </Text>
         </View>
       </ScrollView>
+
+      {timePicker ? (
+        <DateTimePicker
+          value={timePicker.value}
+          mode="time"
+          presentation="dialog"
+          display="clock"
+          is24Hour
+          accentColor={colors.blue}
+          onValueChange={(_, selectedDate) => applyPickedTime(selectedDate)}
+          onDismiss={() => setTimePicker(null)}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -373,7 +419,9 @@ const styles = StyleSheet.create({
   timeRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
   timeField: { flex: 1 },
   fieldLabel: { color: colors.muted, fontSize: 11, fontWeight: '800', marginBottom: 5 },
-  timeInput: { color: colors.text, fontSize: 16, fontWeight: '800', borderWidth: 1, borderColor: '#234466', backgroundColor: '#071526', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 11 },
+  timeInput: { borderWidth: 1, borderColor: '#234466', backgroundColor: '#071526', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 11, minHeight: 64, justifyContent: 'center' },
+  timeInputText: { color: colors.text, fontSize: 18, fontWeight: '900' },
+  timeInputHint: { color: '#66809F', fontSize: 10, fontWeight: '700', marginTop: 3 },
   info: { marginTop: 14, padding: 20, borderRadius: 24, backgroundColor: '#071526', borderWidth: 1, borderColor: '#15304E' },
   infoTitle: { color: colors.text, fontWeight: '800', fontSize: 18 },
   infoText: { color: colors.muted, fontSize: 15, lineHeight: 24, marginTop: 10 },
