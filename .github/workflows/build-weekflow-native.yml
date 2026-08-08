@@ -48,38 +48,68 @@ jobs:
       - name: Install Pillow
         run: python3 -m pip install pillow
 
-      - name: Create WeekFlow Android and splash assets
+      - name: Materialize canonical WeekFlow logo
         shell: bash
         run: |
           mkdir -p assets
+          node <<'NODE'
+          const fs = require('fs');
+          const source = fs.readFileSync('src/brand/canonicalIcon.ts', 'utf8');
+          const match = source.match(/WEEKFLOW_ICON_BASE64\s*=\s*`([^`]+)`/s);
+          if (!match) throw new Error('Canonical WeekFlow logo was not found.');
+          fs.writeFileSync('assets/weekflow-canonical.png', Buffer.from(match[1], 'base64'));
+          NODE
+
+      - name: Prepare launcher, adaptive and splash assets from canonical logo
+        shell: bash
+        run: |
           python3 - <<'PY'
-          from PIL import Image, ImageDraw
+          from PIL import Image
 
-          # Launcher icon
-          S=1024
-          im=Image.new("RGBA",(S,S),(6,16,31,255))
-          d=ImageDraw.Draw(im)
-          d.rounded_rectangle((70,70,954,954), radius=210, fill=(11,35,71,255), outline=(23,58,112,255), width=18)
-          pts1=[(170,610),(250,400),(355,390),(470,650),(600,650),(700,420),(820,420)]
-          pts2=[(170,610),(250,450),(355,445),(470,700),(600,700),(700,485),(820,485)]
-          d.line(pts2, fill=(47,128,255,255), width=90, joint="curve")
-          d.line(pts1, fill=(87,162,255,255), width=64, joint="curve")
-          d.ellipse((760,170,860,270), fill=(253,181,47,255))
-          im.save("assets/icon.png")
-          im.save("assets/adaptive-icon.png")
+          src = Image.open('assets/weekflow-canonical.png').convert('RGBA')
+          bg = src.getpixel((0, 0))[:3]
 
-          # Splash mark: transparent W + sun, without the white/default Android panel.
-          splash=Image.new("RGBA",(600,600),(0,0,0,0))
-          s=ImageDraw.Draw(splash)
-          p1=[(95,360),(155,230),(225,225),(300,385),(370,385),(430,245),(505,245)]
-          p2=[(95,360),(155,265),(225,260),(300,420),(370,420),(430,285),(505,285)]
-          s.line(p2, fill=(47,128,255,255), width=54, joint="curve")
-          s.line(p1, fill=(87,162,255,255), width=38, joint="curve")
-          s.ellipse((445,100,515,170), fill=(253,181,47,255))
-          splash.save("assets/splash-icon.png")
+          # Launcher: exact approved artwork, only resized to Android's recommended canvas.
+          launcher = src.resize((1024, 1024), Image.Resampling.LANCZOS)
+          launcher.save('assets/icon.png')
+
+          # Adaptive/splash: remove only the canonical flat navy background.
+          mark = src.copy()
+          pixels = mark.load()
+          for y in range(mark.height):
+              for x in range(mark.width):
+                  r, g, b, a = pixels[x, y]
+                  if abs(r-bg[0]) <= 2 and abs(g-bg[1]) <= 2 and abs(b-bg[2]) <= 2:
+                      pixels[x, y] = (r, g, b, 0)
+
+          bbox = mark.getbbox()
+          if not bbox:
+              raise RuntimeError('Canonical WeekFlow mark is empty.')
+          mark = mark.crop(bbox)
+
+          canvas = Image.new('RGBA', (1024, 1024), (0, 0, 0, 0))
+          scale = min(620 / mark.width, 620 / mark.height)
+          size = (round(mark.width * scale), round(mark.height * scale))
+          mark = mark.resize(size, Image.Resampling.LANCZOS)
+          canvas.alpha_composite(mark, ((1024-size[0])//2, (1024-size[1])//2))
+          canvas.save('assets/adaptive-icon.png')
+          canvas.save('assets/splash-icon.png')
           PY
 
-      - name: Patch Expo icon config
+      - name: Keep visible build label synchronized
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const version = require('./app.json').expo.version;
+          const path = 'app/index.tsx';
+          let source = fs.readFileSync(path, 'utf8');
+          source = source.replace(/Build \d+\.\d+\.\d+/g, `Build ${version}`);
+          source = source.replace(/v\d+\.\d+\.\d+/g, `v${version}`);
+          fs.writeFileSync(path, source);
+          NODE
+
+      - name: Patch Expo canonical icon config
         shell: bash
         run: |
           node <<'NODE'
@@ -91,7 +121,7 @@ jobs:
           j.expo.android = j.expo.android || {};
           j.expo.android.adaptiveIcon = {
             foregroundImage: './assets/adaptive-icon.png',
-            backgroundColor: '#06101F'
+            backgroundColor: '#071326'
           };
           fs.writeFileSync(p, JSON.stringify(j, null, 2) + '\n');
           NODE

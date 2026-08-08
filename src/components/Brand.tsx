@@ -1,13 +1,16 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
+import { WEEKFLOW_ICON_DATA_URI } from '@/src/brand/canonicalIcon';
 import { colors } from '@/src/theme/colors';
 
 export function Brand() {
   return (
     <View style={styles.row}>
-      <View style={styles.logo}>
-        <Text style={styles.wave}>⌁</Text>
-        <View style={styles.dot} />
-      </View>
+      <Image
+        source={{ uri: WEEKFLOW_ICON_DATA_URI }}
+        style={styles.logo}
+        resizeMode="cover"
+        accessibilityLabel="Logo oficial de WeekFlow"
+      />
       <View>
         <Text style={styles.name}>Week<Text style={styles.blue}>Flow</Text></Text>
         <Text style={styles.sub}>Flujo & Equilibrio</Text>
@@ -22,22 +25,6 @@ const styles = StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 16,
-    backgroundColor: '#0B2347',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    borderWidth: 1,
-    borderColor: '#173A70',
-  },
-  wave: { color: colors.blue, fontWeight: '900', fontSize: 38, marginTop: -7 },
-  dot: {
-    position: 'absolute',
-    width: 9,
-    height: 9,
-    borderRadius: 9,
-    backgroundColor: colors.orange,
-    right: 10,
-    top: 9,
   },
   name: { color: colors.text, fontSize: 28, fontWeight: '800' },
   blue: { color: colors.blue },
