@@ -27,7 +27,7 @@ jobs:
           node-version: '22.13'
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -46,29 +46,30 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Install Pillow
-        run: python3 -m pip install pillow
+      - name: Install brand conversion tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y webp python3-pil
 
       - name: Prepare Android assets from locked official artwork
         shell: bash
         run: |
+          set -euo pipefail
+          test -f assets/brand/weekflow-icon.webp
+          test -f assets/brand/weekflow-splash.webp
+
+          # Decode the founder-approved assets exactly. No redraw, recolor,
+          # background removal or reinterpretation is allowed.
+          dwebp assets/brand/weekflow-icon.webp -o /tmp/weekflow-icon.png
+          dwebp assets/brand/weekflow-splash.webp -o assets/splash-official.png
+
+          # Android requires launcher canvases in a fixed size. Resize only.
           python3 - <<'PY'
           from PIL import Image
-          from pathlib import Path
 
-          icon_source = Path('assets/brand/weekflow-icon.webp')
-          splash_source = Path('assets/brand/weekflow-splash.webp')
-          if not icon_source.exists() or not splash_source.exists():
-              raise RuntimeError('Missing locked WeekFlow brand assets.')
-
-          # No redraw, recolor, background removal or reinterpretation is allowed here.
-          # Only platform-required resizing/format conversion is performed.
-          icon = Image.open(icon_source).convert('RGB')
+          icon = Image.open('/tmp/weekflow-icon.png').convert('RGB')
           icon.resize((1024, 1024), Image.Resampling.LANCZOS).save('assets/icon.png')
           icon.resize((1024, 1024), Image.Resampling.LANCZOS).save('assets/adaptive-icon.png')
-
-          splash = Image.open(splash_source).convert('RGB')
-          splash.save('assets/splash-official.png')
           PY
 
       - name: Keep visible alpha label synchronized
