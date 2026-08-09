@@ -2,7 +2,7 @@
   "expo": {
     "name": "WeekFlow",
     "slug": "weekflow",
-    "version": "0.1.2",
+    "version": "0.2.0",
     "orientation": "portrait",
     "scheme": "weekflow",
     "userInterfaceStyle": "dark",
@@ -10,7 +10,7 @@
     "icon": "./assets/icon.png",
     "android": {
       "package": "com.weekflow.app",
-      "versionCode": 24,
+      "versionCode": 25,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#071326"
@@ -19,6 +19,12 @@
     "plugins": [
       "expo-router",
       "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "WeekFlow necesita acceder a la imagen de tu horario para preparar la importación."
+        }
+      ],
       [
         "expo-splash-screen",
         {
