@@ -55,21 +55,39 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -f assets/brand/weekflow-icon.webp
-          test -f assets/brand/weekflow-splash.webp
 
-          # Decode the founder-approved assets exactly. No redraw, recolor,
-          # background removal or reinterpretation is allowed.
-          dwebp assets/brand/weekflow-icon.webp -o /tmp/weekflow-icon.png
-          dwebp assets/brand/weekflow-splash.webp -o assets/splash-official.png
+          # The approved brand assets are stored as base64 source so the
+          # GitHub text API cannot corrupt the binary files again.
+          node <<'NODE'
+          const fs = require('fs');
 
-          # Android requires launcher canvases in a fixed size. Resize only.
+          function extract(path, constant, output) {
+            const source = fs.readFileSync(path, 'utf8');
+            const pattern = new RegExp(`export const ${constant} = \\`([\\s\\S]*?)\\`;`);
+            const match = source.match(pattern);
+            if (!match) throw new Error(`Could not read ${constant} from ${path}`);
+            fs.writeFileSync(output, Buffer.from(match[1].replace(/\\s+/g, ''), 'base64'));
+          }
+
+          extract('src/brand/canonicalIcon.ts', 'WEEKFLOW_ICON_BASE64', '/tmp/weekflow-icon.png');
+          extract('src/brand/canonicalSplash.ts', 'WEEKFLOW_SPLASH_WEBP_BASE64', '/tmp/weekflow-splash.webp');
+          NODE
+
+          # Splash source is the approved lockup artwork; conversion only.
+          dwebp /tmp/weekflow-splash.webp -o assets/splash-official.png
+
+          # Android requires fixed launcher canvases. Resize only: no redraw,
+          # recolor, background removal or reinterpretation.
           python3 - <<'PY'
           from PIL import Image
 
           icon = Image.open('/tmp/weekflow-icon.png').convert('RGB')
           icon.resize((1024, 1024), Image.Resampling.LANCZOS).save('assets/icon.png')
           icon.resize((1024, 1024), Image.Resampling.LANCZOS).save('assets/adaptive-icon.png')
+
+          splash = Image.open('assets/splash-official.png')
+          print('Official icon source:', icon.size)
+          print('Official splash source:', splash.size)
           PY
 
       - name: Keep visible alpha label synchronized
