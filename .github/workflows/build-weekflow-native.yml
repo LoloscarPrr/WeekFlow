@@ -56,43 +56,15 @@ jobs:
         run: |
           set -euo pipefail
 
-          # The approved brand assets are stored as base64 source so the
-          # GitHub text API cannot corrupt the binary files again.
-          node <<'NODE'
-          const fs = require('fs');
+          # assets/brand is the single source of truth for WeekFlow branding.
+          # Build steps may only convert or resize these files; never redraw,
+          # recolor, crop or reinterpret the founder-approved artwork.
+          dwebp assets/brand/weekflow-splash.webp -o assets/splash-official.png
 
-          function extract(path, constant, output) {
-            const source = fs.readFileSync(path, 'utf8');
-            const marker = `export const ${constant} = `;
-            const start = source.indexOf(marker);
-            if (start === -1) throw new Error(`Could not find ${constant} in ${path}`);
-
-            const valueStart = start + marker.length;
-            const quote = source[valueStart];
-            if (quote !== '`' && quote !== '"' && quote !== "'") {
-              throw new Error(`Unexpected quote for ${constant} in ${path}`);
-            }
-
-            const valueEnd = source.indexOf(quote + ';', valueStart + 1);
-            if (valueEnd === -1) throw new Error(`Could not read ${constant} from ${path}`);
-
-            const base64 = source.slice(valueStart + 1, valueEnd).replace(/\s+/g, '');
-            fs.writeFileSync(output, Buffer.from(base64, 'base64'));
-          }
-
-          extract('src/brand/canonicalIcon.ts', 'WEEKFLOW_ICON_BASE64', '/tmp/weekflow-icon.png');
-          extract('src/brand/canonicalSplash.ts', 'WEEKFLOW_SPLASH_WEBP_BASE64', '/tmp/weekflow-splash.webp');
-          NODE
-
-          # Splash source is the approved lockup artwork; conversion only.
-          dwebp /tmp/weekflow-splash.webp -o assets/splash-official.png
-
-          # Android requires fixed launcher canvases. Resize only: no redraw,
-          # recolor, background removal or reinterpretation.
           python3 - <<'PY'
           from PIL import Image
 
-          icon = Image.open('/tmp/weekflow-icon.png').convert('RGB')
+          icon = Image.open('assets/brand/weekflow-icon.webp').convert('RGB')
           icon.resize((1024, 1024), Image.Resampling.LANCZOS).save('assets/icon.png')
           icon.resize((1024, 1024), Image.Resampling.LANCZOS).save('assets/adaptive-icon.png')
 
