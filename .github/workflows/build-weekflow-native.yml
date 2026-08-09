@@ -63,10 +63,21 @@ jobs:
 
           function extract(path, constant, output) {
             const source = fs.readFileSync(path, 'utf8');
-            const pattern = new RegExp(`export const ${constant} = \\`([\\s\\S]*?)\\`;`);
-            const match = source.match(pattern);
-            if (!match) throw new Error(`Could not read ${constant} from ${path}`);
-            fs.writeFileSync(output, Buffer.from(match[1].replace(/\\s+/g, ''), 'base64'));
+            const marker = `export const ${constant} = `;
+            const start = source.indexOf(marker);
+            if (start === -1) throw new Error(`Could not find ${constant} in ${path}`);
+
+            const valueStart = start + marker.length;
+            const quote = source[valueStart];
+            if (quote !== '`' && quote !== '"' && quote !== "'") {
+              throw new Error(`Unexpected quote for ${constant} in ${path}`);
+            }
+
+            const valueEnd = source.indexOf(quote + ';', valueStart + 1);
+            if (valueEnd === -1) throw new Error(`Could not read ${constant} from ${path}`);
+
+            const base64 = source.slice(valueStart + 1, valueEnd).replace(/\s+/g, '');
+            fs.writeFileSync(output, Buffer.from(base64, 'base64'));
           }
 
           extract('src/brand/canonicalIcon.ts', 'WEEKFLOW_ICON_BASE64', '/tmp/weekflow-icon.png');
