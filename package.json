@@ -1,6 +1,6 @@
 {
   "name": "weekflow",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
@@ -12,6 +12,7 @@
   "dependencies": {
     "@expo/ui": "~57.0.7",
     "expo": "~57.0.8",
+    "expo-image-picker": "~57.0.3",
     "expo-router": "~57.0.7",
     "expo-splash-screen": "~57.0.4",
     "expo-sqlite": "~57.0.1",
