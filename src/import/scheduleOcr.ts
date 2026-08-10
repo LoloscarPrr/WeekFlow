@@ -1,7 +1,8 @@
 import type { ShiftType } from '@/src/brain/types';
 
 export type OcrRect = { left: number; top: number; right: number; bottom: number };
-export type OcrLine = { text: string; frame: OcrRect };
+export type OcrElement = { text: string; frame: OcrRect };
+export type OcrLine = { text: string; frame: OcrRect; elements?: OcrElement[] };
 export type OcrBlock = { text: string; frame: OcrRect; lines: OcrLine[] };
 export type OcrTextResult = { text: string; blocks: OcrBlock[] };
 
@@ -36,6 +37,8 @@ const DAY_WORDS = [
   ['DOMINGO', 'DOM'],
 ];
 
+type PositionedText = { text: string; frame: OcrRect };
+
 function normalize(value: string) {
   return value
     .normalize('NFD')
@@ -62,8 +65,16 @@ function flattenLines(result: OcrTextResult): OcrLine[] {
   return result.blocks.flatMap((block) => block.lines?.length ? block.lines : [{ text: block.text, frame: block.frame }]);
 }
 
-function nameScore(line: string, configuredName: string) {
-  const hay = normalize(line);
+function flattenAtomic(result: OcrTextResult): PositionedText[] {
+  const elements = result.blocks.flatMap((block) =>
+    (block.lines ?? []).flatMap((line) => line.elements?.length ? line.elements : []),
+  );
+  if (elements.length) return elements;
+  return flattenLines(result).map((line) => ({ text: line.text, frame: line.frame }));
+}
+
+function nameScore(text: string, configuredName: string) {
+  const hay = normalize(text);
   const needle = normalize(configuredName);
   if (!needle) return 0;
   if (hay === needle) return 100;
@@ -115,6 +126,7 @@ function chooseShiftPair(times: string[]) {
       if (duration >= 5 * 60 && duration <= 12 * 60) score += 5;
       else score += 2;
       if (excludedBreak) score += 4;
+      if (isLikelyBreakDuration(start)) score -= 8;
       if (start === '00:00' && end === '00:00') score -= 10;
       candidates.push({ start, end, score, excludedBreak });
     }
@@ -165,26 +177,36 @@ function fromTimes(day: number, times: string[], sourceText: string, confidence:
     type: shiftType(chosen.start, chosen.end),
     off: false,
     confidence,
-    issue: times.length > 2 && !chosen.excludedBreak
-      ? 'Detecté horas adicionales; revisa que entrada y salida sean correctas.'
+    issue: times.length > 3
+      ? 'Detecté valores adicionales en esta columna; revisa la jornada.'
       : null,
     sourceText,
   };
 }
 
-function dayHeaderIndex(line: string) {
-  const value = normalize(line);
+function dayHeaderIndex(text: string) {
+  const value = normalize(text);
   return DAY_WORDS.findIndex((variants) => variants.some((variant) => value === variant || value.includes(variant)));
+}
+
+function median(values: number[]) {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
 export function parseScheduleOcr(result: OcrTextResult, configuredName: string): ParsedSchedule {
   const lines = flattenLines(result).filter((line) => line.text?.trim());
-  const ranked = lines
-    .map((line) => ({ line, score: nameScore(line.text, configuredName) }))
-    .filter((item) => item.score > 0)
+  const atomic = flattenAtomic(result).filter((item) => item.text?.trim());
+  const searchUnits: PositionedText[] = [...lines, ...atomic];
+
+  const ranked = searchUnits
+    .map((item) => ({ item, score: nameScore(item.text, configuredName) }))
+    .filter((entry) => entry.score > 0)
     .sort((a, b) => b.score - a.score);
 
-  const best = ranked[0]?.line ?? null;
+  const best = ranked[0]?.item ?? null;
   if (!best) {
     return {
       nameFound: false,
@@ -195,53 +217,64 @@ export function parseScheduleOcr(result: OcrTextResult, configuredName: string):
     };
   }
 
-  const rowTolerance = Math.max(18, height(best.frame) * 1.35);
-  const rowLines = lines
-    .filter((line) => Math.abs(centerY(line.frame) - centerY(best.frame)) <= rowTolerance)
+  const rowTolerance = Math.max(12, height(best.frame) * 1.15);
+  const rowItems = atomic
+    .filter((item) => Math.abs(centerY(item.frame) - centerY(best.frame)) <= rowTolerance)
     .sort((a, b) => centerX(a.frame) - centerX(b.frame));
-  const rowText = rowLines.map((line) => line.text).join(' | ');
+  const rowText = rowItems.map((item) => item.text).join(' | ');
 
-  const headerCandidates = lines
-    .map((line) => ({ line, day: dayHeaderIndex(line.text) }))
-    .filter((item) => item.day >= 0);
+  const headerCandidates = atomic
+    .map((item) => ({ item, day: dayHeaderIndex(item.text) }))
+    .filter((entry) => entry.day >= 0);
 
-  const headers = new Map<number, OcrLine>();
-  for (const item of headerCandidates) {
-    if (!headers.has(item.day)) headers.set(item.day, item.line);
+  const headers = new Map<number, PositionedText>();
+  for (const entry of headerCandidates) {
+    if (!headers.has(entry.day)) headers.set(entry.day, entry.item);
   }
 
   const shifts: ReviewShift[] = [];
   const warnings: string[] = [];
 
   if (headers.size >= 4) {
-    const orderedHeaders = [...headers.entries()].sort((a, b) => centerX(a[1].frame) - centerX(b[1].frame));
+    const headerCenters = [...headers.entries()]
+      .map(([day, item]) => ({ day, x: centerX(item.frame), item }))
+      .sort((a, b) => a.x - b.x);
+    const gaps = headerCenters.slice(1).map((entry, index) => entry.x - headerCenters[index].x).filter((gap) => gap > 0);
+    const typicalGap = median(gaps) || 80;
+
     for (let day = 0; day < 7; day += 1) {
-      const header = headers.get(day);
-      if (!header) {
+      const current = headers.get(day);
+      if (!current) {
         shifts.push(emptyShift(day, 'No pude ubicar la columna de este día.', rowText));
         continue;
       }
-      const x = centerX(header.frame);
-      const positions = orderedHeaders.map(([, line]) => centerX(line.frame));
-      const sorted = [...positions].sort((a, b) => a - b);
-      const index = sorted.indexOf(x);
-      const left = index <= 0 ? -Infinity : (sorted[index - 1] + x) / 2;
-      const right = index >= sorted.length - 1 ? Infinity : (x + sorted[index + 1]) / 2;
-      const cellLines = rowLines.filter((line) => {
-        const cx = centerX(line.frame);
+
+      const x = centerX(current.frame);
+      const previous = headerCenters.filter((entry) => entry.x < x).at(-1);
+      const next = headerCenters.find((entry) => entry.x > x);
+      const left = previous ? (previous.x + x) / 2 : x - typicalGap * 0.55;
+      const right = next ? (x + next.x) / 2 : x + typicalGap * 0.55;
+
+      const cellItems = rowItems.filter((item) => {
+        const cx = centerX(item.frame);
         return cx >= left && cx < right;
       });
-      const cellText = cellLines.map((line) => line.text).join(' ');
+      const cellText = cellItems.map((item) => item.text).join(' ');
       const normalizedCell = normalize(cellText);
+
       if (/\b(LIBRE|DESCANSO|OFF)\b/.test(normalizedCell)) {
         shifts.push({ day, label: DAYS[day], start: '', end: '', type: 'off', off: true, confidence: 'high', issue: null, sourceText: cellText });
-      } else {
-        shifts.push(fromTimes(day, parseTimes(cellText), cellText, 'high'));
+        continue;
       }
+
+      const times = cellItems.flatMap((item) => parseTimes(item.text));
+      shifts.push(fromTimes(day, times, cellText, 'high'));
     }
+
+    warnings.push('Leí la tabla usando la posición real de cada celda. Las columnas externas, como el total semanal, quedaron fuera.');
   } else {
     const normalizedRow = normalize(rowText);
-    const allTimes = parseTimes(rowText);
+    const allTimes = rowItems.flatMap((item) => parseTimes(item.text));
     if (/\b(LIBRE|DESCANSO|OFF)\b/.test(normalizedRow)) {
       warnings.push('Detecté palabras de descanso, pero no todas las columnas del calendario. Revisa cada día antes de confirmar.');
     }
@@ -254,11 +287,9 @@ export function parseScheduleOcr(result: OcrTextResult, configuredName: string):
       shifts.push(fromTimes(day, dayTimes, dayTimes.join(' '), 'medium'));
     }
 
-    if (hasDailyTriples) {
-      warnings.push('Detecté tres valores por día y separé la colación de la entrada y salida. El total semanal quedó fuera del cálculo.');
-    } else {
-      warnings.push('No pude identificar todas las cabeceras de días; organicé las horas de izquierda a derecha para que las revises.');
-    }
+    warnings.push(hasDailyTriples
+      ? 'No pude ubicar todas las cabeceras; interpreté tres valores por día y dejé la revisión obligatoria.'
+      : 'No pude identificar todas las cabeceras de días; organicé las horas de izquierda a derecha para que las revises.');
   }
 
   if (shifts.some((shift) => shift.confidence === 'low' || shift.issue)) {
