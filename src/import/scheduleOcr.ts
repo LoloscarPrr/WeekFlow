@@ -39,6 +39,7 @@ const DAY_WORDS = [
 
 type PositionedText = { text: string; frame: OcrRect };
 type RowCluster = { center: number; items: PositionedText[] };
+type DaySlots = { start: string | null; breakTime: string | null; end: string | null; sourceText: string };
 
 function normalize(value: string) {
   return value
@@ -110,30 +111,6 @@ function isLikelyBreakDuration(time: string) {
   return minutes > 0 && minutes <= 90;
 }
 
-function chooseShiftPair(times: string[]) {
-  if (times.length < 2) return null;
-
-  const candidates: Array<{ start: string; end: string; score: number }> = [];
-  for (let i = 0; i < times.length; i += 1) {
-    for (let j = i + 1; j < times.length; j += 1) {
-      const start = times[i];
-      const end = times[j];
-      const duration = shiftMinutes(start, end);
-      if (duration < 3 * 60 || duration > 14 * 60) continue;
-
-      const excluded = times.filter((_, index) => index !== i && index !== j);
-      let score = duration >= 5 * 60 && duration <= 12 * 60 ? 8 : 3;
-      if (excluded.some(isLikelyBreakDuration)) score += 5;
-      if (isLikelyBreakDuration(start)) score -= 12;
-      if (start === '00:00') score -= 5;
-      candidates.push({ start, end, score });
-    }
-  }
-
-  candidates.sort((a, b) => b.score - a.score);
-  return candidates[0] ?? null;
-}
-
 function shiftType(start: string, end: string): ShiftType {
   const startHour = Number(start.slice(0, 2));
   const endHour = Number(end.slice(0, 2));
@@ -157,8 +134,11 @@ function emptyShift(day: number, issue: string, sourceText = ''): ReviewShift {
   };
 }
 
-function fromTimes(day: number, times: string[], sourceText: string, confidence: ReviewShift['confidence']): ReviewShift {
-  if (times.length >= 2 && times.every((time) => time === '00:00')) {
+function fromStructuredSlots(day: number, slots: DaySlots, confidence: ReviewShift['confidence']): ReviewShift {
+  const { start, breakTime, end, sourceText } = slots;
+  const readValues = [start, breakTime, end].filter((value): value is string => Boolean(value));
+
+  if (readValues.length >= 2 && readValues.every((value) => value === '00:00')) {
     return {
       day,
       label: DAYS[day],
@@ -172,20 +152,43 @@ function fromTimes(day: number, times: string[], sourceText: string, confidence:
     };
   }
 
-  if (times.length < 2) return emptyShift(day, 'No pude leer este día con seguridad.', sourceText);
+  if (!start || !end) {
+    return emptyShift(day, 'No pude leer entrada y salida en sus celdas.', sourceText);
+  }
 
-  const chosen = chooseShiftPair(times);
-  if (!chosen) return emptyShift(day, 'No pude separar entrada, salida y colación.', sourceText);
+  if (start === '00:00' && end === '00:00') {
+    return {
+      day,
+      label: DAYS[day],
+      start: '',
+      end: '',
+      type: 'off',
+      off: true,
+      confidence,
+      issue: breakTime && breakTime !== '00:00' ? 'El día parece libre, pero la celda de colación es distinta de 00:00.' : null,
+      sourceText,
+    };
+  }
 
+  if (isLikelyBreakDuration(start) || isLikelyBreakDuration(end)) {
+    return emptyShift(day, 'Una duración corta cayó en Entrada o Salida. Revisa este día.', sourceText);
+  }
+
+  const duration = shiftMinutes(start, end);
+  if (duration < 3 * 60 || duration > 14 * 60) {
+    return emptyShift(day, 'La entrada y salida leídas no forman una jornada razonable.', sourceText);
+  }
+
+  const breakLooksValid = !breakTime || breakTime === '00:00' || isLikelyBreakDuration(breakTime);
   return {
     day,
     label: DAYS[day],
-    start: chosen.start,
-    end: chosen.end,
-    type: shiftType(chosen.start, chosen.end),
+    start,
+    end,
+    type: shiftType(start, end),
     off: false,
     confidence,
-    issue: times.length > 3 ? 'Detecté valores adicionales en esta columna; revisa la jornada.' : null,
+    issue: breakLooksValid ? null : 'La celda central no parece una colación; revisa este día.',
     sourceText,
   };
 }
@@ -230,12 +233,39 @@ function fittedDayCenters(headers: Map<number, PositionedText>) {
   const denominator = points.reduce((sum, point) => sum + (point.day - meanDay) ** 2, 0);
   if (!denominator) return null;
 
-  const gap = numerator / denominator;
-  if (!Number.isFinite(gap) || Math.abs(gap) < 8) return null;
-  const intercept = meanX - gap * meanDay;
+  const signedGap = numerator / denominator;
+  if (!Number.isFinite(signedGap) || Math.abs(signedGap) < 24) return null;
+  const intercept = meanX - signedGap * meanDay;
   return {
-    gap: Math.abs(gap),
-    centers: Array.from({ length: 7 }, (_, day) => intercept + gap * day),
+    gap: Math.abs(signedGap),
+    centers: Array.from({ length: 7 }, (_, day) => intercept + signedGap * day),
+  };
+}
+
+function closestTimeAtX(items: PositionedText[], expectedX: number, radius: number) {
+  const candidates = items
+    .flatMap((item) => parseTimes(item.text).map((time) => ({ time, item, distance: Math.abs(centerX(item.frame) - expectedX) })))
+    .filter((entry) => entry.distance <= radius)
+    .sort((a, b) => a.distance - b.distance);
+  return candidates[0] ?? null;
+}
+
+function readDaySlots(rowItems: PositionedText[], dayCenter: number, dayGap: number): DaySlots {
+  const subGap = dayGap / 3;
+  const radius = subGap * 0.46;
+  const expected = [dayCenter - subGap, dayCenter, dayCenter + subGap];
+  const found = expected.map((x) => closestTimeAtX(rowItems, x, radius));
+  const sourceItems = found
+    .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
+    .map((entry) => entry.item)
+    .filter((item, index, array) => array.indexOf(item) === index)
+    .sort((a, b) => centerX(a.frame) - centerX(b.frame));
+
+  return {
+    start: found[0]?.time ?? null,
+    breakTime: found[1]?.time ?? null,
+    end: found[2]?.time ?? null,
+    sourceText: sourceItems.map((item) => item.text).join(' '),
   };
 }
 
@@ -262,18 +292,15 @@ export function parseScheduleOcr(result: OcrTextResult, configuredName: string):
 
   const timeAtoms = atomic.filter((item) => parseTimes(item.text).length > 0);
   const typicalHeight = median(timeAtoms.map((item) => height(item.frame))) || height(best.frame);
-  const clusters = clusterRows(timeAtoms, Math.max(5, typicalHeight * 0.8));
+  const clusters = clusterRows(timeAtoms, Math.max(3, typicalHeight * 0.42));
   const nameY = centerY(best.frame);
   const candidateRows = clusters.filter((cluster) => cluster.items.length >= 2);
   const selectedRow = candidateRows
-    .map((cluster) => ({
-      cluster,
-      score: Math.abs(cluster.center - nameY) - Math.min(cluster.items.length, 24) * 0.3,
-    }))
-    .sort((a, b) => a.score - b.score)[0]?.cluster ?? null;
+    .map((cluster) => ({ cluster, distance: Math.abs(cluster.center - nameY) }))
+    .sort((a, b) => a.distance - b.distance)[0]?.cluster ?? null;
 
   const rowCenter = selectedRow?.center ?? nameY;
-  const rowBand = Math.max(10, typicalHeight * 1.35);
+  const rowBand = Math.max(5, typicalHeight * 0.58);
   const rowItems = atomic
     .filter((item) => Math.abs(centerY(item.frame) - rowCenter) <= rowBand)
     .sort((a, b) => centerX(a.frame) - centerX(b.frame));
@@ -293,15 +320,11 @@ export function parseScheduleOcr(result: OcrTextResult, configuredName: string):
   const fit = fittedDayCenters(headers);
 
   if (fit && headers.size >= 2) {
-    const halfWidth = fit.gap * 0.48;
     for (let day = 0; day < 7; day += 1) {
-      const center = fit.centers[day];
-      const cellItems = rowItems.filter((item) => Math.abs(centerX(item.frame) - center) <= halfWidth);
-      const cellText = cellItems.map((item) => item.text).join(' ');
-      const times = cellItems.flatMap((item) => parseTimes(item.text));
-      shifts.push(fromTimes(day, times, cellText, headers.has(day) ? 'high' : 'medium'));
+      const slots = readDaySlots(rowItems, fit.centers[day], fit.gap);
+      shifts.push(fromStructuredSlots(day, slots, headers.has(day) ? 'high' : 'medium'));
     }
-    warnings.push('Leí cada día por su posición real en la tabla. No completé días que el OCR no pudo leer.');
+    warnings.push('Leí cada día como tres celdas fijas: entrada, colación y salida. La columna de total semanal quedó fuera.');
   } else {
     for (let day = 0; day < 7; day += 1) {
       shifts.push(emptyShift(day, 'No pude ubicar esta columna con seguridad.', rowText));
