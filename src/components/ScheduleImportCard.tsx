@@ -89,23 +89,23 @@ export function ScheduleImportCard() {
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: '#0B1D35', borderWidth: 1, borderColor: '#1E4776', borderRadius: 26, padding: 18 },
+  card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 26, padding: 18 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 13 },
-  icon: { width: 50, height: 50, borderRadius: 16, backgroundColor: '#102D52', borderWidth: 1, borderColor: '#2D75D8', alignItems: 'center', justifyContent: 'center' },
+  icon: { width: 50, height: 50, borderRadius: 16, backgroundColor: colors.surface2, borderWidth: 1, borderColor: '#2D75D8', alignItems: 'center', justifyContent: 'center' },
   iconText: { color: '#78C8FF', fontSize: 24, fontWeight: '900' },
   title: { color: colors.text, fontSize: 20, fontWeight: '900' },
   copy: { color: colors.muted, fontSize: 14, lineHeight: 20, marginTop: 4 },
   primary: { marginTop: 16, backgroundColor: colors.blue, borderRadius: 18, paddingVertical: 15, alignItems: 'center' },
   primarySmall: { flex: 1, backgroundColor: colors.blue, borderRadius: 16, paddingVertical: 13, alignItems: 'center' },
   primaryText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900' },
-  pendingBox: { marginTop: 16, flexDirection: 'row', gap: 12, alignItems: 'center', padding: 11, borderRadius: 18, backgroundColor: '#071526', borderWidth: 1, borderColor: '#234466' },
-  preview: { width: 74, height: 74, borderRadius: 13, backgroundColor: '#102238' },
+  pendingBox: { marginTop: 16, flexDirection: 'row', gap: 12, alignItems: 'center', padding: 11, borderRadius: 18, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.line },
+  preview: { width: 74, height: 74, borderRadius: 13, backgroundColor: colors.surface2 },
   ready: { color: '#8EEBD8', fontWeight: '900', fontSize: 15 },
   meta: { color: colors.muted, fontSize: 12, marginTop: 4 },
   safety: { marginTop: 13, borderRadius: 16, padding: 13, backgroundColor: '#10271F', borderWidth: 1, borderColor: '#315E43' },
   safetyTitle: { color: '#A4EAC0', fontWeight: '900', fontSize: 13 },
   safetyText: { color: '#91B69E', fontSize: 12, lineHeight: 18, marginTop: 4 },
   actions: { flexDirection: 'row', gap: 10, marginTop: 12 },
-  secondary: { flex: 1, borderRadius: 16, paddingVertical: 13, alignItems: 'center', borderWidth: 1, borderColor: '#31506F', backgroundColor: '#0B1A2D' },
+  secondary: { flex: 1, borderRadius: 16, paddingVertical: 13, alignItems: 'center', borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface },
   secondaryText: { color: colors.text, fontSize: 15, fontWeight: '800' },
 });
