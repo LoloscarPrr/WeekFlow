@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontWeight: '900', fontSize: 40, lineHeight: 45, marginTop: 11 },
   blue: { color: colors.blue },
   subtitle: { color: colors.muted, fontSize: 16, lineHeight: 23, marginTop: 14 },
-  canonical: { marginTop: 16, padding: 17, borderRadius: 20, backgroundColor: '#071526', borderWidth: 1, borderColor: '#15304E' },
+  canonical: { marginTop: 16, padding: 17, borderRadius: 20, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
   canonicalTitle: { color: colors.text, fontWeight: '900', fontSize: 15 },
   canonicalText: { color: colors.muted, fontSize: 13, lineHeight: 20, marginTop: 6 },
 });
