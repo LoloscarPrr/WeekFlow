@@ -82,6 +82,48 @@ function parseTimes(text: string) {
   return matches.map((match) => `${String(Number(match[1])).padStart(2, '0')}:${match[2]}`);
 }
 
+function toMinutes(time: string) {
+  const [hours, minutes] = time.split(':').map(Number);
+  return hours * 60 + minutes;
+}
+
+function shiftMinutes(start: string, end: string) {
+  let duration = toMinutes(end) - toMinutes(start);
+  if (duration < 0) duration += 24 * 60;
+  return duration;
+}
+
+function isLikelyBreakDuration(time: string) {
+  const minutes = toMinutes(time);
+  return minutes > 0 && minutes <= 90;
+}
+
+function chooseShiftPair(times: string[]) {
+  if (times.length < 2) return null;
+
+  const candidates: Array<{ start: string; end: string; score: number; excludedBreak: boolean }> = [];
+  for (let i = 0; i < times.length; i += 1) {
+    for (let j = i + 1; j < times.length; j += 1) {
+      const start = times[i];
+      const end = times[j];
+      const duration = shiftMinutes(start, end);
+      if (duration < 3 * 60 || duration > 14 * 60) continue;
+
+      const excluded = times.filter((_, index) => index !== i && index !== j);
+      const excludedBreak = excluded.some(isLikelyBreakDuration);
+      let score = 0;
+      if (duration >= 5 * 60 && duration <= 12 * 60) score += 5;
+      else score += 2;
+      if (excludedBreak) score += 4;
+      if (start === '00:00' && end === '00:00') score -= 10;
+      candidates.push({ start, end, score, excludedBreak });
+    }
+  }
+
+  candidates.sort((a, b) => b.score - a.score);
+  return candidates[0] ?? null;
+}
+
 function shiftType(start: string, end: string): ShiftType {
   const startHour = Number(start.slice(0, 2));
   const endHour = Number(end.slice(0, 2));
@@ -105,21 +147,27 @@ function emptyShift(day: number, issue: string, sourceText = ''): ReviewShift {
   };
 }
 
-function fromPair(day: number, times: string[], sourceText: string, confidence: ReviewShift['confidence']): ReviewShift {
+function fromTimes(day: number, times: string[], sourceText: string, confidence: ReviewShift['confidence']): ReviewShift {
   if (times.length < 2) return emptyShift(day, 'No pude leer entrada y salida con seguridad.', sourceText);
-  const [start, end] = times;
-  if (start === '00:00' && end === '00:00') {
-    return emptyShift(day, 'Leí 00:00 / 00:00. Confirma si ese día es libre.', sourceText);
+
+  if (times.every((time) => time === '00:00')) {
+    return emptyShift(day, 'Leí solo 00:00. Confirma si ese día es libre.', sourceText);
   }
+
+  const chosen = chooseShiftPair(times);
+  if (!chosen) return emptyShift(day, 'No pude separar jornada y colación con seguridad.', sourceText);
+
   return {
     day,
     label: DAYS[day],
-    start,
-    end,
-    type: shiftType(start, end),
+    start: chosen.start,
+    end: chosen.end,
+    type: shiftType(chosen.start, chosen.end),
     off: false,
     confidence,
-    issue: times.length > 2 ? 'Detecté horas adicionales; revisa que entrada y salida sean correctas.' : null,
+    issue: times.length > 2 && !chosen.excludedBreak
+      ? 'Detecté horas adicionales; revisa que entrada y salida sean correctas.'
+      : null,
     sourceText,
   };
 }
@@ -188,7 +236,7 @@ export function parseScheduleOcr(result: OcrTextResult, configuredName: string):
       if (/\b(LIBRE|DESCANSO|OFF)\b/.test(normalizedCell)) {
         shifts.push({ day, label: DAYS[day], start: '', end: '', type: 'off', off: true, confidence: 'high', issue: null, sourceText: cellText });
       } else {
-        shifts.push(fromPair(day, parseTimes(cellText), cellText, 'high'));
+        shifts.push(fromTimes(day, parseTimes(cellText), cellText, 'high'));
       }
     }
   } else {
@@ -197,11 +245,20 @@ export function parseScheduleOcr(result: OcrTextResult, configuredName: string):
     if (/\b(LIBRE|DESCANSO|OFF)\b/.test(normalizedRow)) {
       warnings.push('Detecté palabras de descanso, pero no todas las columnas del calendario. Revisa cada día antes de confirmar.');
     }
+
+    const hasDailyTriples = allTimes.length >= 21;
     for (let day = 0; day < 7; day += 1) {
-      const pair = allTimes.slice(day * 2, day * 2 + 2);
-      shifts.push(fromPair(day, pair, rowText, 'medium'));
+      const dayTimes = hasDailyTriples
+        ? allTimes.slice(day * 3, day * 3 + 3)
+        : allTimes.slice(day * 2, day * 2 + 2);
+      shifts.push(fromTimes(day, dayTimes, dayTimes.join(' '), 'medium'));
     }
-    warnings.push('No pude identificar todas las cabeceras de días; organicé las horas de izquierda a derecha para que las revises.');
+
+    if (hasDailyTriples) {
+      warnings.push('Detecté tres valores por día y separé la colación de la entrada y salida. El total semanal quedó fuera del cálculo.');
+    } else {
+      warnings.push('No pude identificar todas las cabeceras de días; organicé las horas de izquierda a derecha para que las revises.');
+    }
   }
 
   if (shifts.some((shift) => shift.confidence === 'low' || shift.issue)) {
