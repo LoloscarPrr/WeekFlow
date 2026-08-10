@@ -7,8 +7,8 @@ import { colors } from '@/src/theme/colors';
 
 export default function ImportScheduleScreen() {
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.content}>
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.top}>
           <Brand />
           <Pressable style={styles.back} onPress={() => router.back()}>
@@ -18,9 +18,9 @@ export default function ImportScheduleScreen() {
 
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>SEMANA · IMPORTAR</Text>
-          <Text style={styles.title}>Tu horario, sin copiarlo a mano<Text style={styles.blue}>.</Text></Text>
+          <Text style={styles.title}>WeekFlow te encuentra en la planilla<Text style={styles.blue}>.</Text></Text>
           <Text style={styles.subtitle}>
-            Primera capa de Alpha 0.2.0: seleccionamos la planilla de forma segura. La semana real no cambia hasta una confirmación explícita.
+            Alpha 0.2.3 lee la captura, busca cómo apareces en el horario y prepara tu semana real. Nada cambia hasta que revises y confirmes.
           </Text>
         </View>
 
@@ -29,7 +29,7 @@ export default function ImportScheduleScreen() {
         <View style={styles.canonical}>
           <Text style={styles.canonicalTitle}>Regla canónica</Text>
           <Text style={styles.canonicalText}>
-            Foto/captura → detectar tu fila → proponer jornadas → revisar → confirmar. Si WeekFlow no está seguro, pregunta; nunca inventa ni guarda por su cuenta.
+            Foto/captura → detectar tu nombre/fila → proponer jornadas → revisar → confirmar. Si WeekFlow no está seguro, lo deja pendiente; nunca inventa ni guarda por su cuenta.
           </Text>
         </View>
       </ScrollView>

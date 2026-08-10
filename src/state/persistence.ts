@@ -4,6 +4,7 @@ import type { BrainSnapshot, Energy, Shift, ShiftType } from '@/src/brain/types'
 const db = SQLite.openDatabaseSync('weekflow.db');
 const DAY_STATE_KEY = 'day-live-state';
 const WEEK_STATE_KEY = 'week-state';
+const USER_PROFILE_KEY = 'user-profile';
 
 export type DaySettings = Omit<BrainSnapshot, 'energy' | 'shift'>;
 
@@ -20,6 +21,10 @@ export type PersistedWeekShift = Shift & {
 
 export type PersistedWeekState = {
   shifts: PersistedWeekShift[];
+};
+
+export type UserProfile = {
+  scheduleName: string;
 };
 
 export const defaultDayState: PersistedDayState = {
@@ -43,6 +48,10 @@ export const defaultWeekState: PersistedWeekState = {
     end: '',
     type: 'off' as ShiftType,
   })),
+};
+
+export const defaultUserProfile: UserProfile = {
+  scheduleName: '',
 };
 
 function ensureTable() {
@@ -86,8 +95,6 @@ export function loadDayState(): PersistedDayState {
   const parsed = readState<any>(DAY_STATE_KEY);
   if (!parsed) return defaultDayState;
 
-  // v4.8.2 stored the timing fields inside `snapshot`.
-  // Migrate them once without keeping a second source of truth for the shift.
   const legacySnapshot = parsed.snapshot ?? {};
 
   return {
@@ -130,6 +137,17 @@ export function loadWeekState(): PersistedWeekState {
 
 export function saveWeekState(state: PersistedWeekState) {
   writeState(WEEK_STATE_KEY, state);
+}
+
+export function loadUserProfile(): UserProfile {
+  const parsed = readState<Partial<UserProfile>>(USER_PROFILE_KEY);
+  return {
+    scheduleName: typeof parsed?.scheduleName === 'string' ? parsed.scheduleName : '',
+  };
+}
+
+export function saveUserProfile(profile: UserProfile) {
+  writeState(USER_PROFILE_KEY, profile);
 }
 
 export function shiftForDate(week: PersistedWeekState, date = new Date()): Shift {
