@@ -38,6 +38,7 @@ const DAY_WORDS = [
 ];
 
 type PositionedText = { text: string; frame: OcrRect };
+type RowCluster = { center: number; items: PositionedText[] };
 
 function normalize(value: string) {
   return value
@@ -112,7 +113,7 @@ function isLikelyBreakDuration(time: string) {
 function chooseShiftPair(times: string[]) {
   if (times.length < 2) return null;
 
-  const candidates: Array<{ start: string; end: string; score: number; excludedBreak: boolean }> = [];
+  const candidates: Array<{ start: string; end: string; score: number }> = [];
   for (let i = 0; i < times.length; i += 1) {
     for (let j = i + 1; j < times.length; j += 1) {
       const start = times[i];
@@ -121,14 +122,11 @@ function chooseShiftPair(times: string[]) {
       if (duration < 3 * 60 || duration > 14 * 60) continue;
 
       const excluded = times.filter((_, index) => index !== i && index !== j);
-      const excludedBreak = excluded.some(isLikelyBreakDuration);
-      let score = 0;
-      if (duration >= 5 * 60 && duration <= 12 * 60) score += 5;
-      else score += 2;
-      if (excludedBreak) score += 4;
-      if (isLikelyBreakDuration(start)) score -= 8;
-      if (start === '00:00' && end === '00:00') score -= 10;
-      candidates.push({ start, end, score, excludedBreak });
+      let score = duration >= 5 * 60 && duration <= 12 * 60 ? 8 : 3;
+      if (excluded.some(isLikelyBreakDuration)) score += 5;
+      if (isLikelyBreakDuration(start)) score -= 12;
+      if (start === '00:00') score -= 5;
+      candidates.push({ start, end, score });
     }
   }
 
@@ -160,14 +158,24 @@ function emptyShift(day: number, issue: string, sourceText = ''): ReviewShift {
 }
 
 function fromTimes(day: number, times: string[], sourceText: string, confidence: ReviewShift['confidence']): ReviewShift {
-  if (times.length < 2) return emptyShift(day, 'No pude leer entrada y salida con seguridad.', sourceText);
-
-  if (times.every((time) => time === '00:00')) {
-    return emptyShift(day, 'Leí solo 00:00. Confirma si ese día es libre.', sourceText);
+  if (times.length >= 2 && times.every((time) => time === '00:00')) {
+    return {
+      day,
+      label: DAYS[day],
+      start: '',
+      end: '',
+      type: 'off',
+      off: true,
+      confidence,
+      issue: null,
+      sourceText,
+    };
   }
 
+  if (times.length < 2) return emptyShift(day, 'No pude leer este día con seguridad.', sourceText);
+
   const chosen = chooseShiftPair(times);
-  if (!chosen) return emptyShift(day, 'No pude separar jornada y colación con seguridad.', sourceText);
+  if (!chosen) return emptyShift(day, 'No pude separar entrada, salida y colación.', sourceText);
 
   return {
     day,
@@ -177,9 +185,7 @@ function fromTimes(day: number, times: string[], sourceText: string, confidence:
     type: shiftType(chosen.start, chosen.end),
     off: false,
     confidence,
-    issue: times.length > 3
-      ? 'Detecté valores adicionales en esta columna; revisa la jornada.'
-      : null,
+    issue: times.length > 3 ? 'Detecté valores adicionales en esta columna; revisa la jornada.' : null,
     sourceText,
   };
 }
@@ -194,6 +200,43 @@ function median(values: number[]) {
   const sorted = [...values].sort((a, b) => a - b);
   const middle = Math.floor(sorted.length / 2);
   return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
+function clusterRows(items: PositionedText[], threshold: number): RowCluster[] {
+  const sorted = [...items].sort((a, b) => centerY(a.frame) - centerY(b.frame));
+  const clusters: RowCluster[] = [];
+
+  for (const item of sorted) {
+    const y = centerY(item.frame);
+    const target = clusters.find((cluster) => Math.abs(cluster.center - y) <= threshold);
+    if (!target) {
+      clusters.push({ center: y, items: [item] });
+      continue;
+    }
+    target.items.push(item);
+    target.center = target.items.reduce((sum, current) => sum + centerY(current.frame), 0) / target.items.length;
+  }
+
+  return clusters;
+}
+
+function fittedDayCenters(headers: Map<number, PositionedText>) {
+  const points = [...headers.entries()].map(([day, item]) => ({ day, x: centerX(item.frame) }));
+  if (points.length < 2) return null;
+
+  const meanDay = points.reduce((sum, point) => sum + point.day, 0) / points.length;
+  const meanX = points.reduce((sum, point) => sum + point.x, 0) / points.length;
+  const numerator = points.reduce((sum, point) => sum + (point.day - meanDay) * (point.x - meanX), 0);
+  const denominator = points.reduce((sum, point) => sum + (point.day - meanDay) ** 2, 0);
+  if (!denominator) return null;
+
+  const gap = numerator / denominator;
+  if (!Number.isFinite(gap) || Math.abs(gap) < 8) return null;
+  const intercept = meanX - gap * meanDay;
+  return {
+    gap: Math.abs(gap),
+    centers: Array.from({ length: 7 }, (_, day) => intercept + gap * day),
+  };
 }
 
 export function parseScheduleOcr(result: OcrTextResult, configuredName: string): ParsedSchedule {
@@ -217,9 +260,22 @@ export function parseScheduleOcr(result: OcrTextResult, configuredName: string):
     };
   }
 
-  const rowTolerance = Math.max(12, height(best.frame) * 1.15);
+  const timeAtoms = atomic.filter((item) => parseTimes(item.text).length > 0);
+  const typicalHeight = median(timeAtoms.map((item) => height(item.frame))) || height(best.frame);
+  const clusters = clusterRows(timeAtoms, Math.max(5, typicalHeight * 0.8));
+  const nameY = centerY(best.frame);
+  const candidateRows = clusters.filter((cluster) => cluster.items.length >= 2);
+  const selectedRow = candidateRows
+    .map((cluster) => ({
+      cluster,
+      score: Math.abs(cluster.center - nameY) - Math.min(cluster.items.length, 24) * 0.3,
+    }))
+    .sort((a, b) => a.score - b.score)[0]?.cluster ?? null;
+
+  const rowCenter = selectedRow?.center ?? nameY;
+  const rowBand = Math.max(10, typicalHeight * 1.35);
   const rowItems = atomic
-    .filter((item) => Math.abs(centerY(item.frame) - centerY(best.frame)) <= rowTolerance)
+    .filter((item) => Math.abs(centerY(item.frame) - rowCenter) <= rowBand)
     .sort((a, b) => centerX(a.frame) - centerX(b.frame));
   const rowText = rowItems.map((item) => item.text).join(' | ');
 
@@ -234,66 +290,27 @@ export function parseScheduleOcr(result: OcrTextResult, configuredName: string):
 
   const shifts: ReviewShift[] = [];
   const warnings: string[] = [];
+  const fit = fittedDayCenters(headers);
 
-  if (headers.size >= 4) {
-    const headerCenters = [...headers.entries()]
-      .map(([day, item]) => ({ day, x: centerX(item.frame), item }))
-      .sort((a, b) => a.x - b.x);
-    const gaps = headerCenters.slice(1).map((entry, index) => entry.x - headerCenters[index].x).filter((gap) => gap > 0);
-    const typicalGap = median(gaps) || 80;
-
+  if (fit && headers.size >= 2) {
+    const halfWidth = fit.gap * 0.48;
     for (let day = 0; day < 7; day += 1) {
-      const current = headers.get(day);
-      if (!current) {
-        shifts.push(emptyShift(day, 'No pude ubicar la columna de este día.', rowText));
-        continue;
-      }
-
-      const x = centerX(current.frame);
-      const previous = headerCenters.filter((entry) => entry.x < x).at(-1);
-      const next = headerCenters.find((entry) => entry.x > x);
-      const left = previous ? (previous.x + x) / 2 : x - typicalGap * 0.55;
-      const right = next ? (x + next.x) / 2 : x + typicalGap * 0.55;
-
-      const cellItems = rowItems.filter((item) => {
-        const cx = centerX(item.frame);
-        return cx >= left && cx < right;
-      });
+      const center = fit.centers[day];
+      const cellItems = rowItems.filter((item) => Math.abs(centerX(item.frame) - center) <= halfWidth);
       const cellText = cellItems.map((item) => item.text).join(' ');
-      const normalizedCell = normalize(cellText);
-
-      if (/\b(LIBRE|DESCANSO|OFF)\b/.test(normalizedCell)) {
-        shifts.push({ day, label: DAYS[day], start: '', end: '', type: 'off', off: true, confidence: 'high', issue: null, sourceText: cellText });
-        continue;
-      }
-
       const times = cellItems.flatMap((item) => parseTimes(item.text));
-      shifts.push(fromTimes(day, times, cellText, 'high'));
+      shifts.push(fromTimes(day, times, cellText, headers.has(day) ? 'high' : 'medium'));
     }
-
-    warnings.push('Leí la tabla usando la posición real de cada celda. Las columnas externas, como el total semanal, quedaron fuera.');
+    warnings.push('Leí cada día por su posición real en la tabla. No completé días que el OCR no pudo leer.');
   } else {
-    const normalizedRow = normalize(rowText);
-    const allTimes = rowItems.flatMap((item) => parseTimes(item.text));
-    if (/\b(LIBRE|DESCANSO|OFF)\b/.test(normalizedRow)) {
-      warnings.push('Detecté palabras de descanso, pero no todas las columnas del calendario. Revisa cada día antes de confirmar.');
-    }
-
-    const hasDailyTriples = allTimes.length >= 21;
     for (let day = 0; day < 7; day += 1) {
-      const dayTimes = hasDailyTriples
-        ? allTimes.slice(day * 3, day * 3 + 3)
-        : allTimes.slice(day * 2, day * 2 + 2);
-      shifts.push(fromTimes(day, dayTimes, dayTimes.join(' '), 'medium'));
+      shifts.push(emptyShift(day, 'No pude ubicar esta columna con seguridad.', rowText));
     }
-
-    warnings.push(hasDailyTriples
-      ? 'No pude ubicar todas las cabeceras; interpreté tres valores por día y dejé la revisión obligatoria.'
-      : 'No pude identificar todas las cabeceras de días; organicé las horas de izquierda a derecha para que las revises.');
+    warnings.push('No pude reconstruir las columnas de la semana con seguridad. Dejé los días pendientes en vez de inventar horarios.');
   }
 
   if (shifts.some((shift) => shift.confidence === 'low' || shift.issue)) {
-    warnings.push('Hay datos que necesitan revisión antes de guardar. WeekFlow no los completará por su cuenta.');
+    warnings.push('Hay datos pendientes de revisión antes de guardar.');
   }
 
   return {
