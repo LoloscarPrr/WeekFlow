@@ -220,7 +220,7 @@ function clusterRows(items: PositionedText[], threshold: number): RowCluster[] {
     target.center = target.items.reduce((sum, current) => sum + centerY(current.frame), 0) / target.items.length;
   }
 
-  return clusters;
+  return clusters.sort((a, b) => a.center - b.center);
 }
 
 function fittedDayCenters(headers: Map<number, PositionedText>) {
@@ -242,29 +242,46 @@ function fittedDayCenters(headers: Map<number, PositionedText>) {
   };
 }
 
-function closestTimeAtX(items: PositionedText[], expectedX: number, radius: number) {
-  const candidates = items
-    .flatMap((item) => parseTimes(item.text).map((time) => ({ time, item, distance: Math.abs(centerX(item.frame) - expectedX) })))
-    .filter((entry) => entry.distance <= radius)
-    .sort((a, b) => a.distance - b.distance);
-  return candidates[0] ?? null;
-}
-
 function readDaySlots(rowItems: PositionedText[], dayCenter: number, dayGap: number): DaySlots {
-  const subGap = dayGap / 3;
-  const radius = subGap * 0.46;
-  const expected = [dayCenter - subGap, dayCenter, dayCenter + subGap];
-  const found = expected.map((x) => closestTimeAtX(rowItems, x, radius));
-  const sourceItems = found
-    .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
+  const left = dayCenter - dayGap * 0.5;
+  const right = dayCenter + dayGap * 0.5;
+  const entries = rowItems
+    .flatMap((item) => parseTimes(item.text).map((time, order) => ({
+      time,
+      item,
+      x: centerX(item.frame),
+      order,
+    })))
+    .filter((entry) => entry.x >= left && entry.x < right)
+    .sort((a, b) => a.x - b.x || a.order - b.order);
+
+  const sourceItems = entries
     .map((entry) => entry.item)
     .filter((item, index, array) => array.indexOf(item) === index)
     .sort((a, b) => centerX(a.frame) - centerX(b.frame));
 
+  if (entries.length >= 3) {
+    return {
+      start: entries[0].time,
+      breakTime: entries[1].time,
+      end: entries[2].time,
+      sourceText: sourceItems.map((item) => item.text).join(' '),
+    };
+  }
+
+  if (entries.length === 2 && entries.every((entry) => entry.time === '00:00')) {
+    return {
+      start: '00:00',
+      breakTime: '00:00',
+      end: null,
+      sourceText: sourceItems.map((item) => item.text).join(' '),
+    };
+  }
+
   return {
-    start: found[0]?.time ?? null,
-    breakTime: found[1]?.time ?? null,
-    end: found[2]?.time ?? null,
+    start: entries[0]?.time ?? null,
+    breakTime: null,
+    end: entries[1]?.time ?? null,
     sourceText: sourceItems.map((item) => item.text).join(' '),
   };
 }
@@ -295,14 +312,22 @@ export function parseScheduleOcr(result: OcrTextResult, configuredName: string):
   const clusters = clusterRows(timeAtoms, Math.max(3, typicalHeight * 0.42));
   const nameY = centerY(best.frame);
   const candidateRows = clusters.filter((cluster) => cluster.items.length >= 2);
-  const selectedRow = candidateRows
-    .map((cluster) => ({ cluster, distance: Math.abs(cluster.center - nameY) }))
-    .sort((a, b) => a.distance - b.distance)[0]?.cluster ?? null;
+  const selectedIndex = candidateRows
+    .map((cluster, index) => ({ index, distance: Math.abs(cluster.center - nameY) }))
+    .sort((a, b) => a.distance - b.distance)[0]?.index ?? -1;
+  const selectedRow = selectedIndex >= 0 ? candidateRows[selectedIndex] : null;
 
   const rowCenter = selectedRow?.center ?? nameY;
-  const rowBand = Math.max(5, typicalHeight * 0.58);
+  const previousRow = selectedIndex > 0 ? candidateRows[selectedIndex - 1] : null;
+  const nextRow = selectedIndex >= 0 && selectedIndex < candidateRows.length - 1 ? candidateRows[selectedIndex + 1] : null;
+  const topBound = previousRow ? (previousRow.center + rowCenter) / 2 : rowCenter - typicalHeight;
+  const bottomBound = nextRow ? (rowCenter + nextRow.center) / 2 : rowCenter + typicalHeight;
+
   const rowItems = atomic
-    .filter((item) => Math.abs(centerY(item.frame) - rowCenter) <= rowBand)
+    .filter((item) => {
+      const y = centerY(item.frame);
+      return y >= topBound && y < bottomBound;
+    })
     .sort((a, b) => centerX(a.frame) - centerX(b.frame));
   const rowText = rowItems.map((item) => item.text).join(' | ');
 
@@ -324,7 +349,7 @@ export function parseScheduleOcr(result: OcrTextResult, configuredName: string):
       const slots = readDaySlots(rowItems, fit.centers[day], fit.gap);
       shifts.push(fromStructuredSlots(day, slots, headers.has(day) ? 'high' : 'medium'));
     }
-    warnings.push('Leí cada día como tres celdas fijas: entrada, colación y salida. La columna de total semanal quedó fuera.');
+    warnings.push('Leí cada día dentro de su bloque real y ordené sus horas como entrada, colación y salida. El total semanal quedó fuera.');
   } else {
     for (let day = 0; day < 7; day += 1) {
       shifts.push(emptyShift(day, 'No pude ubicar esta columna con seguridad.', rowText));
