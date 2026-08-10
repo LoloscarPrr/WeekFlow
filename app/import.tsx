@@ -17,21 +17,12 @@ export default function ImportScheduleScreen() {
         </View>
 
         <View style={styles.hero}>
-          <Text style={styles.eyebrow}>SEMANA · IMPORTAR</Text>
-          <Text style={styles.title}>WeekFlow te encuentra en la planilla<Text style={styles.blue}>.</Text></Text>
-          <Text style={styles.subtitle}>
-            Alpha 0.2.3 lee la captura, busca cómo apareces en el horario y prepara tu semana real. Nada cambia hasta que revises y confirmes.
-          </Text>
+          <Text style={styles.eyebrow}>SEMANA</Text>
+          <Text style={styles.title}>Importa tu horario<Text style={styles.blue}>.</Text></Text>
+          <Text style={styles.subtitle}>Elige una captura. WeekFlow busca tu fila y te muestra el resultado antes de guardar.</Text>
         </View>
 
         <ScheduleImportCard />
-
-        <View style={styles.canonical}>
-          <Text style={styles.canonicalTitle}>Regla canónica</Text>
-          <Text style={styles.canonicalText}>
-            Foto/captura → detectar tu nombre/fila → proponer jornadas → revisar → confirmar. Si WeekFlow no está seguro, lo deja pendiente; nunca inventa ni guarda por su cuenta.
-          </Text>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -43,12 +34,9 @@ const styles = StyleSheet.create({
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
   back: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface },
   backText: { color: colors.text, fontWeight: '800', fontSize: 13 },
-  hero: { marginTop: 38, marginBottom: 24 },
+  hero: { marginTop: 34, marginBottom: 22 },
   eyebrow: { color: '#76AFFF', fontWeight: '800', letterSpacing: 3, fontSize: 13 },
-  title: { color: colors.text, fontWeight: '900', fontSize: 40, lineHeight: 45, marginTop: 11 },
+  title: { color: colors.text, fontWeight: '900', fontSize: 40, lineHeight: 45, marginTop: 10 },
   blue: { color: colors.blue },
-  subtitle: { color: colors.muted, fontSize: 16, lineHeight: 23, marginTop: 14 },
-  canonical: { marginTop: 16, padding: 17, borderRadius: 20, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
-  canonicalTitle: { color: colors.text, fontWeight: '900', fontSize: 15 },
-  canonicalText: { color: colors.muted, fontSize: 13, lineHeight: 20, marginTop: 6 },
+  subtitle: { color: colors.muted, fontSize: 16, lineHeight: 23, marginTop: 12, maxWidth: 520 },
 });
