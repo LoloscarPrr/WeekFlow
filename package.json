@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@expo/ui": "~57.0.7",
-    "@infinitered/react-native-mlkit-text-recognition": "^6.0.0",
+    "@infinitered/react-native-mlkit-text-recognition": "5.0.1",
     "expo": "~57.0.8",
     "expo-image-picker": "~57.0.3",
     "expo-router": "~57.0.7",
