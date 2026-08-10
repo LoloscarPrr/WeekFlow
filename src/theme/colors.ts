@@ -1,8 +1,8 @@
 export const colors = {
-  bg: '#020912',
-  surface: '#0C1A2E',
-  surface2: '#102443',
-  line: '#1B3A64',
+  bg: '#010417',
+  surface: '#09162B',
+  surface2: '#0D2242',
+  line: '#17365D',
   text: '#F4F7FB',
   muted: '#8FA0BA',
   blue: '#4B94FF',

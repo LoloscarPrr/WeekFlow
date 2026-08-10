@@ -14,34 +14,43 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <View style={styles.wrap}>
-      {items.map((item) => {
-        const active = item.path === '/' ? pathname === '/' : pathname === item.path || pathname.startsWith(`${item.path}/`) || (item.path === '/week' && pathname === '/import');
-        return (
-          <Pressable
-            key={item.path}
-            accessibilityRole="button"
-            accessibilityLabel={item.label}
-            style={styles.item}
-            onPress={() => router.replace(item.path)}
-          >
-            <Text style={[styles.icon, active && styles.active]}>{item.icon}</Text>
-            <Text style={[styles.label, active && styles.active]}>{item.label}</Text>
-          </Pressable>
-        );
-      })}
+    <View style={styles.shell}>
+      <View style={styles.wrap}>
+        {items.map((item) => {
+          const active = item.path === '/' ? pathname === '/' : pathname === item.path || pathname.startsWith(`${item.path}/`) || (item.path === '/week' && pathname === '/import');
+          return (
+            <Pressable
+              key={item.path}
+              accessibilityRole="button"
+              accessibilityLabel={item.label}
+              style={styles.item}
+              onPress={() => router.replace(item.path)}
+            >
+              <Text style={[styles.icon, active && styles.active]}>{item.icon}</Text>
+              <Text style={[styles.label, active && styles.active]}>{item.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  shell: {
+    backgroundColor: colors.bg,
+    paddingHorizontal: 12,
+    paddingTop: 6,
+    paddingBottom: 10,
+  },
   wrap: {
     flexDirection: 'row',
-    backgroundColor: '#071526',
-    borderTopWidth: 1,
-    borderTopColor: '#173151',
-    paddingTop: 8,
-    paddingBottom: 8,
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 22,
+    paddingTop: 9,
+    paddingBottom: 9,
     paddingHorizontal: 6,
   },
   item: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 54 },
