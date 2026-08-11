@@ -6,6 +6,7 @@ const DAY_STATE_KEY = 'day-live-state';
 const WEEK_STATE_KEY = 'week-state';
 const USER_PROFILE_KEY = 'user-profile';
 const MOVE_HISTORY_KEY = 'move-history';
+const FOOD_HISTORY_KEY = 'food-history';
 
 export type DaySettings = Omit<BrainSnapshot, 'energy' | 'shift'>;
 
@@ -37,6 +38,19 @@ export type MoveSessionRecord = {
   totalSteps: number;
   endedEarly: boolean;
   feedback: string | null;
+};
+
+export type FoodEntry = {
+  id: string;
+  at: string;
+  title: string;
+  kind: 'meal' | 'snack' | 'drink' | 'other';
+  source: 'suggestion' | 'manual';
+};
+
+export type FoodDayRecord = {
+  date: string;
+  entries: FoodEntry[];
 };
 
 export const defaultDayState: PersistedDayState = {
@@ -101,6 +115,10 @@ function writeState(key: string, value: unknown) {
     JSON.stringify(value),
     now,
   );
+}
+
+function localDateKey(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
 export function loadDayState(): PersistedDayState {
@@ -170,6 +188,44 @@ export function loadMoveHistory(): MoveSessionRecord[] {
 export function saveMoveSession(record: MoveSessionRecord) {
   const history = loadMoveHistory().filter((item) => item.id !== record.id);
   writeState(MOVE_HISTORY_KEY, [record, ...history].slice(0, 30));
+}
+
+export function loadFoodHistory(): FoodDayRecord[] {
+  const parsed = readState<FoodDayRecord[]>(FOOD_HISTORY_KEY);
+  return Array.isArray(parsed) ? parsed : [];
+}
+
+export function loadFoodDay(date = new Date()): FoodDayRecord {
+  const key = localDateKey(date);
+  const existing = loadFoodHistory().find((item) => item.date === key);
+  return existing ?? { date: key, entries: [] };
+}
+
+export function saveFoodEntry(entry: FoodEntry, date = new Date()): FoodDayRecord {
+  const key = localDateKey(date);
+  const history = loadFoodHistory();
+  const current = history.find((item) => item.date === key) ?? { date: key, entries: [] };
+  const updated: FoodDayRecord = {
+    ...current,
+    entries: [...current.entries.filter((item) => item.id !== entry.id), entry].sort((a, b) => a.at.localeCompare(b.at)),
+  };
+  const next = [updated, ...history.filter((item) => item.date !== key)]
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 14);
+  writeState(FOOD_HISTORY_KEY, next);
+  return updated;
+}
+
+export function removeFoodEntry(entryId: string, date = new Date()): FoodDayRecord {
+  const key = localDateKey(date);
+  const history = loadFoodHistory();
+  const current = history.find((item) => item.date === key) ?? { date: key, entries: [] };
+  const updated: FoodDayRecord = {
+    ...current,
+    entries: current.entries.filter((item) => item.id !== entryId),
+  };
+  writeState(FOOD_HISTORY_KEY, [updated, ...history.filter((item) => item.date !== key)].slice(0, 14));
+  return updated;
 }
 
 export function shiftForDate(week: PersistedWeekState, date = new Date()): Shift {
