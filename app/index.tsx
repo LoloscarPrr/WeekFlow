@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView, View, Text, StyleSheet, Pressable } from 'react-native';
 import { Brand } from '@/src/components/Brand';
@@ -23,14 +24,17 @@ const energyOptions: { value: Energy; label: string; icon: string }[] = [
 
 type DayPhase = 'off' | 'before' | 'commuting' | 'working' | 'after';
 
-function currentHm() {
-  const now = new Date();
+function currentHm(now = new Date()) {
   return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 }
 
 function toMinutes(time: string) {
   const [hours, minutes] = time.split(':').map(Number);
   return hours * 60 + minutes;
+}
+
+function minutesNow(now: Date) {
+  return now.getHours() * 60 + now.getMinutes();
 }
 
 function isToday(iso: string | null) {
@@ -40,21 +44,47 @@ function isToday(iso: string | null) {
   return date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() && date.getDate() === today.getDate();
 }
 
-function phaseForShift(shift: Shift, commuteOutMin: number, bufferMin: number): DayPhase {
+function phaseForShift(shift: Shift, commuteOutMin: number, bufferMin: number, now: Date): DayPhase {
   if (shift.type === 'off' || !shift.start || !shift.end) return 'off';
 
-  const now = new Date().getHours() * 60 + new Date().getMinutes();
+  const current = minutesNow(now);
   const start = toMinutes(shift.start);
   const end = toMinutes(shift.end);
   const overnight = end <= start;
-  const working = overnight ? now >= start || now < end : now >= start && now < end;
+  const working = overnight ? current >= start || current < end : current >= start && current < end;
   if (working) return 'working';
 
-  const untilStart = (start - now + 1440) % 1440;
+  const untilStart = (start - current + 1440) % 1440;
   const beforeUpcomingShift = untilStart <= 12 * 60;
   if (!beforeUpcomingShift) return 'after';
   if (untilStart <= commuteOutMin + bufferMin) return 'commuting';
   return 'before';
+}
+
+function shiftProgress(shift: Shift, now: Date) {
+  if (shift.type === 'off' || !shift.start || !shift.end) return null;
+
+  const start = toMinutes(shift.start);
+  const end = toMinutes(shift.end);
+  const overnight = end <= start;
+  const duration = overnight ? end + 1440 - start : end - start;
+  let current = minutesNow(now);
+  if (overnight && current < end) current += 1440;
+
+  const elapsed = Math.max(0, Math.min(duration, current - start));
+  const remaining = Math.max(0, duration - elapsed);
+  return {
+    percent: duration > 0 ? Math.round((elapsed / duration) * 100) : 0,
+    remaining,
+  };
+}
+
+function remainingLabel(totalMinutes: number) {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours <= 0) return `${minutes} min restantes`;
+  if (minutes === 0) return `${hours} h restantes`;
+  return `${hours} h ${minutes} min restantes`;
 }
 
 function energyLabel(energy: Energy) {
@@ -63,14 +93,29 @@ function energyLabel(energy: Energy) {
 
 export default function NowScreen() {
   const [dayState, setDayState] = useState<PersistedDayState>(() => loadDayState());
-  const [weekState] = useState<PersistedWeekState>(() => loadWeekState());
+  const [weekState, setWeekState] = useState<PersistedWeekState>(() => loadWeekState());
+  const [clockNow, setClockNow] = useState(() => new Date());
 
-  const todayShift = useMemo(() => shiftForDate(weekState), [weekState]);
+  useFocusEffect(
+    useCallback(() => {
+      setDayState(loadDayState());
+      setWeekState(loadWeekState());
+      setClockNow(new Date());
+    }, []),
+  );
+
+  useEffect(() => {
+    const timer = setInterval(() => setClockNow(new Date()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const todayShift = useMemo(() => shiftForDate(weekState, clockNow), [clockNow, weekState]);
   const snapshot = useMemo<BrainSnapshot>(() => ({ ...dayState.settings, shift: todayShift, energy: dayState.energy }), [dayState.energy, dayState.settings, todayShift]);
   const basePlan = useMemo(() => buildBrainPlan(snapshot), [snapshot]);
-  const hasActualExit = Boolean(dayState.actualExit && isToday(dayState.actualExitAt));
+  const hasActualExit = Boolean(dayState.actualExit && isToday(dayState.actualExitAt) && todayShift.type !== 'off');
   const plan = useMemo(() => hasActualExit && dayState.actualExit ? replanAfterActualExit(snapshot, basePlan, dayState.actualExit) : basePlan, [basePlan, dayState.actualExit, hasActualExit, snapshot]);
-  const phase = phaseForShift(todayShift, dayState.settings.commuteOutMin, dayState.settings.bufferMin);
+  const phase = phaseForShift(todayShift, dayState.settings.commuteOutMin, dayState.settings.bufferMin, clockNow);
+  const workProgress = phase === 'working' ? shiftProgress(todayShift, clockNow) : null;
 
   useEffect(() => saveDayState(dayState), [dayState]);
 
@@ -80,14 +125,15 @@ export default function NowScreen() {
 
   function markActualExit() {
     const now = new Date();
-    setDayState((current) => ({ ...current, actualExit: currentHm(), actualExitAt: now.toISOString() }));
+    setClockNow(now);
+    setDayState((current) => ({ ...current, actualExit: currentHm(now), actualExitAt: now.toISOString() }));
   }
 
   const jornadaLabel = snapshot.shift.type === 'off' ? 'Libre' : `${snapshot.shift.start}–${snapshot.shift.end}`;
 
   const live = (() => {
     if (hasActualExit) return { title: plan.headline, blue: `${dayState.actualExit} · Salida real`, copy: plan.primary.detail, icon: '✓' };
-    if (phase === 'working') return { title: 'Trabajando ahora', blue: `${todayShift.start}–${todayShift.end} · Jornada en curso`, copy: 'Estás dentro de tu horario. WeekFlow no te pide marcar nada mientras trabajas.', icon: '💼' };
+    if (phase === 'working') return { title: 'Trabajando ahora', blue: `${todayShift.start}–${todayShift.end} · Jornada en curso`, copy: 'Tu jornada está en curso. Cuando termines, toca “Ya salí” y WeekFlow reajustará solo lo flexible.', icon: '💼' };
     if (phase === 'commuting') return { title: 'En camino al trabajo', blue: `${todayShift.start} · Entrada`, copy: 'Ya estás en la ventana de traslado. Lo importante ahora es llegar con margen.', icon: '🚇' };
     if (phase === 'after') return { title: 'Jornada finalizada', blue: `${todayShift.end} · Salida programada`, copy: 'Si saliste a otra hora, registra la salida real para ajustar solo lo que viene después.', icon: '✓' };
     return { title: plan.headline, blue: `${plan.primary.time} · ${plan.primary.title}`, copy: plan.primary.detail, icon: plan.primary.icon };
@@ -98,7 +144,7 @@ export default function NowScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.top}>
           <Brand />
-          <View style={styles.build}><Text style={styles.buildText}>Alpha 0.4.0</Text></View>
+          <View style={styles.build}><Text style={styles.buildText}>Alpha 0.1.0</Text></View>
         </View>
 
         <View style={styles.hero}>
@@ -146,9 +192,21 @@ export default function NowScreen() {
           </View>
           <Text style={styles.liveCopy}>{live.copy}</Text>
 
-          {phase === 'after' && !hasActualExit ? (
+          {phase === 'working' && workProgress ? (
+            <View style={styles.workProgress}>
+              <View style={styles.workProgressMeta}>
+                <Text style={styles.workRemaining}>{remainingLabel(workProgress.remaining)}</Text>
+                <Text style={styles.workPercent}>{workProgress.percent}%</Text>
+              </View>
+              <View style={styles.workTrack}>
+                <View style={[styles.workFill, { width: `${workProgress.percent}%` }]} />
+              </View>
+            </View>
+          ) : null}
+
+          {(phase === 'working' || phase === 'after') && !hasActualExit ? (
             <Pressable style={styles.exitButton} onPress={markActualExit}>
-              <Text style={styles.exitButtonText}>Registrar salida real ahora</Text>
+              <Text style={styles.exitButtonText}>{phase === 'working' ? 'Ya salí' : 'Registrar salida real ahora'}</Text>
             </Pressable>
           ) : null}
 
@@ -221,6 +279,12 @@ const styles = StyleSheet.create({
   liveTitle: { color: colors.text, fontWeight: '900', fontSize: 22, lineHeight: 27 },
   liveBlue: { color: '#5CA0FF', fontWeight: '900', fontSize: 15, marginTop: 5 },
   liveCopy: { color: '#C2D0E3', fontSize: 15, lineHeight: 22, marginTop: 16 },
+  workProgress: { marginTop: 16 },
+  workProgressMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  workRemaining: { color: '#DCE8F8', fontSize: 13, fontWeight: '900' },
+  workPercent: { color: '#79B6FF', fontSize: 12, fontWeight: '900' },
+  workTrack: { height: 7, marginTop: 9, borderRadius: 999, backgroundColor: '#081A31', overflow: 'hidden' },
+  workFill: { height: '100%', borderRadius: 999, backgroundColor: colors.blue },
   exitButton: { marginTop: 16, backgroundColor: colors.blue, borderRadius: 16, paddingVertical: 14, alignItems: 'center' },
   exitButtonText: { color: '#FFFFFF', fontWeight: '900', fontSize: 14 },
   confirmation: { marginTop: 16, backgroundColor: '#0F4039', borderWidth: 1, borderColor: '#2C7569', borderRadius: 18, padding: 14 },
