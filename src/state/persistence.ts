@@ -5,6 +5,7 @@ const db = SQLite.openDatabaseSync('weekflow.db');
 const DAY_STATE_KEY = 'day-live-state';
 const WEEK_STATE_KEY = 'week-state';
 const USER_PROFILE_KEY = 'user-profile';
+const MOVE_HISTORY_KEY = 'move-history';
 
 export type DaySettings = Omit<BrainSnapshot, 'energy' | 'shift'>;
 
@@ -25,6 +26,17 @@ export type PersistedWeekState = {
 
 export type UserProfile = {
   scheduleName: string;
+};
+
+export type MoveSessionRecord = {
+  id: string;
+  startedAt: string;
+  finishedAt: string;
+  plannedMinutes: number;
+  completedSteps: number;
+  totalSteps: number;
+  endedEarly: boolean;
+  feedback: string | null;
 };
 
 export const defaultDayState: PersistedDayState = {
@@ -148,6 +160,16 @@ export function loadUserProfile(): UserProfile {
 
 export function saveUserProfile(profile: UserProfile) {
   writeState(USER_PROFILE_KEY, profile);
+}
+
+export function loadMoveHistory(): MoveSessionRecord[] {
+  const parsed = readState<MoveSessionRecord[]>(MOVE_HISTORY_KEY);
+  return Array.isArray(parsed) ? parsed : [];
+}
+
+export function saveMoveSession(record: MoveSessionRecord) {
+  const history = loadMoveHistory().filter((item) => item.id !== record.id);
+  writeState(MOVE_HISTORY_KEY, [record, ...history].slice(0, 30));
 }
 
 export function shiftForDate(week: PersistedWeekState, date = new Date()): Shift {
