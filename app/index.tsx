@@ -1,22 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView, View, Text, StyleSheet, Pressable } from 'react-native';
-import DateTimePicker from '@expo/ui/community/datetime-picker';
 import { Brand } from '@/src/components/Brand';
 import { buildBrainPlan, replanAfterActualExit } from '@/src/brain/engine';
-import type { BrainSnapshot, Energy, Shift, ShiftType } from '@/src/brain/types';
+import type { BrainSnapshot, Energy, Shift } from '@/src/brain/types';
 import {
   loadDayState,
   loadWeekState,
   saveDayState,
-  saveWeekState,
   shiftForDate,
   type PersistedDayState,
   type PersistedWeekState,
 } from '@/src/state/persistence';
 import { colors } from '@/src/theme/colors';
-
-const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
 const energyOptions: { value: Energy; label: string; icon: string }[] = [
   { value: 'vigoroso', label: 'Vigoroso', icon: '🔋' },
@@ -25,7 +21,6 @@ const energyOptions: { value: Energy; label: string; icon: string }[] = [
   { value: 'agotado', label: 'Agotado', icon: '😴' },
 ];
 
-type TimePickerTarget = { day: number; field: 'start' | 'end'; value: Date };
 type DayPhase = 'off' | 'before' | 'commuting' | 'working' | 'after';
 
 function currentHm() {
@@ -43,32 +38,6 @@ function isToday(iso: string | null) {
   const date = new Date(iso);
   const today = new Date();
   return date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() && date.getDate() === today.getDate();
-}
-
-function todayIndex() {
-  return (new Date().getDay() + 6) % 7;
-}
-
-function classifyShift(start: string, end: string): ShiftType {
-  if (!start || !end) return 'off';
-  const hour = Number(start.split(':')[0]);
-  const endHour = Number(end.split(':')[0]);
-  if (hour >= 18 || endHour <= 8 || end < start) return 'night';
-  if (hour < 11) return 'morning';
-  if (hour < 18) return 'afternoon';
-  return 'custom';
-}
-
-function dateFromTime(value: string, fallback: string) {
-  const source = /^\d{2}:\d{2}$/.test(value) ? value : fallback;
-  const [hours, minutes] = source.split(':').map(Number);
-  const date = new Date();
-  date.setHours(hours, minutes, 0, 0);
-  return date;
-}
-
-function timeFromDate(date: Date) {
-  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
 function phaseForShift(shift: Shift, commuteOutMin: number, bufferMin: number): DayPhase {
@@ -94,9 +63,7 @@ function energyLabel(energy: Energy) {
 
 export default function NowScreen() {
   const [dayState, setDayState] = useState<PersistedDayState>(() => loadDayState());
-  const [weekState, setWeekState] = useState<PersistedWeekState>(() => loadWeekState());
-  const [showWeekEditor, setShowWeekEditor] = useState(false);
-  const [timePicker, setTimePicker] = useState<TimePickerTarget | null>(null);
+  const [weekState] = useState<PersistedWeekState>(() => loadWeekState());
 
   const todayShift = useMemo(() => shiftForDate(weekState), [weekState]);
   const snapshot = useMemo<BrainSnapshot>(() => ({ ...dayState.settings, shift: todayShift, energy: dayState.energy }), [dayState.energy, dayState.settings, todayShift]);
@@ -106,7 +73,6 @@ export default function NowScreen() {
   const phase = phaseForShift(todayShift, dayState.settings.commuteOutMin, dayState.settings.bufferMin);
 
   useEffect(() => saveDayState(dayState), [dayState]);
-  useEffect(() => saveWeekState(weekState), [weekState]);
 
   function updateEnergy(energy: Energy) {
     setDayState((current) => ({ ...current, energy }));
@@ -115,36 +81,6 @@ export default function NowScreen() {
   function markActualExit() {
     const now = new Date();
     setDayState((current) => ({ ...current, actualExit: currentHm(), actualExitAt: now.toISOString() }));
-  }
-
-  function updateShift(day: number, patch: { start?: string; end?: string; off?: boolean }) {
-    setWeekState((current) => ({
-      shifts: current.shifts.map((item) => {
-        if (item.day !== day) return item;
-        if (patch.off === true) return { ...item, start: '', end: '', type: 'off' as ShiftType };
-        const start = patch.start !== undefined ? patch.start : item.start;
-        const end = patch.end !== undefined ? patch.end : item.end;
-        return { ...item, start, end, type: classifyShift(start, end) };
-      }),
-    }));
-    if (day === todayIndex()) setDayState((current) => ({ ...current, actualExit: null, actualExitAt: null }));
-  }
-
-  function setWorkDay(day: number) {
-    setWeekState((current) => ({
-      shifts: current.shifts.map((item) => item.day === day ? { ...item, start: item.start || '09:00', end: item.end || '17:00', type: classifyShift(item.start || '09:00', item.end || '17:00') } : item),
-    }));
-  }
-
-  function openTimePicker(day: number, field: 'start' | 'end', value: string) {
-    setTimePicker({ day, field, value: dateFromTime(value, field === 'start' ? '09:00' : '17:00') });
-  }
-
-  function applyPickedTime(selectedDate: Date) {
-    if (!timePicker) return;
-    const value = timeFromDate(selectedDate);
-    updateShift(timePicker.day, timePicker.field === 'start' ? { start: value } : { end: value });
-    setTimePicker(null);
   }
 
   const jornadaLabel = snapshot.shift.type === 'off' ? 'Libre' : `${snapshot.shift.start}–${snapshot.shift.end}`;
@@ -162,7 +98,7 @@ export default function NowScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.top}>
           <Brand />
-          <View style={styles.build}><Text style={styles.buildText}>Alpha 0.2.4</Text></View>
+          <View style={styles.build}><Text style={styles.buildText}>Alpha 0.3.1</Text></View>
         </View>
 
         <View style={styles.hero}>
@@ -237,55 +173,7 @@ export default function NowScreen() {
             </View>
           ))}
         </View>
-
-        <Pressable style={styles.weekToggle} onPress={() => setShowWeekEditor((value) => !value)}>
-          <View>
-            <Text style={styles.weekToggleTitle}>Ajustar semana manualmente</Text>
-            <Text style={styles.weekToggleCopy}>Solo si necesitas corregir algo a mano.</Text>
-          </View>
-          <Text style={styles.weekToggleArrow}>{showWeekEditor ? '⌃' : '⌄'}</Text>
-        </Pressable>
-
-        {showWeekEditor ? (
-          <View style={styles.weekCard}>
-            {weekState.shifts.map((shift) => {
-              const off = shift.type === 'off';
-              return (
-                <View key={shift.day} style={styles.dayRow}>
-                  <View style={styles.dayHeader}>
-                    <View>
-                      <Text style={styles.dayName}>{DAYS[shift.day]}</Text>
-                      <Text style={styles.dayState}>{off ? 'Libre' : `${shift.start}–${shift.end}`}</Text>
-                    </View>
-                    <Pressable style={styles.dayToggle} onPress={() => off ? setWorkDay(shift.day) : updateShift(shift.day, { off: true })}>
-                      <Text style={styles.dayToggleText}>{off ? 'Agregar' : 'Libre'}</Text>
-                    </Pressable>
-                  </View>
-                  {!off ? (
-                    <View style={styles.timeRow}>
-                      <Pressable style={styles.timeInput} onPress={() => openTimePicker(shift.day, 'start', shift.start)}><Text style={styles.timeInputText}>Entrada · {shift.start}</Text></Pressable>
-                      <Pressable style={styles.timeInput} onPress={() => openTimePicker(shift.day, 'end', shift.end)}><Text style={styles.timeInputText}>Salida · {shift.end}</Text></Pressable>
-                    </View>
-                  ) : null}
-                </View>
-              );
-            })}
-          </View>
-        ) : null}
       </ScrollView>
-
-      {timePicker ? (
-        <DateTimePicker
-          value={timePicker.value}
-          mode="time"
-          presentation="dialog"
-          display="clock"
-          is24Hour
-          accentColor={colors.blue}
-          onValueChange={(_, selectedDate) => applyPickedTime(selectedDate)}
-          onDismiss={() => setTimePicker(null)}
-        />
-      ) : null}
     </SafeAreaView>
   );
 }
@@ -345,18 +233,4 @@ const styles = StyleSheet.create({
   timelineIcon: { fontSize: 18, width: 24 },
   timelineTitle: { color: colors.text, fontSize: 14, fontWeight: '900' },
   timelineDetail: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 3 },
-  weekToggle: { marginTop: 28, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 20, padding: 16 },
-  weekToggleTitle: { color: colors.text, fontWeight: '900', fontSize: 15 },
-  weekToggleCopy: { color: colors.muted, fontSize: 12, marginTop: 4 },
-  weekToggleArrow: { color: colors.blue, fontSize: 22 },
-  weekCard: { marginTop: 10, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 22, padding: 14 },
-  dayRow: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.line },
-  dayHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  dayName: { color: colors.text, fontWeight: '900', fontSize: 14 },
-  dayState: { color: colors.muted, fontSize: 12, marginTop: 3 },
-  dayToggle: { borderWidth: 1, borderColor: colors.line, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8 },
-  dayToggleText: { color: '#79B6FF', fontSize: 11, fontWeight: '900' },
-  timeRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
-  timeInput: { flex: 1, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.line, borderRadius: 12, padding: 11 },
-  timeInputText: { color: colors.text, fontSize: 12, fontWeight: '800', textAlign: 'center' },
 });
