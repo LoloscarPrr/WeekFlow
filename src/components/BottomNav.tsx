@@ -19,7 +19,12 @@ export function BottomNav() {
     <View style={[styles.shell, { paddingBottom: Math.max(insets.bottom, 6) + 2 }]}>
       <View style={styles.wrap}>
         {items.map((item) => {
-          const active = item.path === '/' ? pathname === '/' : pathname === item.path || pathname.startsWith(`${item.path}/`) || (item.path === '/week' && pathname === '/import');
+          const active = item.path === '/'
+            ? pathname === '/'
+            : pathname === item.path
+              || pathname.startsWith(`${item.path}/`)
+              || (item.path === '/week' && pathname === '/import')
+              || (item.path === '/pillars' && pathname === '/food');
           return (
             <Pressable
               key={item.path}
