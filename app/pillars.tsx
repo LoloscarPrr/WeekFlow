@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Brand } from '@/src/components/Brand';
+import { PillarTabs } from '@/src/components/PillarTabs';
 import { loadDayState, loadMoveHistory, loadWeekState, saveMoveSession, shiftForDate, type MoveSessionRecord } from '@/src/state/persistence';
 import { colors } from '@/src/theme/colors';
 
@@ -125,6 +126,7 @@ export default function PillarsScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <Brand />
+        <PillarTabs active="move" />
         <Text style={styles.eyebrow}>PILARES · MOVE</Text>
         <Text style={styles.title}>Muévete con el tiempo que tienes.</Text>
         <Text style={styles.copy}>Elige cuánto espacio tienes hoy y WeekFlow te acompaña paso a paso.</Text>
@@ -190,7 +192,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 22, paddingBottom: 36 },
   sessionShell: { flex: 1, padding: 22 },
-  eyebrow: { color: '#76AFFF', fontWeight: '800', letterSpacing: 4, fontSize: 14, marginTop: 30 },
+  eyebrow: { color: '#76AFFF', fontWeight: '800', letterSpacing: 4, fontSize: 14, marginTop: 24 },
   title: { color: colors.text, fontWeight: '900', fontSize: 40, lineHeight: 45, marginTop: 10 },
   copy: { color: colors.muted, fontSize: 16, lineHeight: 24, marginTop: 12 },
   recommendCard: { backgroundColor: '#102A4D', borderWidth: 1, borderColor: '#2A5D99', borderRadius: 26, padding: 18, marginTop: 24 },
