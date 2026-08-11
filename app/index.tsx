@@ -144,7 +144,7 @@ export default function NowScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.top}>
           <Brand />
-          <View style={styles.build}><Text style={styles.buildText}>Alpha 0.1.0</Text></View>
+          <View style={styles.build}><Text style={styles.buildText}>Alpha 0.5.0</Text></View>
         </View>
 
         <View style={styles.hero}>
