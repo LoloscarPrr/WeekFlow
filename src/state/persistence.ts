@@ -168,7 +168,7 @@ export function loadMoveHistory(): MoveSessionRecord[] {
 }
 
 export function saveMoveSession(record: MoveSessionRecord) {
-  const history = loadMoveHistory();
+  const history = loadMoveHistory().filter((item) => item.id !== record.id);
   writeState(MOVE_HISTORY_KEY, [record, ...history].slice(0, 30));
 }
 
