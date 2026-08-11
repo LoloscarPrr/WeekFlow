@@ -16,7 +16,7 @@ export function BottomNav() {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.shell, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
+    <View style={[styles.shell, { paddingBottom: Math.max(insets.bottom, 6) + 2 }]}>
       <View style={styles.wrap}>
         {items.map((item) => {
           const active = item.path === '/' ? pathname === '/' : pathname === item.path || pathname.startsWith(`${item.path}/`) || (item.path === '/week' && pathname === '/import');
@@ -41,26 +41,25 @@ export function BottomNav() {
 const styles = StyleSheet.create({
   shell: {
     backgroundColor: colors.bg,
-    paddingHorizontal: 12,
-    paddingTop: 8,
+    paddingHorizontal: 10,
+    paddingTop: 3,
   },
   wrap: {
     flexDirection: 'row',
     backgroundColor: colors.bg,
     borderWidth: 1,
     borderColor: colors.line,
-    borderRadius: 22,
-    paddingTop: 10,
-    paddingBottom: 10,
-    paddingHorizontal: 6,
+    borderRadius: 18,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
   },
   item: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 56,
+    minHeight: 44,
   },
-  icon: { color: '#7187A6', fontSize: 19, fontWeight: '800' },
-  label: { color: '#7187A6', fontSize: 10, fontWeight: '800', marginTop: 3 },
+  icon: { color: '#7187A6', fontSize: 16, fontWeight: '800' },
+  label: { color: '#7187A6', fontSize: 9, fontWeight: '800', marginTop: 1 },
   active: { color: colors.blue },
 });
