@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Brand } from '@/src/components/Brand';
 import { PillarTabs } from '@/src/components/PillarTabs';
+import { RefreshableScrollView } from '@/src/components/AppRefresh';
 import {
   loadDayState,
   loadFoodDay,
@@ -166,7 +167,7 @@ export default function FoodScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <RefreshableScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Brand />
         <PillarTabs active="food" />
 
@@ -252,14 +253,14 @@ export default function FoodScreen() {
             </View>
           </View>
         )}
-      </ScrollView>
+      </RefreshableScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 22, paddingBottom: 42 },
+  content: { padding: 22, paddingBottom: 96 },
   eyebrow: { color: '#76AFFF', fontWeight: '800', letterSpacing: 4, fontSize: 14, marginTop: 24 },
   title: { color: colors.text, fontWeight: '900', fontSize: 38, lineHeight: 44, marginTop: 10 },
   copy: { color: colors.muted, fontSize: 16, lineHeight: 24, marginTop: 12 },

@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker from '@expo/ui/community/datetime-picker';
 import { Brand } from '@/src/components/Brand';
+import { RefreshableScrollView } from '@/src/components/AppRefresh';
 import { loadWeekState, saveWeekState, type PersistedWeekState } from '@/src/state/persistence';
 import type { ShiftType } from '@/src/brain/types';
 import { colors } from '@/src/theme/colors';
@@ -100,7 +101,7 @@ export default function WeekScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <RefreshableScrollView contentContainerStyle={styles.content}>
         <Brand />
 
         <View style={styles.hero}>
@@ -168,7 +169,7 @@ export default function WeekScreen() {
           <Text style={styles.importText}>Importar desde una captura</Text>
           <Text style={styles.experimental}>Experimental</Text>
         </Pressable>
-      </ScrollView>
+      </RefreshableScrollView>
 
       {timePicker ? (
         <DateTimePicker
@@ -188,7 +189,7 @@ export default function WeekScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 22, paddingBottom: 48 },
+  content: { padding: 22, paddingBottom: 96 },
   hero: { marginTop: 28, marginBottom: 20 },
   eyebrow: { color: '#76AFFF', fontWeight: '800', letterSpacing: 4, fontSize: 14 },
   title: { color: colors.text, fontWeight: '900', fontSize: 44, lineHeight: 49, marginTop: 9 },

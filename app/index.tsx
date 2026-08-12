@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScrollView, View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Brand } from '@/src/components/Brand';
+import { RefreshableScrollView } from '@/src/components/AppRefresh';
 import { buildBrainPlan, replanAfterActualExit } from '@/src/brain/engine';
 import type { BrainSnapshot, Energy, Shift } from '@/src/brain/types';
 import {
@@ -141,10 +142,10 @@ export default function NowScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <RefreshableScrollView contentContainerStyle={styles.content}>
         <View style={styles.top}>
           <Brand />
-          <View style={styles.build}><Text style={styles.buildText}>Alpha 0.5.0</Text></View>
+          <View style={styles.build}><Text style={styles.buildText}>Alpha 0.5.2</Text></View>
         </View>
 
         <View style={styles.hero}>
@@ -231,7 +232,7 @@ export default function NowScreen() {
             </View>
           ))}
         </View>
-      </ScrollView>
+      </RefreshableScrollView>
     </SafeAreaView>
   );
 }
@@ -247,7 +248,7 @@ function Stat({ value, label }: { value: string; label: string }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 22, paddingBottom: 56 },
+  content: { padding: 22, paddingBottom: 96 },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   build: { paddingHorizontal: 13, paddingVertical: 9, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
   buildText: { color: colors.text, fontSize: 14 },
