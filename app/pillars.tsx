@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Brand } from '@/src/components/Brand';
 import { PillarTabs } from '@/src/components/PillarTabs';
+import { RefreshableScrollView } from '@/src/components/AppRefresh';
 import { loadDayState, loadMoveHistory, loadWeekState, saveMoveSession, shiftForDate, type MoveSessionRecord } from '@/src/state/persistence';
 import { colors } from '@/src/theme/colors';
 
@@ -124,7 +125,7 @@ export default function PillarsScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <RefreshableScrollView contentContainerStyle={styles.content}>
         <Brand />
         <PillarTabs active="move" />
         <Text style={styles.eyebrow}>PILARES · MOVE</Text>
@@ -183,14 +184,14 @@ export default function PillarsScreen() {
             <Text style={styles.lastValue}>Hecho · {lastRecord.plannedMinutes} min{lastRecord.feedback ? ` · ${lastRecord.feedback}` : ''}</Text>
           </View>
         ) : null}
-      </ScrollView>
+      </RefreshableScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 22, paddingBottom: 36 },
+  content: { padding: 22, paddingBottom: 96 },
   sessionShell: { flex: 1, padding: 22 },
   eyebrow: { color: '#76AFFF', fontWeight: '800', letterSpacing: 4, fontSize: 14, marginTop: 24 },
   title: { color: colors.text, fontWeight: '900', fontSize: 40, lineHeight: 45, marginTop: 10 },
