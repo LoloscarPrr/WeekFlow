@@ -16,7 +16,7 @@ export function BottomNav() {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.shell, { paddingBottom: Math.max(insets.bottom, 6) + 2 }]}>
+    <View pointerEvents="box-none" style={[styles.shell, { paddingBottom: Math.max(insets.bottom, 8) }]}>
       <View style={styles.wrap}>
         {items.map((item) => {
           const active = item.path === '/'
@@ -45,9 +45,8 @@ export function BottomNav() {
 
 const styles = StyleSheet.create({
   shell: {
-    backgroundColor: colors.bg,
+    backgroundColor: 'transparent',
     paddingHorizontal: 10,
-    paddingTop: 3,
   },
   wrap: {
     flexDirection: 'row',
