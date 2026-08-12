@@ -16,8 +16,8 @@ export function RefreshableScrollView(props: ScrollViewProps) {
     if (refreshing) return;
     setRefreshing(true);
 
-    // Give Android enough time to show the native pull indicator, then
-    // remount the active route so it rereads the persisted WeekFlow state.
+    // Let Android render its native refresh indicator, then remount the
+    // active route so all persisted WeekFlow state is read again.
     setTimeout(() => {
       setRefreshing(false);
       requestAppRefresh();
@@ -28,6 +28,8 @@ export function RefreshableScrollView(props: ScrollViewProps) {
     <ScrollView
       {...props}
       alwaysBounceVertical
+      overScrollMode="always"
+      contentContainerStyle={[{ flexGrow: 1 }, props.contentContainerStyle]}
       refreshControl={(
         <RefreshControl
           refreshing={refreshing}
