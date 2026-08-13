@@ -6,6 +6,7 @@ const DAY_STATE_KEY = 'day-live-state';
 const WEEK_STATE_KEY = 'week-state';
 const USER_PROFILE_KEY = 'user-profile';
 const MOVE_HISTORY_KEY = 'move-history';
+const MOVE_ACTIVE_KEY = 'move-active-session';
 const FOOD_HISTORY_KEY = 'food-history';
 
 export type DaySettings = Omit<BrainSnapshot, 'energy' | 'shift'>;
@@ -34,10 +35,22 @@ export type MoveSessionRecord = {
   startedAt: string;
   finishedAt: string;
   plannedMinutes: number;
+  actualSeconds?: number;
   completedSteps: number;
   totalSteps: number;
   endedEarly: boolean;
   feedback: string | null;
+};
+
+export type ActiveMoveSession = {
+  id: string;
+  startedAt: string;
+  plannedMinutes: number;
+  step: number;
+  totalSteps: number;
+  paused: boolean;
+  pausedAt: string | null;
+  pausedTotalMs: number;
 };
 
 export type FoodEntry = {
@@ -117,7 +130,12 @@ function writeState(key: string, value: unknown) {
   );
 }
 
-function localDateKey(date = new Date()) {
+function deleteState(key: string) {
+  ensureTable();
+  db.runSync('DELETE FROM weekflow_state WHERE key = ?;', key);
+}
+
+export function localDateKey(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
@@ -188,6 +206,34 @@ export function loadMoveHistory(): MoveSessionRecord[] {
 export function saveMoveSession(record: MoveSessionRecord) {
   const history = loadMoveHistory().filter((item) => item.id !== record.id);
   writeState(MOVE_HISTORY_KEY, [record, ...history].slice(0, 30));
+}
+
+export function loadActiveMoveSession(): ActiveMoveSession | null {
+  const parsed = readState<Partial<ActiveMoveSession>>(MOVE_ACTIVE_KEY);
+  if (!parsed?.id || !parsed.startedAt || typeof parsed.plannedMinutes !== 'number') return null;
+  return {
+    id: parsed.id,
+    startedAt: parsed.startedAt,
+    plannedMinutes: parsed.plannedMinutes,
+    step: typeof parsed.step === 'number' ? parsed.step : 0,
+    totalSteps: typeof parsed.totalSteps === 'number' ? parsed.totalSteps : 1,
+    paused: Boolean(parsed.paused),
+    pausedAt: typeof parsed.pausedAt === 'string' ? parsed.pausedAt : null,
+    pausedTotalMs: typeof parsed.pausedTotalMs === 'number' ? parsed.pausedTotalMs : 0,
+  };
+}
+
+export function saveActiveMoveSession(session: ActiveMoveSession) {
+  writeState(MOVE_ACTIVE_KEY, session);
+}
+
+export function clearActiveMoveSession() {
+  deleteState(MOVE_ACTIVE_KEY);
+}
+
+export function moveSessionDoneToday(date = new Date()) {
+  const key = localDateKey(date);
+  return loadMoveHistory().some((item) => localDateKey(new Date(item.finishedAt)) === key);
 }
 
 export function loadFoodHistory(): FoodDayRecord[] {

@@ -9,7 +9,7 @@ export default function RootLayout() {
     <View style={styles.root}>
       <StatusBar style="light" />
       <View style={styles.content}>
-        <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
+        <Stack screenOptions={{ headerShown: false, animation: 'none' }} />
       </View>
 
       <View pointerEvents="box-none" style={styles.navLayer}>

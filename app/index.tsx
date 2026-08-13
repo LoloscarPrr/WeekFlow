@@ -9,6 +9,7 @@ import type { BrainSnapshot, Energy, Shift } from '@/src/brain/types';
 import {
   loadDayState,
   loadWeekState,
+  moveSessionDoneToday,
   saveDayState,
   shiftForDate,
   type PersistedDayState,
@@ -96,11 +97,14 @@ export default function NowScreen() {
   const [dayState, setDayState] = useState<PersistedDayState>(() => loadDayState());
   const [weekState, setWeekState] = useState<PersistedWeekState>(() => loadWeekState());
   const [clockNow, setClockNow] = useState(() => new Date());
+  const [moveDoneToday, setMoveDoneToday] = useState(() => moveSessionDoneToday());
 
   const refreshNow = useCallback(() => {
+    const now = new Date();
     setDayState(loadDayState());
     setWeekState(loadWeekState());
-    setClockNow(new Date());
+    setClockNow(now);
+    setMoveDoneToday(moveSessionDoneToday(now));
   }, []);
 
   useFocusEffect(
@@ -122,6 +126,31 @@ export default function NowScreen() {
   const phase = phaseForShift(todayShift, dayState.settings.commuteOutMin, dayState.settings.bufferMin, clockNow);
   const workProgress = phase === 'working' ? shiftProgress(todayShift, clockNow) : null;
 
+  const upcomingMoments = useMemo(() => {
+    const current = minutesNow(clockNow);
+    const overnight = todayShift.type !== 'off' && Boolean(todayShift.start) && Boolean(todayShift.end) && toMinutes(todayShift.end) <= toMinutes(todayShift.start);
+
+    return plan.moments.filter((item) => {
+      if (moveDoneToday && item.type === 'move') return false;
+
+      const target = toMinutes(item.time);
+
+      if (phase === 'working') {
+        if (item.type === 'work' || item.type === 'commute-out' || item.type === 'prep' || item.type === 'wake') return false;
+        if (overnight) {
+          return item.type === 'commute-back' || item.type === 'recovery' || item.type === 'rest';
+        }
+      }
+
+      if (target >= current) return true;
+
+      // Only treat after-midnight times as upcoming when the current workday can
+      // genuinely cross midnight. This avoids showing today's already-past
+      // morning again as if it belonged to tomorrow.
+      return phase !== 'off' && current >= 18 * 60 && target <= 6 * 60;
+    }).slice(0, 7);
+  }, [clockNow, moveDoneToday, phase, plan.moments, todayShift]);
+
   useEffect(() => saveDayState(dayState), [dayState]);
 
   function updateEnergy(energy: Energy) {
@@ -141,7 +170,17 @@ export default function NowScreen() {
     if (phase === 'working') return { title: 'Trabajando ahora', blue: `${todayShift.start}–${todayShift.end} · Jornada en curso`, copy: 'Tu jornada está en curso. Cuando termines, toca “Ya salí” y WeekFlow reajustará solo lo flexible.', icon: '💼' };
     if (phase === 'commuting') return { title: 'En camino al trabajo', blue: `${todayShift.start} · Entrada`, copy: 'Ya estás en la ventana de traslado. Lo importante ahora es llegar con margen.', icon: '🚇' };
     if (phase === 'after') return { title: 'Jornada finalizada', blue: `${todayShift.end} · Salida programada`, copy: 'Si saliste a otra hora, registra la salida real para ajustar solo lo que viene después.', icon: '✓' };
-    return { title: plan.headline, blue: `${plan.primary.time} · ${plan.primary.title}`, copy: plan.primary.detail, icon: plan.primary.icon };
+
+    const next = upcomingMoments[0];
+    if (next) {
+      return { title: plan.headline, blue: `${next.time} · ${next.title}`, copy: next.detail, icon: next.icon };
+    }
+
+    if (moveDoneToday) {
+      return { title: 'Lo importante de hoy ya está cubierto', blue: 'Move · Hecho', copy: 'No voy a inventarte otra tarea solo para llenar el día.', icon: '✓' };
+    }
+
+    return { title: 'Día despejado', blue: 'Sin pendientes inmediatos', copy: 'No hay una acción próxima que necesite competir por tu atención.', icon: '🌿' };
   })();
 
   return (
@@ -149,7 +188,7 @@ export default function NowScreen() {
       <RefreshableScrollView contentContainerStyle={styles.content} onRefreshData={refreshNow}>
         <View style={styles.top}>
           <Brand />
-          <View style={styles.build}><Text style={styles.buildText}>Alpha 0.5.3</Text></View>
+          <View style={styles.build}><Text style={styles.buildText}>Alpha 0.1.0</Text></View>
         </View>
 
         <View style={styles.hero}>
@@ -225,8 +264,8 @@ export default function NowScreen() {
 
         <Text style={styles.section}>LO QUE VIENE</Text>
         <View style={styles.timelineCard}>
-          {plan.moments.slice(0, 7).map((item, index) => (
-            <View key={`${item.time}-${item.type}-${index}`} style={[styles.timelineRow, index === Math.min(plan.moments.length, 7) - 1 && styles.timelineRowLast]}>
+          {upcomingMoments.length ? upcomingMoments.map((item, index) => (
+            <View key={`${item.time}-${item.type}-${index}`} style={[styles.timelineRow, index === upcomingMoments.length - 1 && styles.timelineRowLast]}>
               <Text style={styles.timelineTime}>{item.time}</Text>
               <Text style={styles.timelineIcon}>{item.icon}</Text>
               <View style={{ flex: 1 }}>
@@ -234,7 +273,12 @@ export default function NowScreen() {
                 <Text style={styles.timelineDetail}>{item.detail}</Text>
               </View>
             </View>
-          ))}
+          )) : (
+            <View style={styles.emptyTimeline}>
+              <Text style={styles.emptyTimelineTitle}>Nada urgente después de esto.</Text>
+              <Text style={styles.emptyTimelineCopy}>Dejamos el espacio libre en vez de llenarlo por llenar.</Text>
+            </View>
+          )}
         </View>
       </RefreshableScrollView>
     </SafeAreaView>
@@ -302,4 +346,7 @@ const styles = StyleSheet.create({
   timelineIcon: { fontSize: 18, width: 24 },
   timelineTitle: { color: colors.text, fontSize: 14, fontWeight: '900' },
   timelineDetail: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 3 },
+  emptyTimeline: { paddingVertical: 18 },
+  emptyTimelineTitle: { color: colors.text, fontSize: 14, fontWeight: '900' },
+  emptyTimelineCopy: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 4 },
 });

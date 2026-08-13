@@ -1,10 +1,25 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Brand } from '@/src/components/Brand';
 import { PillarTabs } from '@/src/components/PillarTabs';
 import { RefreshableScrollView } from '@/src/components/AppRefresh';
-import { loadDayState, loadMoveHistory, loadWeekState, saveMoveSession, shiftForDate, type MoveSessionRecord } from '@/src/state/persistence';
+import {
+  clearActiveMoveSession,
+  loadActiveMoveSession,
+  loadDayState,
+  loadMoveHistory,
+  loadWeekState,
+  localDateKey,
+  saveActiveMoveSession,
+  saveMoveSession,
+  shiftForDate,
+  type ActiveMoveSession,
+  type MoveSessionRecord,
+  type PersistedDayState,
+  type PersistedWeekState,
+} from '@/src/state/persistence';
 import { colors } from '@/src/theme/colors';
 
 const DURATIONS = [5, 10, 20, 30] as const;
@@ -16,64 +31,165 @@ const BASE_STEPS = [
   { icon: '🌿', title: 'Cerrar', copy: 'Baja el ritmo y termina con respiración tranquila.' },
 ];
 
-export default function PillarsScreen() {
-  const dayState = useMemo(() => loadDayState(), []);
-  const weekState = useMemo(() => loadWeekState(), []);
-  const initialHistory = useMemo(() => loadMoveHistory(), []);
-  const todayShift = useMemo(() => shiftForDate(weekState), [weekState]);
-  const recommended = dayState.energy === 'agotado' ? 5 : dayState.energy === 'cansado' ? 10 : dayState.energy === 'vigoroso' ? 30 : 20;
+function stepsForDuration(duration: number) {
+  if (duration <= 5) return [BASE_STEPS[0], BASE_STEPS[1], BASE_STEPS[4]];
+  if (duration <= 10) return [BASE_STEPS[0], BASE_STEPS[1], BASE_STEPS[2], BASE_STEPS[4]];
+  return BASE_STEPS;
+}
 
-  const [duration, setDuration] = useState<number>(recommended);
-  const [started, setStarted] = useState(false);
-  const [paused, setPaused] = useState(false);
-  const [step, setStep] = useState(0);
+function elapsedMs(session: ActiveMoveSession, nowMs: number) {
+  const startedMs = Date.parse(session.startedAt);
+  const currentPauseMs = session.paused && session.pausedAt
+    ? Math.max(0, nowMs - Date.parse(session.pausedAt))
+    : 0;
+  return Math.max(0, nowMs - startedMs - session.pausedTotalMs - currentPauseMs);
+}
+
+function formatCountdown(totalSeconds: number) {
+  const safe = Math.max(0, totalSeconds);
+  const minutes = Math.floor(safe / 60);
+  const seconds = safe % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function recordDuration(record: MoveSessionRecord) {
+  if (typeof record.actualSeconds !== 'number') return `${record.plannedMinutes} min`;
+  if (record.actualSeconds < 60) return '<1 min real';
+  const minutes = Math.floor(record.actualSeconds / 60);
+  const seconds = record.actualSeconds % 60;
+  return seconds ? `${minutes} min ${seconds} s reales` : `${minutes} min reales`;
+}
+
+export default function PillarsScreen() {
+  const initialActive = useMemo(() => loadActiveMoveSession(), []);
+  const initialHistory = useMemo(() => loadMoveHistory(), []);
+  const initialDay = useMemo(() => loadDayState(), []);
+  const initialWeek = useMemo(() => loadWeekState(), []);
+
+  const [dayState, setDayState] = useState<PersistedDayState>(initialDay);
+  const [weekState, setWeekState] = useState<PersistedWeekState>(initialWeek);
+  const [duration, setDuration] = useState<number>(initialActive?.plannedMinutes ?? (initialDay.energy === 'agotado' ? 5 : initialDay.energy === 'cansado' ? 10 : initialDay.energy === 'vigoroso' ? 30 : 20));
+  const [activeSession, setActiveSession] = useState<ActiveMoveSession | null>(initialActive);
   const [finished, setFinished] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [startedAt, setStartedAt] = useState<string | null>(null);
   const [lastRecord, setLastRecord] = useState<MoveSessionRecord | null>(initialHistory[0] ?? null);
+  const [clockMs, setClockMs] = useState(Date.now());
+  const [extraOpen, setExtraOpen] = useState(false);
 
-  const steps = useMemo(() => {
-    if (duration <= 5) return [BASE_STEPS[0], BASE_STEPS[1], BASE_STEPS[4]];
-    if (duration <= 10) return [BASE_STEPS[0], BASE_STEPS[1], BASE_STEPS[2], BASE_STEPS[4]];
-    return BASE_STEPS;
-  }, [duration]);
+  const recommended = dayState.energy === 'agotado' ? 5 : dayState.energy === 'cansado' ? 10 : dayState.energy === 'vigoroso' ? 30 : 20;
+  const now = useMemo(() => new Date(clockMs), [clockMs]);
+  const todayShift = useMemo(() => shiftForDate(weekState, now), [now, weekState]);
+  const sessionDuration = activeSession?.plannedMinutes ?? duration;
+  const steps = useMemo(() => stepsForDuration(sessionDuration), [sessionDuration]);
+  const doneToday = useMemo(() => Boolean(lastRecord && localDateKey(new Date(lastRecord.finishedAt)) === localDateKey(now)), [lastRecord, now]);
 
-  const approxStepMinutes = Math.max(1, Math.round(duration / steps.length));
-  const remainingMinutes = Math.max(0, approxStepMinutes * (steps.length - step));
+  const refreshMove = useCallback(() => {
+    const nextDay = loadDayState();
+    const nextWeek = loadWeekState();
+    const history = loadMoveHistory();
+    const active = loadActiveMoveSession();
+    setDayState(nextDay);
+    setWeekState(nextWeek);
+    setLastRecord(history[0] ?? null);
+    setActiveSession(active);
+    if (active) setDuration(active.plannedMinutes);
+    setClockMs(Date.now());
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshMove();
+    }, [refreshMove]),
+  );
+
+  useEffect(() => {
+    if (!activeSession || activeSession.paused) return;
+    const timer = setInterval(() => setClockMs(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [activeSession]);
+
+  const elapsedSeconds = activeSession ? Math.floor(elapsedMs(activeSession, clockMs) / 1000) : 0;
+  const plannedSeconds = sessionDuration * 60;
+  const remainingSeconds = Math.max(0, plannedSeconds - elapsedSeconds);
+  const timerPercent = plannedSeconds > 0 ? Math.min(100, Math.round((elapsedSeconds / plannedSeconds) * 100)) : 0;
+  const currentStep = Math.min(activeSession?.step ?? 0, steps.length - 1);
 
   function startSession() {
-    setStarted(true);
-    setPaused(false);
-    setStep(0);
+    const next: ActiveMoveSession = {
+      id: `${Date.now()}`,
+      startedAt: new Date().toISOString(),
+      plannedMinutes: duration,
+      step: 0,
+      totalSteps: stepsForDuration(duration).length,
+      paused: false,
+      pausedAt: null,
+      pausedTotalMs: 0,
+    };
+    saveActiveMoveSession(next);
+    setActiveSession(next);
     setFinished(false);
     setFeedback(null);
-    setStartedAt(new Date().toISOString());
+    setExtraOpen(false);
+    setClockMs(Date.now());
   }
 
-  function finishSession(endedEarly: boolean) {
+  function finishSession(incompleteSteps: boolean) {
+    if (!activeSession) return;
+    const nowMs = Date.now();
+    const actualSeconds = Math.max(0, Math.round(elapsedMs(activeSession, nowMs) / 1000));
     const record: MoveSessionRecord = {
-      id: `${Date.now()}`,
-      startedAt: startedAt ?? new Date().toISOString(),
-      finishedAt: new Date().toISOString(),
-      plannedMinutes: duration,
-      completedSteps: endedEarly ? step + 1 : steps.length,
+      id: activeSession.id,
+      startedAt: activeSession.startedAt,
+      finishedAt: new Date(nowMs).toISOString(),
+      plannedMinutes: activeSession.plannedMinutes,
+      actualSeconds,
+      completedSteps: incompleteSteps ? currentStep + 1 : steps.length,
       totalSteps: steps.length,
-      endedEarly,
+      endedEarly: incompleteSteps,
       feedback: null,
     };
     saveMoveSession(record);
+    clearActiveMoveSession();
     setLastRecord(record);
+    setActiveSession(null);
     setFinished(true);
-    setStarted(false);
-    setPaused(false);
+    setFeedback(null);
+    setClockMs(nowMs);
   }
 
   function nextStep() {
-    if (step >= steps.length - 1) {
+    if (!activeSession) return;
+    if (currentStep >= steps.length - 1) {
       finishSession(false);
       return;
     }
-    setStep((current) => current + 1);
+    const next = { ...activeSession, step: currentStep + 1 };
+    saveActiveMoveSession(next);
+    setActiveSession(next);
+  }
+
+  function togglePause() {
+    if (!activeSession) return;
+    const nowMs = Date.now();
+    let next: ActiveMoveSession;
+    if (activeSession.paused) {
+      const pausedAtMs = activeSession.pausedAt ? Date.parse(activeSession.pausedAt) : nowMs;
+      next = {
+        ...activeSession,
+        paused: false,
+        pausedAt: null,
+        pausedTotalMs: activeSession.pausedTotalMs + Math.max(0, nowMs - pausedAtMs),
+      };
+    } else {
+      next = {
+        ...activeSession,
+        paused: true,
+        pausedAt: new Date(nowMs).toISOString(),
+      };
+    }
+    saveActiveMoveSession(next);
+    setActiveSession(next);
+    setClockMs(nowMs);
   }
 
   function applyFeedback(value: string) {
@@ -84,39 +200,44 @@ export default function PillarsScreen() {
     setLastRecord(updated);
   }
 
-  if (started) {
+  if (activeSession) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.sessionShell}>
           <Brand />
           <View style={styles.sessionHeader}>
             <Text style={styles.sessionEyebrow}>MOVE</Text>
-            <Text style={styles.sessionCounter}>Paso {step + 1} de {steps.length}</Text>
+            <Text style={styles.sessionCounter}>Paso {currentStep + 1} de {steps.length}</Text>
           </View>
 
           <View style={styles.playerCard}>
-            <Text style={styles.playerIcon}>{steps[step].icon}</Text>
-            <Text style={styles.playerTitle}>{steps[step].title}</Text>
-            <Text style={styles.playerCopy}>{steps[step].copy}</Text>
-            <Text style={styles.remaining}>≈ {remainingMinutes} min restantes</Text>
+            <Text style={styles.playerIcon}>{steps[currentStep].icon}</Text>
+            <Text style={styles.playerTitle}>{steps[currentStep].title}</Text>
+            <Text style={styles.playerCopy}>{steps[currentStep].copy}</Text>
 
-            <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: `${((step + 1) / steps.length) * 100}%` }]} />
+            <View style={styles.timerBlock}>
+              <Text style={styles.timerLabel}>{remainingSeconds > 0 ? 'TIEMPO REAL RESTANTE' : 'TIEMPO PLANEADO CUMPLIDO'}</Text>
+              <Text style={styles.timerValue}>{formatCountdown(remainingSeconds)}</Text>
+              <Text style={styles.elapsedCopy}>{formatCountdown(elapsedSeconds)} transcurridos</Text>
             </View>
 
-            <Pressable style={styles.primaryButton} onPress={nextStep} disabled={paused}>
-              <Text style={styles.primaryButtonText}>{step === steps.length - 1 ? 'Terminar' : 'Siguiente'}</Text>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${timerPercent}%` }]} />
+            </View>
+
+            <Pressable style={styles.primaryButton} onPress={nextStep} disabled={activeSession.paused}>
+              <Text style={styles.primaryButtonText}>{currentStep === steps.length - 1 ? 'Terminar' : 'Siguiente'}</Text>
             </Pressable>
 
             <View style={styles.sessionActions}>
-              <Pressable style={styles.linkButton} onPress={() => setPaused((value) => !value)}>
-                <Text style={styles.linkText}>{paused ? 'Continuar' : 'Pausar'}</Text>
+              <Pressable style={styles.linkButton} onPress={togglePause}>
+                <Text style={styles.linkText}>{activeSession.paused ? 'Continuar' : 'Pausar'}</Text>
               </Pressable>
-              <Pressable style={styles.linkButton} onPress={() => finishSession(true)}>
-                <Text style={styles.linkText}>Terminar antes</Text>
+              <Pressable style={styles.linkButton} onPress={() => finishSession(currentStep < steps.length - 1)}>
+                <Text style={styles.linkText}>Terminar sesión</Text>
               </Pressable>
             </View>
-            {paused ? <Text style={styles.pauseCopy}>En pausa. Retómala cuando te acomode.</Text> : null}
+            {activeSession.paused ? <Text style={styles.pauseCopy}>En pausa. El temporizador también está detenido.</Text> : null}
           </View>
         </View>
       </SafeAreaView>
@@ -125,21 +246,34 @@ export default function PillarsScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <RefreshableScrollView contentContainerStyle={styles.content}>
+      <RefreshableScrollView contentContainerStyle={styles.content} onRefreshData={refreshMove}>
         <Brand />
         <PillarTabs active="move" />
         <Text style={styles.eyebrow}>PILARES · MOVE</Text>
         <Text style={styles.title}>Muévete con el tiempo que tienes.</Text>
         <Text style={styles.copy}>Elige cuánto espacio tienes hoy y WeekFlow te acompaña paso a paso.</Text>
 
-        {!finished ? (
+        {doneToday && !finished && !extraOpen && lastRecord ? (
+          <View style={styles.doneTodayCard}>
+            <Text style={styles.doneTodayIcon}>✓</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.doneTodayTitle}>Move ya está hecho por hoy</Text>
+              <Text style={styles.doneTodayCopy}>{recordDuration(lastRecord)}{typeof lastRecord.actualSeconds === 'number' ? ` · plan ${lastRecord.plannedMinutes} min` : ''}{lastRecord.feedback ? ` · ${lastRecord.feedback}` : ''}</Text>
+            </View>
+            <Pressable style={styles.extraButton} onPress={() => setExtraOpen(true)}>
+              <Text style={styles.extraButtonText}>Otra sesión</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {!finished && (!doneToday || extraOpen) ? (
           <View style={styles.recommendCard}>
             <View style={styles.recommendTop}>
               <View style={styles.moveIcon}><Text style={styles.moveEmoji}>🏃</Text></View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.recommendEyebrow}>HOY</Text>
+                <Text style={styles.recommendEyebrow}>{doneToday ? 'OPCIONAL' : 'HOY'}</Text>
                 <Text style={styles.recommendTitle}>{recommended} min recomendados</Text>
-                <Text style={styles.recommendCopy}>{todayShift.type === 'off' ? 'Día libre: puedes elegir con más margen.' : `Turno ${todayShift.start}–${todayShift.end}: mantenemos la sesión razonable.`}</Text>
+                <Text style={styles.recommendCopy}>{doneToday ? 'Ya hiciste una sesión. Esta segunda no es una obligación.' : todayShift.type === 'off' ? 'Día libre: puedes elegir con más margen.' : `Turno ${todayShift.start}–${todayShift.end}: mantenemos la sesión razonable.`}</Text>
               </View>
             </View>
 
@@ -163,7 +297,7 @@ export default function PillarsScreen() {
           <View style={styles.finishCard}>
             <Text style={styles.finishIcon}>✓</Text>
             <Text style={styles.finishTitle}>{lastRecord.endedEarly ? 'Listo por hoy' : 'Sesión completada'}</Text>
-            <Text style={styles.finishSummary}>Hecho · {lastRecord.plannedMinutes} min{feedback ? ` · ${feedback}` : ''}</Text>
+            <Text style={styles.finishSummary}>Hecho · {recordDuration(lastRecord)}{typeof lastRecord.actualSeconds === 'number' ? ` · plan ${lastRecord.plannedMinutes} min` : ''}{feedback ? ` · ${feedback}` : ''}</Text>
             <Text style={styles.finishCopy}>¿Cómo se sintió este nivel?</Text>
             <View style={styles.feedbackWrap}>
               {['Muy fácil', 'Bien', 'Difícil', 'Demasiado'].map((item) => (
@@ -172,16 +306,16 @@ export default function PillarsScreen() {
                 </Pressable>
               ))}
             </View>
-            <Pressable style={styles.secondaryWide} onPress={() => { setFinished(false); setFeedback(null); }}>
+            <Pressable style={styles.secondaryWide} onPress={() => { setFinished(false); setFeedback(null); setExtraOpen(false); }}>
               <Text style={styles.secondaryButtonText}>Volver a Move</Text>
             </Pressable>
           </View>
         ) : null}
 
-        {!finished && lastRecord ? (
+        {!finished && !doneToday && lastRecord ? (
           <View style={styles.lastCard}>
             <Text style={styles.lastLabel}>ÚLTIMA SESIÓN</Text>
-            <Text style={styles.lastValue}>Hecho · {lastRecord.plannedMinutes} min{lastRecord.feedback ? ` · ${lastRecord.feedback}` : ''}</Text>
+            <Text style={styles.lastValue}>Hecho · {recordDuration(lastRecord)}{typeof lastRecord.actualSeconds === 'number' ? ` · plan ${lastRecord.plannedMinutes} min` : ''}{lastRecord.feedback ? ` · ${lastRecord.feedback}` : ''}</Text>
           </View>
         ) : null}
       </RefreshableScrollView>
@@ -192,7 +326,7 @@ export default function PillarsScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 22, paddingBottom: 96 },
-  sessionShell: { flex: 1, padding: 22 },
+  sessionShell: { flex: 1, padding: 22, paddingBottom: 84 },
   eyebrow: { color: '#76AFFF', fontWeight: '800', letterSpacing: 4, fontSize: 14, marginTop: 24 },
   title: { color: colors.text, fontWeight: '900', fontSize: 40, lineHeight: 45, marginTop: 10 },
   copy: { color: colors.muted, fontSize: 16, lineHeight: 24, marginTop: 12 },
@@ -219,7 +353,10 @@ const styles = StyleSheet.create({
   playerIcon: { fontSize: 68 },
   playerTitle: { color: colors.text, fontWeight: '900', fontSize: 34, marginTop: 16 },
   playerCopy: { color: '#C4D1E2', fontSize: 17, lineHeight: 25, textAlign: 'center', marginTop: 10 },
-  remaining: { color: '#77AFFF', fontWeight: '900', fontSize: 13, marginTop: 18 },
+  timerBlock: { alignItems: 'center', marginTop: 20 },
+  timerLabel: { color: '#77AFFF', fontWeight: '900', fontSize: 10, letterSpacing: 1.5 },
+  timerValue: { color: colors.text, fontWeight: '900', fontSize: 34, marginTop: 5 },
+  elapsedCopy: { color: '#9FB4CE', fontWeight: '800', fontSize: 11, marginTop: 3 },
   progressTrack: { width: '100%', height: 7, borderRadius: 999, backgroundColor: '#0A1B31', overflow: 'hidden', marginTop: 24 },
   progressFill: { height: '100%', backgroundColor: colors.blue, borderRadius: 999 },
   sessionActions: { flexDirection: 'row', gap: 22, marginTop: 16 },
@@ -229,7 +366,7 @@ const styles = StyleSheet.create({
   finishCard: { marginTop: 26, backgroundColor: '#0D261D', borderWidth: 1, borderColor: '#28583D', borderRadius: 26, padding: 22, alignItems: 'center' },
   finishIcon: { color: '#8BE0A8', fontSize: 42, fontWeight: '900' },
   finishTitle: { color: colors.text, fontWeight: '900', fontSize: 24, marginTop: 6 },
-  finishSummary: { color: '#8BE0A8', fontSize: 14, fontWeight: '900', marginTop: 8 },
+  finishSummary: { color: '#8BE0A8', fontSize: 14, fontWeight: '900', marginTop: 8, textAlign: 'center' },
   finishCopy: { color: '#B4CABB', fontSize: 14, marginTop: 16 },
   feedbackWrap: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 18 },
   feedbackButton: { width: '48%', borderWidth: 1, borderColor: '#315B45', borderRadius: 14, paddingVertical: 12, alignItems: 'center' },
@@ -241,4 +378,10 @@ const styles = StyleSheet.create({
   lastCard: { marginTop: 18, borderWidth: 1, borderColor: colors.line, borderRadius: 18, padding: 15, backgroundColor: colors.surface },
   lastLabel: { color: colors.muted, fontSize: 10, fontWeight: '900', letterSpacing: 2 },
   lastValue: { color: colors.text, fontSize: 14, fontWeight: '900', marginTop: 6 },
+  doneTodayCard: { marginTop: 24, backgroundColor: '#0D261D', borderWidth: 1, borderColor: '#28583D', borderRadius: 22, padding: 16, flexDirection: 'row', gap: 12, alignItems: 'center' },
+  doneTodayIcon: { color: '#8BE0A8', fontSize: 28, fontWeight: '900' },
+  doneTodayTitle: { color: colors.text, fontSize: 16, fontWeight: '900' },
+  doneTodayCopy: { color: '#AFC5B6', fontSize: 12, lineHeight: 18, marginTop: 3 },
+  extraButton: { borderWidth: 1, borderColor: '#315B45', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 9 },
+  extraButtonText: { color: '#DDF8E7', fontSize: 11, fontWeight: '900' },
 });

@@ -1,5 +1,6 @@
 import { router, usePathname } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Keyboard, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@/src/theme/colors';
 
@@ -14,6 +15,18 @@ const items = [
 export function BottomNav() {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
+  if (keyboardVisible) return null;
 
   return (
     <View pointerEvents="box-none" style={[styles.shell, { paddingBottom: Math.max(insets.bottom, 8) }]}>
