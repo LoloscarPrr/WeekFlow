@@ -8,7 +8,7 @@ import { loadUserProfile, saveUserProfile, saveWeekState } from '@/src/state/per
 import { colors } from '@/src/theme/colors';
 
 export type PendingScheduleImport = {
-  source: 'image';
+  source: 'library' | 'camera';
   uri: string;
   fileName: string | null;
   width: number;
@@ -29,6 +29,15 @@ function inferType(start: string, end: string): ReviewShift['type'] {
   return 'custom';
 }
 
+function reviewIssue(start: string, end: string) {
+  if (!validTime(start) || !validTime(end)) return 'Usa formato HH:MM en entrada y salida.';
+  return null;
+}
+
+function sourceLabel(source: PendingScheduleImport['source']) {
+  return source === 'camera' ? 'Foto tomada con la cámara' : 'Imagen elegida de la galería';
+}
+
 export function ScheduleImportCard() {
   const initialName = loadUserProfile().scheduleName;
   const [pending, setPending] = useState<PendingScheduleImport | null>(null);
@@ -39,14 +48,43 @@ export function ScheduleImportCard() {
   const [warnings, setWarnings] = useState<string[]>([]);
   const [review, setReview] = useState<ReviewShift[] | null>(null);
 
-  async function chooseImage() {
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: false, quality: 1 });
-    if (result.canceled || !result.assets[0]) return;
-    const asset = result.assets[0];
-    setPending({ source: 'image', uri: asset.uri, fileName: asset.fileName ?? null, width: asset.width, height: asset.height });
+  function useAsset(asset: ImagePicker.ImagePickerAsset, source: PendingScheduleImport['source']) {
+    setPending({
+      source,
+      uri: asset.uri,
+      fileName: asset.fileName ?? null,
+      width: asset.width,
+      height: asset.height,
+    });
     setReview(null);
     setWarnings([]);
     setMatchedName(null);
+  }
+
+  async function chooseImage() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: false,
+      quality: 1,
+    });
+    if (result.canceled || !result.assets[0]) return;
+    useAsset(result.assets[0], 'library');
+  }
+
+  async function takePhoto() {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permiso de cámara', 'Necesito permiso para fotografiar tu horario. También puedes elegir una captura desde la galería.');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      allowsEditing: false,
+      quality: 1,
+    });
+    if (result.canceled || !result.assets[0]) return;
+    useAsset(result.assets[0], 'camera');
   }
 
   function discard() {
@@ -69,7 +107,6 @@ export function ScheduleImportCard() {
     setReview(null);
     setWarnings([]);
     setMatchedName(null);
-    saveUserProfile({ scheduleName: cleanName });
     setEditingName(false);
 
     try {
@@ -96,9 +133,11 @@ export function ScheduleImportCard() {
       if (shift.day !== day) return shift;
       const next = { ...shift, ...patch };
       if (patch.start !== undefined || patch.end !== undefined) {
-        next.type = next.off ? 'off' : inferType(next.start, next.end);
-        next.issue = null;
-        next.confidence = 'high';
+        if (next.off) return { ...next, type: 'off', issue: null, confidence: 'high' };
+        const issue = reviewIssue(next.start, next.end);
+        next.type = inferType(next.start, next.end);
+        next.issue = issue;
+        next.confidence = issue ? 'medium' : 'high';
       }
       return next;
     }) ?? null);
@@ -107,12 +146,33 @@ export function ScheduleImportCard() {
   function toggleOff(day: number) {
     setReview((current) => current?.map((shift) => {
       if (shift.day !== day) return shift;
-      if (shift.off) return { ...shift, off: false, type: 'custom', start: '', end: '', issue: 'Ingresa entrada y salida.' };
-      return { ...shift, off: true, type: 'off', start: '', end: '', issue: null, confidence: 'high' };
+      if (shift.off) {
+        return {
+          ...shift,
+          off: false,
+          type: 'custom',
+          start: '',
+          end: '',
+          issue: 'Ingresa entrada y salida.',
+          confidence: 'medium',
+        };
+      }
+      return {
+        ...shift,
+        off: true,
+        type: 'off',
+        start: '',
+        end: '',
+        issue: null,
+        confidence: 'high',
+      };
     }) ?? null);
   }
 
-  const readyToConfirm = Boolean(review?.length === 7 && review.every((shift) => shift.off || (validTime(shift.start) && validTime(shift.end))));
+  const readyToConfirm = Boolean(
+    review?.length === 7
+      && review.every((shift) => shift.off || (validTime(shift.start) && validTime(shift.end) && !shift.issue)),
+  );
 
   function confirmWeek() {
     if (!review || !readyToConfirm) {
@@ -120,6 +180,8 @@ export function ScheduleImportCard() {
       return;
     }
 
+    const cleanName = scheduleName.trim();
+    saveUserProfile({ scheduleName: cleanName });
     saveWeekState({
       shifts: review.map((shift) => ({
         day: shift.day,
@@ -137,9 +199,9 @@ export function ScheduleImportCard() {
   if (review) {
     return (
       <View style={styles.reviewBox}>
-        <Text style={styles.reviewEyebrow}>REVISAR</Text>
+        <Text style={styles.reviewEyebrow}>REVISAR ANTES DE GUARDAR</Text>
         <Text style={styles.reviewTitle}>{matchedName ? `Encontré a ${matchedName}` : 'Revisa tu semana'}</Text>
-        <Text style={styles.reviewCopy}>Solo corrige lo que esté marcado. Nada se guarda hasta confirmar.</Text>
+        <Text style={styles.reviewCopy}>WeekFlow propone. Tú confirmas. Solo se guardará la semana cuando pulses “Confirmar semana”.</Text>
 
         {warnings.map((warning) => <Text key={warning} style={styles.warning}>• {warning}</Text>)}
 
@@ -154,9 +216,25 @@ export function ScheduleImportCard() {
             </Pressable>
             {!shift.off ? (
               <View style={styles.times}>
-                <TextInput value={shift.start} onChangeText={(start) => patchShift(shift.day, { start })} placeholder="--:--" placeholderTextColor="#60728E" keyboardType="numbers-and-punctuation" maxLength={5} style={styles.timeInput} />
+                <TextInput
+                  value={shift.start}
+                  onChangeText={(start) => patchShift(shift.day, { start })}
+                  placeholder="--:--"
+                  placeholderTextColor="#60728E"
+                  keyboardType="numbers-and-punctuation"
+                  maxLength={5}
+                  style={[styles.timeInput, shift.issue && styles.timeInputIssue]}
+                />
                 <Text style={styles.dash}>–</Text>
-                <TextInput value={shift.end} onChangeText={(end) => patchShift(shift.day, { end })} placeholder="--:--" placeholderTextColor="#60728E" keyboardType="numbers-and-punctuation" maxLength={5} style={styles.timeInput} />
+                <TextInput
+                  value={shift.end}
+                  onChangeText={(end) => patchShift(shift.day, { end })}
+                  placeholder="--:--"
+                  placeholderTextColor="#60728E"
+                  keyboardType="numbers-and-punctuation"
+                  maxLength={5}
+                  style={[styles.timeInput, shift.issue && styles.timeInputIssue]}
+                />
               </View>
             ) : null}
           </View>
@@ -185,7 +263,7 @@ export function ScheduleImportCard() {
             autoCapitalize="characters"
             style={styles.input}
           />
-          <Text style={styles.helper}>Solo hace falta configurarlo una vez.</Text>
+          <Text style={styles.helper}>Lo usamos solo para encontrar tu fila. Se guardará cuando confirmes una importación.</Text>
         </View>
       ) : (
         <View style={styles.identityRow}>
@@ -198,21 +276,32 @@ export function ScheduleImportCard() {
       )}
 
       {!pending ? (
-        <Pressable style={styles.primary} onPress={chooseImage}>
-          <Text style={styles.primaryIcon}>▣</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.primaryTitle}>Elegir captura</Text>
-            <Text style={styles.primarySub}>Foto o screenshot de tu horario</Text>
+        <>
+          <View style={styles.sourceGrid}>
+            <Pressable style={styles.sourceButton} onPress={takePhoto}>
+              <Text style={styles.sourceIcon}>◉</Text>
+              <Text style={styles.sourceTitle}>Tomar foto</Text>
+              <Text style={styles.sourceSub}>Usa la cámara ahora</Text>
+            </Pressable>
+            <Pressable style={styles.sourceButton} onPress={chooseImage}>
+              <Text style={styles.sourceIcon}>▣</Text>
+              <Text style={styles.sourceTitle}>Elegir captura</Text>
+              <Text style={styles.sourceSub}>Foto o screenshot</Text>
+            </Pressable>
           </View>
-          <Text style={styles.chevron}>›</Text>
-        </Pressable>
+          <View style={styles.ruleBox}>
+            <Text style={styles.ruleTitle}>Regla de WeekFlow</Text>
+            <Text style={styles.ruleCopy}>La lectura automática nunca modifica tu semana sin que revises y confirmes el resultado.</Text>
+          </View>
+        </>
       ) : (
         <>
           <View style={styles.pendingBox}>
             <Image source={{ uri: pending.uri }} style={styles.preview} resizeMode="cover" />
             <View style={{ flex: 1 }}>
-              <Text style={styles.ready}>Captura lista</Text>
-              <Text style={styles.meta} numberOfLines={1}>{pending.fileName ?? 'Imagen seleccionada'}</Text>
+              <Text style={styles.ready}>Imagen lista</Text>
+              <Text style={styles.meta}>{sourceLabel(pending.source)}</Text>
+              <Text style={styles.meta} numberOfLines={1}>{pending.fileName ?? `${pending.width} × ${pending.height}`}</Text>
             </View>
             <Pressable onPress={discard}><Text style={styles.editText}>Cambiar</Text></Pressable>
           </View>
@@ -220,7 +309,7 @@ export function ScheduleImportCard() {
           <Pressable style={[styles.readButton, reading && styles.disabled]} onPress={readSchedule} disabled={reading}>
             {reading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryText}>Leer mi horario</Text>}
           </Pressable>
-          <Text style={styles.safetyText}>Primero lees y revisas. Después decides si guardar.</Text>
+          <Text style={styles.safetyText}>La lectura prepara una propuesta. Tu semana actual sigue intacta hasta confirmar.</Text>
         </>
       )}
     </View>
@@ -232,27 +321,30 @@ const styles = StyleSheet.create({
   nameBox: { padding: 16, borderRadius: 20, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
   inputLabel: { color: colors.text, fontSize: 14, fontWeight: '900' },
   input: { marginTop: 10, backgroundColor: colors.surface2, borderWidth: 1, borderColor: '#28558B', borderRadius: 14, paddingHorizontal: 13, paddingVertical: 12, color: colors.text, fontSize: 16, fontWeight: '800' },
-  helper: { color: colors.muted, fontSize: 12, marginTop: 7 },
+  helper: { color: colors.muted, fontSize: 12, marginTop: 7, lineHeight: 17 },
   identityRow: { paddingHorizontal: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   identityLabel: { color: colors.muted, fontSize: 12 },
   identityName: { color: colors.text, fontSize: 16, fontWeight: '900', marginTop: 2 },
   editText: { color: '#78B7FF', fontSize: 13, fontWeight: '900' },
-  primary: { minHeight: 92, flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: '#0E2240', borderWidth: 1, borderColor: '#245791', borderRadius: 24, padding: 18 },
-  primaryIcon: { color: '#78C8FF', fontSize: 30, fontWeight: '900' },
-  primaryTitle: { color: colors.text, fontSize: 20, fontWeight: '900' },
-  primarySub: { color: colors.muted, fontSize: 13, marginTop: 4 },
-  chevron: { color: colors.blue, fontSize: 34 },
+  sourceGrid: { flexDirection: 'row', gap: 10 },
+  sourceButton: { flex: 1, minHeight: 132, justifyContent: 'center', backgroundColor: '#0E2240', borderWidth: 1, borderColor: '#245791', borderRadius: 22, padding: 16 },
+  sourceIcon: { color: '#78C8FF', fontSize: 28, fontWeight: '900', marginBottom: 12 },
+  sourceTitle: { color: colors.text, fontSize: 16, fontWeight: '900' },
+  sourceSub: { color: colors.muted, fontSize: 12, lineHeight: 17, marginTop: 5 },
+  ruleBox: { padding: 15, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
+  ruleTitle: { color: '#8EEBD8', fontSize: 12, fontWeight: '900' },
+  ruleCopy: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 5 },
   pendingBox: { flexDirection: 'row', gap: 12, alignItems: 'center', padding: 12, borderRadius: 20, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
   preview: { width: 68, height: 68, borderRadius: 14, backgroundColor: colors.surface2 },
   ready: { color: '#8EEBD8', fontWeight: '900', fontSize: 15 },
-  meta: { color: colors.muted, fontSize: 12, marginTop: 4 },
+  meta: { color: colors.muted, fontSize: 11, marginTop: 3 },
   readButton: { backgroundColor: colors.blue, borderRadius: 18, paddingVertical: 15, alignItems: 'center', minHeight: 52, justifyContent: 'center' },
   primaryText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900' },
-  safetyText: { color: colors.muted, fontSize: 12, textAlign: 'center' },
+  safetyText: { color: colors.muted, fontSize: 12, textAlign: 'center', lineHeight: 18 },
   disabled: { opacity: 0.45 },
   warning: { color: '#E7C67A', fontSize: 12, lineHeight: 18 },
   reviewBox: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 24, padding: 16 },
-  reviewEyebrow: { color: '#76AFFF', fontWeight: '900', letterSpacing: 2.5, fontSize: 11 },
+  reviewEyebrow: { color: '#76AFFF', fontWeight: '900', letterSpacing: 2.1, fontSize: 10 },
   reviewTitle: { color: colors.text, fontSize: 22, fontWeight: '900', marginTop: 7 },
   reviewCopy: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 6, marginBottom: 5 },
   shiftRow: { marginTop: 10, padding: 11, borderRadius: 16, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.line, flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -266,6 +358,7 @@ const styles = StyleSheet.create({
   offTextActive: { color: '#8EE5B2' },
   times: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 5 },
   timeInput: { width: 60, borderRadius: 11, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 7, paddingVertical: 8, color: colors.text, fontSize: 12, textAlign: 'center', fontWeight: '900' },
+  timeInputIssue: { borderColor: '#8B6B37' },
   dash: { color: colors.muted, fontWeight: '900' },
   actions: { flexDirection: 'row', gap: 10, marginTop: 14 },
   secondary: { flex: 1, borderRadius: 16, paddingVertical: 13, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line, minHeight: 48 },

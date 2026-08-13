@@ -10,7 +10,7 @@
     "icon": "./assets/icon.png",
     "android": {
       "package": "com.weekflow.app",
-      "versionCode": 46,
+      "versionCode": 47,
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -23,7 +23,9 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "WeekFlow necesita acceder a la imagen de tu horario para preparar la importación."
+          "photosPermission": "WeekFlow necesita acceder a la imagen de tu horario para preparar la importación.",
+          "cameraPermission": "WeekFlow necesita usar la cámara para fotografiar tu horario.",
+          "microphonePermission": false
         }
       ],
       [
