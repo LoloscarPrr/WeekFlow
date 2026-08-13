@@ -5,13 +5,14 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Brand } from '@/src/components/Brand';
 import { RefreshableScrollView } from '@/src/components/AppRefresh';
 import { buildBrainPlan, replanAfterActualExit } from '@/src/brain/engine';
+import { assessExitReplanImpact } from '@/src/brain/exitImpact';
 import type { BrainSnapshot, Energy, Shift } from '@/src/brain/types';
 import {
   loadDayState,
   loadWeekState,
   moveSessionDoneToday,
   saveDayState,
-  shiftForDate,
+  shiftContextForDate,
   type PersistedDayState,
   type PersistedWeekState,
 } from '@/src/state/persistence';
@@ -37,13 +38,6 @@ function toMinutes(time: string) {
 
 function minutesNow(now: Date) {
   return now.getHours() * 60 + now.getMinutes();
-}
-
-function isToday(iso: string | null) {
-  if (!iso) return false;
-  const date = new Date(iso);
-  const today = new Date();
-  return date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() && date.getDate() === today.getDate();
 }
 
 function phaseForShift(shift: Shift, commuteOutMin: number, bufferMin: number, now: Date): DayPhase {
@@ -93,6 +87,17 @@ function energyLabel(energy: Energy) {
   return energyOptions.find((item) => item.value === energy)?.label ?? 'Bien';
 }
 
+function deltaLabel(deltaMinutes: number) {
+  if (deltaMinutes === 0) return 'a la hora programada';
+  const absolute = Math.abs(deltaMinutes);
+  const hours = Math.floor(absolute / 60);
+  const minutes = absolute % 60;
+  const duration = hours > 0
+    ? `${hours} h${minutes ? ` ${minutes} min` : ''}`
+    : `${minutes} min`;
+  return `${duration} ${deltaMinutes > 0 ? 'más tarde' : 'antes'}`;
+}
+
 export default function NowScreen() {
   const [dayState, setDayState] = useState<PersistedDayState>(() => loadDayState());
   const [weekState, setWeekState] = useState<PersistedWeekState>(() => loadWeekState());
@@ -118,11 +123,27 @@ export default function NowScreen() {
     return () => clearInterval(timer);
   }, []);
 
-  const todayShift = useMemo(() => shiftForDate(weekState, clockNow), [clockNow, weekState]);
+  const shiftContext = useMemo(() => shiftContextForDate(weekState, clockNow), [clockNow, weekState]);
+  const todayShift = shiftContext.shift;
   const snapshot = useMemo<BrainSnapshot>(() => ({ ...dayState.settings, shift: todayShift, energy: dayState.energy }), [dayState.energy, dayState.settings, todayShift]);
   const basePlan = useMemo(() => buildBrainPlan(snapshot), [snapshot]);
-  const hasActualExit = Boolean(dayState.actualExit && isToday(dayState.actualExitAt) && todayShift.type !== 'off');
-  const plan = useMemo(() => hasActualExit && dayState.actualExit ? replanAfterActualExit(snapshot, basePlan, dayState.actualExit) : basePlan, [basePlan, dayState.actualExit, hasActualExit, snapshot]);
+  const hasActualExit = Boolean(
+    dayState.actualExit
+    && dayState.actualExitAt
+    && dayState.actualExitShiftKey === shiftContext.key
+    && todayShift.type !== 'off',
+  );
+  const exitImpact = useMemo(
+    () => hasActualExit && dayState.actualExit ? assessExitReplanImpact(snapshot, basePlan, dayState.actualExit) : null,
+    [basePlan, dayState.actualExit, hasActualExit, snapshot],
+  );
+  const needsExitReview = Boolean(exitImpact?.requiresConfirmation && !dayState.actualExitReplanConfirmed);
+  const plan = useMemo(
+    () => hasActualExit && dayState.actualExit
+      ? replanAfterActualExit(snapshot, basePlan, dayState.actualExit, !needsExitReview)
+      : basePlan,
+    [basePlan, dayState.actualExit, hasActualExit, needsExitReview, snapshot],
+  );
   const phase = phaseForShift(todayShift, dayState.settings.commuteOutMin, dayState.settings.bufferMin, clockNow);
   const workProgress = phase === 'working' ? shiftProgress(todayShift, clockNow) : null;
 
@@ -132,6 +153,7 @@ export default function NowScreen() {
 
     return plan.moments.filter((item) => {
       if (moveDoneToday && item.type === 'move') return false;
+      if (needsExitReview && item.flexible) return false;
 
       const target = toMinutes(item.time);
 
@@ -143,13 +165,9 @@ export default function NowScreen() {
       }
 
       if (target >= current) return true;
-
-      // Only treat after-midnight times as upcoming when the current workday can
-      // genuinely cross midnight. This avoids showing today's already-past
-      // morning again as if it belonged to tomorrow.
       return phase !== 'off' && current >= 18 * 60 && target <= 6 * 60;
     }).slice(0, 7);
-  }, [clockNow, moveDoneToday, phase, plan.moments, todayShift]);
+  }, [clockNow, moveDoneToday, needsExitReview, phase, plan.moments, todayShift]);
 
   useEffect(() => saveDayState(dayState), [dayState]);
 
@@ -159,27 +177,51 @@ export default function NowScreen() {
 
   function markActualExit() {
     const now = new Date();
+    const actualExit = currentHm(now);
+    const impact = assessExitReplanImpact(snapshot, basePlan, actualExit);
     setClockNow(now);
-    setDayState((current) => ({ ...current, actualExit: currentHm(now), actualExitAt: now.toISOString() }));
+    setDayState((current) => ({
+      ...current,
+      actualExit,
+      actualExitAt: now.toISOString(),
+      actualExitShiftKey: shiftContext.key,
+      actualExitReplanConfirmed: !impact.requiresConfirmation,
+    }));
+  }
+
+  function confirmExitReplan() {
+    setDayState((current) => ({ ...current, actualExitReplanConfirmed: true }));
+  }
+
+  function undoActualExit() {
+    setDayState((current) => ({
+      ...current,
+      actualExit: null,
+      actualExitAt: null,
+      actualExitShiftKey: null,
+      actualExitReplanConfirmed: false,
+    }));
   }
 
   const jornadaLabel = snapshot.shift.type === 'off' ? 'Libre' : `${snapshot.shift.start}–${snapshot.shift.end}`;
 
   const live = (() => {
+    if (hasActualExit && needsExitReview) {
+      return {
+        title: 'Salida real registrada',
+        blue: `${dayState.actualExit} · Falta confirmar un cambio`,
+        copy: 'Regreso y recuperación ya siguen tu salida real. Dejé los bloques flexibles fuera hasta que decidas si quieres moverlos.',
+        icon: '✓',
+      };
+    }
     if (hasActualExit) return { title: plan.headline, blue: `${dayState.actualExit} · Salida real`, copy: plan.primary.detail, icon: '✓' };
     if (phase === 'working') return { title: 'Trabajando ahora', blue: `${todayShift.start}–${todayShift.end} · Jornada en curso`, copy: 'Tu jornada está en curso. Cuando termines, toca “Ya salí” y WeekFlow reajustará solo lo flexible.', icon: '💼' };
     if (phase === 'commuting') return { title: 'En camino al trabajo', blue: `${todayShift.start} · Entrada`, copy: 'Ya estás en la ventana de traslado. Lo importante ahora es llegar con margen.', icon: '🚇' };
     if (phase === 'after') return { title: 'Jornada finalizada', blue: `${todayShift.end} · Salida programada`, copy: 'Si saliste a otra hora, registra la salida real para ajustar solo lo que viene después.', icon: '✓' };
 
     const next = upcomingMoments[0];
-    if (next) {
-      return { title: plan.headline, blue: `${next.time} · ${next.title}`, copy: next.detail, icon: next.icon };
-    }
-
-    if (moveDoneToday) {
-      return { title: 'Lo importante de hoy ya está cubierto', blue: 'Move · Hecho', copy: 'No voy a inventarte otra tarea solo para llenar el día.', icon: '✓' };
-    }
-
+    if (next) return { title: plan.headline, blue: `${next.time} · ${next.title}`, copy: next.detail, icon: next.icon };
+    if (moveDoneToday) return { title: 'Lo importante de hoy ya está cubierto', blue: 'Move · Hecho', copy: 'No voy a inventarte otra tarea solo para llenar el día.', icon: '✓' };
     return { title: 'Día despejado', blue: 'Sin pendientes inmediatos', copy: 'No hay una acción próxima que necesite competir por tu atención.', icon: '🌿' };
   })();
 
@@ -202,7 +244,7 @@ export default function NowScreen() {
             <View style={styles.brainIcon}><Text style={styles.emoji}>🧠</Text></View>
             <View style={{ flex: 1 }}>
               <Text style={styles.cardTitle}>WeekFlow Brain</Text>
-              <Text style={styles.muted}>{phase === 'working' ? 'Tu jornada está en curso. El resto del día se mantiene en espera.' : plan.summary}</Text>
+              <Text style={styles.muted}>{phase === 'working' && !hasActualExit ? 'Tu jornada está en curso. El resto del día se mantiene en espera.' : plan.summary}</Text>
             </View>
           </View>
           <View style={styles.stats}>
@@ -236,7 +278,7 @@ export default function NowScreen() {
           </View>
           <Text style={styles.liveCopy}>{live.copy}</Text>
 
-          {phase === 'working' && workProgress ? (
+          {phase === 'working' && workProgress && !hasActualExit ? (
             <View style={styles.workProgress}>
               <View style={styles.workProgressMeta}>
                 <Text style={styles.workRemaining}>{remainingLabel(workProgress.remaining)}</Text>
@@ -254,10 +296,31 @@ export default function NowScreen() {
             </Pressable>
           ) : null}
 
-          {hasActualExit ? (
+          {hasActualExit && needsExitReview && exitImpact ? (
+            <View style={styles.exitReview}>
+              <Text style={styles.exitReviewTitle}>Este cambio sí mueve tu día</Text>
+              <Text style={styles.exitReviewCopy}>
+                Saliste {deltaLabel(exitImpact.deltaMinutes)}. Regreso aprox. {exitImpact.homeAt} · recuperación {exitImpact.recoveryAt}.
+              </Text>
+              <Text style={styles.exitReviewMeta}>
+                {exitImpact.flexibleCount} {exitImpact.flexibleCount === 1 ? 'bloque flexible espera' : 'bloques flexibles esperan'} tu confirmación.
+              </Text>
+              <View style={styles.exitReviewActions}>
+                <Pressable style={styles.exitSecondary} onPress={undoActualExit}>
+                  <Text style={styles.exitSecondaryText}>Corregir salida</Text>
+                </Pressable>
+                <Pressable style={styles.exitPrimary} onPress={confirmExitReplan}>
+                  <Text style={styles.exitPrimaryText}>Aplicar reajuste</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : hasActualExit ? (
             <View style={styles.confirmation}>
               <Text style={styles.confirmationText}>Salida real registrada · {dayState.actualExit}</Text>
-              <Text style={styles.confirmationMuted}>Solo movimos lo flexible. Tu jornada sigue intacta.</Text>
+              <Text style={styles.confirmationMuted}>Regreso y recuperación parten de la hora real. Solo se movió lo flexible que correspondía.</Text>
+              <Pressable onPress={undoActualExit} style={styles.correctButton}>
+                <Text style={styles.correctButtonText}>Corregir salida</Text>
+              </Pressable>
             </View>
           ) : null}
         </View>
@@ -336,9 +399,20 @@ const styles = StyleSheet.create({
   workFill: { height: '100%', borderRadius: 999, backgroundColor: colors.blue },
   exitButton: { marginTop: 16, backgroundColor: colors.blue, borderRadius: 16, paddingVertical: 14, alignItems: 'center' },
   exitButtonText: { color: '#FFFFFF', fontWeight: '900', fontSize: 14 },
+  exitReview: { marginTop: 16, backgroundColor: '#352A14', borderWidth: 1, borderColor: '#80662D', borderRadius: 18, padding: 14 },
+  exitReviewTitle: { color: '#F6D78A', fontWeight: '900', fontSize: 15 },
+  exitReviewCopy: { color: '#E7D7B3', fontSize: 12, lineHeight: 18, marginTop: 6 },
+  exitReviewMeta: { color: '#D3B66F', fontSize: 11, fontWeight: '800', marginTop: 7 },
+  exitReviewActions: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  exitSecondary: { flex: 1, borderWidth: 1, borderColor: '#80662D', borderRadius: 13, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  exitSecondaryText: { color: '#E7D7B3', fontSize: 12, fontWeight: '900' },
+  exitPrimary: { flex: 1, backgroundColor: colors.blue, borderRadius: 13, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  exitPrimaryText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
   confirmation: { marginTop: 16, backgroundColor: '#0F4039', borderWidth: 1, borderColor: '#2C7569', borderRadius: 18, padding: 14 },
   confirmationText: { color: '#97E7D4', fontWeight: '900', fontSize: 14 },
   confirmationMuted: { color: '#A6C8C0', fontSize: 12, lineHeight: 18, marginTop: 5 },
+  correctButton: { alignSelf: 'flex-start', marginTop: 10, paddingVertical: 5 },
+  correctButtonText: { color: '#8FD8C8', fontSize: 11, fontWeight: '900' },
   timelineCard: { backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 16 },
   timelineRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.line },
   timelineRowLast: { borderBottomWidth: 0 },

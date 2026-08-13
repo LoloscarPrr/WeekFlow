@@ -16,6 +16,8 @@ export type PersistedDayState = {
   settings: DaySettings;
   actualExit: string | null;
   actualExitAt: string | null;
+  actualExitShiftKey: string | null;
+  actualExitReplanConfirmed: boolean;
 };
 
 export type PersistedWeekShift = Shift & {
@@ -95,6 +97,8 @@ export const defaultDayState: PersistedDayState = {
   },
   actualExit: null,
   actualExitAt: null,
+  actualExitShiftKey: null,
+  actualExitReplanConfirmed: false,
 };
 
 export const defaultWeekState: PersistedWeekState = {
@@ -214,6 +218,8 @@ export function loadDayState(): PersistedDayState {
     },
     actualExit: parsed.actualExit ?? null,
     actualExitAt: parsed.actualExitAt ?? null,
+    actualExitShiftKey: typeof parsed.actualExitShiftKey === 'string' ? parsed.actualExitShiftKey : null,
+    actualExitReplanConfirmed: Boolean(parsed.actualExitReplanConfirmed),
   };
 }
 
@@ -382,5 +388,11 @@ export function nextWorkingShift(week: PersistedWeekState, fromDate = new Date()
 
 export function clearActualExit() {
   const state = loadDayState();
-  saveDayState({ ...state, actualExit: null, actualExitAt: null });
+  saveDayState({
+    ...state,
+    actualExit: null,
+    actualExitAt: null,
+    actualExitShiftKey: null,
+    actualExitReplanConfirmed: false,
+  });
 }

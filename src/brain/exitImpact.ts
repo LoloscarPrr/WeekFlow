@@ -66,13 +66,13 @@ export function assessExitReplanImpact(
   const deltaMinutes = actualExitDelta(snapshot, actualExit);
   const absoluteDelta = Math.abs(deltaMinutes);
 
-  // Reality updates commute/recovery immediately. We only ask before moving
-  // flexible life blocks when the change is materially large, or when a night
-  // shift meaningfully moves the protected recovery window.
-  const requiresConfirmation =
-    (flexibleCount > 0 && absoluteDelta >= 60)
+  // Regreso, descompresión y Rest siguen la realidad sin pedir permiso.
+  // La confirmación existe solo cuando una salida muy distinta obligaría a
+  // mover decisiones flexibles del usuario.
+  const requiresConfirmation = flexibleCount > 0 && (
+    absoluteDelta >= 60
     || (affectsRest && absoluteDelta >= 45)
-    || absoluteDelta >= 120;
+  );
 
   return {
     deltaMinutes,
