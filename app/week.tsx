@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -48,6 +48,12 @@ export default function WeekScreen() {
   const [week, setWeek] = useState<PersistedWeekState>(() => loadWeekState());
   const [editingDay, setEditingDay] = useState<number | null>(null);
   const [timePicker, setTimePicker] = useState<TimePickerTarget | null>(null);
+
+  const refreshWeek = useCallback(() => {
+    setWeek(loadWeekState());
+    setEditingDay(null);
+    setTimePicker(null);
+  }, []);
 
   const summary = useMemo(() => {
     const working = week.shifts.filter((shift) => shift.type !== 'off');
@@ -101,7 +107,7 @@ export default function WeekScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <RefreshableScrollView contentContainerStyle={styles.content}>
+      <RefreshableScrollView contentContainerStyle={styles.content} onRefreshData={refreshWeek}>
         <Brand />
 
         <View style={styles.hero}>
