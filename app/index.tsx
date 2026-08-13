@@ -6,7 +6,7 @@ import { Brand } from '@/src/components/Brand';
 import { RefreshableScrollView } from '@/src/components/AppRefresh';
 import { buildBrainPlan, replanAfterActualExit } from '@/src/brain/engine';
 import { assessExitReplanImpact } from '@/src/brain/exitImpact';
-import type { BrainSnapshot, Energy, Shift } from '@/src/brain/types';
+import type { BrainMoment, BrainSnapshot, Energy } from '@/src/brain/types';
 import {
   loadDayState,
   loadWeekState,
@@ -31,48 +31,79 @@ function currentHm(now = new Date()) {
   return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 }
 
-function toMinutes(time: string) {
-  const [hours, minutes] = time.split(':').map(Number);
-  return hours * 60 + minutes;
+function dateAtHm(base: Date, value: string) {
+  const [hours, minutes] = value.split(':').map(Number);
+  const result = new Date(base);
+  result.setHours(hours, minutes, 0, 0);
+  return result;
 }
 
-function minutesNow(now: Date) {
-  return now.getHours() * 60 + now.getMinutes();
-}
+function phaseForShift(
+  startAtIso: string | null,
+  endAtIso: string | null,
+  off: boolean,
+  commuteOutMin: number,
+  bufferMin: number,
+  now: Date,
+): DayPhase {
+  if (off || !startAtIso || !endAtIso) return 'off';
 
-function phaseForShift(shift: Shift, commuteOutMin: number, bufferMin: number, now: Date): DayPhase {
-  if (shift.type === 'off' || !shift.start || !shift.end) return 'off';
+  const startAt = new Date(startAtIso);
+  const endAt = new Date(endAtIso);
+  if (now >= startAt && now < endAt) return 'working';
+  if (now >= endAt) return 'after';
 
-  const current = minutesNow(now);
-  const start = toMinutes(shift.start);
-  const end = toMinutes(shift.end);
-  const overnight = end <= start;
-  const working = overnight ? current >= start || current < end : current >= start && current < end;
-  if (working) return 'working';
-
-  const untilStart = (start - current + 1440) % 1440;
-  const beforeUpcomingShift = untilStart <= 12 * 60;
-  if (!beforeUpcomingShift) return 'after';
-  if (untilStart <= commuteOutMin + bufferMin) return 'commuting';
+  const leaveAt = new Date(startAt.getTime() - (commuteOutMin + bufferMin) * 60_000);
+  if (now >= leaveAt) return 'commuting';
   return 'before';
 }
 
-function shiftProgress(shift: Shift, now: Date) {
-  if (shift.type === 'off' || !shift.start || !shift.end) return null;
+function shiftProgress(startAtIso: string | null, endAtIso: string | null, now: Date) {
+  if (!startAtIso || !endAtIso) return null;
+  const startAt = new Date(startAtIso);
+  const endAt = new Date(endAtIso);
+  const durationMs = endAt.getTime() - startAt.getTime();
+  if (durationMs <= 0) return null;
 
-  const start = toMinutes(shift.start);
-  const end = toMinutes(shift.end);
-  const overnight = end <= start;
-  const duration = overnight ? end + 1440 - start : end - start;
-  let current = minutesNow(now);
-  if (overnight && current < end) current += 1440;
-
-  const elapsed = Math.max(0, Math.min(duration, current - start));
-  const remaining = Math.max(0, duration - elapsed);
+  const elapsedMs = Math.max(0, Math.min(durationMs, now.getTime() - startAt.getTime()));
+  const remainingMs = Math.max(0, durationMs - elapsedMs);
   return {
-    percent: duration > 0 ? Math.round((elapsed / duration) * 100) : 0,
-    remaining,
+    percent: Math.round((elapsedMs / durationMs) * 100),
+    remaining: Math.ceil(remainingMs / 60_000),
   };
+}
+
+function datedPlanMoments(moments: BrainMoment[], shiftStartAtIso: string | null, now: Date) {
+  if (!shiftStartAtIso) {
+    return moments.map((item) => ({ item, at: dateAtHm(now, item.time) }));
+  }
+
+  const shiftStartAt = new Date(shiftStartAtIso);
+  const workIndex = moments.findIndex((item) => item.type === 'work');
+  let previous: Date | null = null;
+
+  return moments.map((item, index) => {
+    let at = dateAtHm(shiftStartAt, item.time);
+
+    // Pre-shift moments can belong to the previous calendar day when the
+    // jornada starts shortly after midnight.
+    if (workIndex >= 0 && index < workIndex && at > shiftStartAt) {
+      at.setDate(at.getDate() - 1);
+    }
+
+    if (workIndex >= 0 && index === workIndex) {
+      at = new Date(shiftStartAt);
+    }
+
+    // The plan array is chronological. If the clock wraps (night shift), move
+    // that moment to the next calendar day instead of guessing from HH:mm.
+    if (previous && at < previous) {
+      at.setDate(at.getDate() + 1);
+    }
+
+    previous = at;
+    return { item, at };
+  });
 }
 
 function remainingLabel(totalMinutes: number) {
@@ -144,30 +175,27 @@ export default function NowScreen() {
       : basePlan,
     [basePlan, dayState.actualExit, hasActualExit, needsExitReview, snapshot],
   );
-  const phase = phaseForShift(todayShift, dayState.settings.commuteOutMin, dayState.settings.bufferMin, clockNow);
-  const workProgress = phase === 'working' ? shiftProgress(todayShift, clockNow) : null;
+  const phase = phaseForShift(
+    shiftContext.startAt,
+    shiftContext.endAt,
+    todayShift.type === 'off',
+    dayState.settings.commuteOutMin,
+    dayState.settings.bufferMin,
+    clockNow,
+  );
+  const workProgress = phase === 'working' ? shiftProgress(shiftContext.startAt, shiftContext.endAt, clockNow) : null;
 
   const upcomingMoments = useMemo(() => {
-    const current = minutesNow(clockNow);
-    const overnight = todayShift.type !== 'off' && Boolean(todayShift.start) && Boolean(todayShift.end) && toMinutes(todayShift.end) <= toMinutes(todayShift.start);
-
-    return plan.moments.filter((item) => {
-      if (moveDoneToday && item.type === 'move') return false;
-      if (needsExitReview && item.flexible) return false;
-
-      const target = toMinutes(item.time);
-
-      if (phase === 'working') {
-        if (item.type === 'work' || item.type === 'commute-out' || item.type === 'prep' || item.type === 'wake') return false;
-        if (overnight) {
-          return item.type === 'commute-back' || item.type === 'recovery' || item.type === 'rest';
-        }
-      }
-
-      if (target >= current) return true;
-      return phase !== 'off' && current >= 18 * 60 && target <= 6 * 60;
-    }).slice(0, 7);
-  }, [clockNow, moveDoneToday, needsExitReview, phase, plan.moments, todayShift]);
+    const dated = datedPlanMoments(plan.moments, shiftContext.startAt, clockNow);
+    return dated
+      .filter(({ item, at }) => {
+        if (moveDoneToday && item.type === 'move') return false;
+        if (needsExitReview && item.flexible) return false;
+        return at.getTime() >= clockNow.getTime();
+      })
+      .map(({ item }) => item)
+      .slice(0, 7);
+  }, [clockNow, moveDoneToday, needsExitReview, plan.moments, shiftContext.startAt]);
 
   useEffect(() => saveDayState(dayState), [dayState]);
 
