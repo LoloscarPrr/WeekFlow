@@ -1,33 +1,30 @@
-import { createContext, type PropsWithChildren, useCallback, useContext, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { RefreshControl, ScrollView, type ScrollViewProps } from 'react-native';
 import { colors } from '@/src/theme/colors';
 
-const RefreshContext = createContext<() => void>(() => undefined);
+type RefreshableScrollViewProps = ScrollViewProps & {
+  onRefreshData?: () => void | Promise<void>;
+};
 
-export function AppRefreshProvider({ children, onRefresh }: PropsWithChildren<{ onRefresh: () => void }>) {
-  return <RefreshContext.Provider value={onRefresh}>{children}</RefreshContext.Provider>;
-}
-
-export function RefreshableScrollView(props: ScrollViewProps) {
-  const requestAppRefresh = useContext(RefreshContext);
+export function RefreshableScrollView({ onRefreshData, ...props }: RefreshableScrollViewProps) {
   const [refreshing, setRefreshing] = useState(false);
 
-  const handleRefresh = useCallback(() => {
+  const handleRefresh = useCallback(async () => {
     if (refreshing) return;
     setRefreshing(true);
-
-    // Let Android render its native refresh indicator, then remount the
-    // active route so all persisted WeekFlow state is read again.
-    setTimeout(() => {
+    try {
+      await onRefreshData?.();
+      // Keep the native indicator visible long enough to feel intentional
+      // without unmounting the route or fighting Android's scroll animation.
+      await new Promise((resolve) => setTimeout(resolve, 420));
+    } finally {
       setRefreshing(false);
-      requestAppRefresh();
-    }, 320);
-  }, [refreshing, requestAppRefresh]);
+    }
+  }, [onRefreshData, refreshing]);
 
   return (
     <ScrollView
       {...props}
-      alwaysBounceVertical
       overScrollMode="always"
       contentContainerStyle={[{ flexGrow: 1 }, props.contentContainerStyle]}
       refreshControl={(
@@ -36,7 +33,7 @@ export function RefreshableScrollView(props: ScrollViewProps) {
           onRefresh={handleRefresh}
           colors={[colors.blue]}
           progressBackgroundColor="#08152A"
-          progressViewOffset={8}
+          progressViewOffset={12}
         />
       )}
     />
