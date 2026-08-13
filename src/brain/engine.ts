@@ -116,15 +116,18 @@ function buildNightShift(snapshot: BrainSnapshot): BrainPlan {
   const recovery = addMinutes(home, snapshot.recoveryMin);
   const sleep = addMinutes(recovery, 30);
 
+  // The order follows the real chronology of a night shift: preparation first,
+  // then the shift, then the next-morning recovery. Ahora can therefore filter
+  // the list without showing tomorrow morning before tonight's preparation.
   const moments = [
-    moment(snapshot.shift.end, '🚇', 'Regreso a casa', `${snapshot.commuteBackMin} min estimados de regreso.`, 'commute-back', false),
-    moment(recovery, '🧠', 'Bajar revoluciones', 'Después de la noche, Rest gana prioridad.', 'recovery'),
-    moment(sleep, '😴', 'Dormir / recuperar', 'Protegemos recuperación antes de añadir extras.', 'rest', false),
-    moment(pre.wake, '☀️', 'Despertar', 'Calculado hacia atrás desde la próxima jornada.', 'wake', false),
+    moment(pre.wake, '☀️', 'Despertar / activarte', 'Calculado hacia atrás desde la jornada nocturna.', 'wake', false),
     moment(pre.meal, '🍲', 'Comer antes de la jornada', 'Evitar improvisar durante la noche.', 'food'),
     moment(pre.prep, '🚿', 'Prepararte', `${snapshot.prepMin} min reservados.`, 'prep', false),
     moment(pre.leave, '🚇', 'Salir hacia el trabajo', `${snapshot.commuteOutMin} min de traslado + ${snapshot.bufferMin} min de margen.`, 'commute-out', false),
     moment(snapshot.shift.start, '💼', 'Jornada de trabajo', `${snapshot.shift.start}–${snapshot.shift.end}`, 'work', false),
+    moment(snapshot.shift.end, '🚇', 'Regreso a casa', `${snapshot.commuteBackMin} min estimados de regreso.`, 'commute-back', false),
+    moment(recovery, '🧠', 'Bajar revoluciones', 'Después de la noche, Rest gana prioridad.', 'recovery'),
+    moment(sleep, '😴', 'Dormir / recuperar', 'Protegemos recuperación antes de añadir extras.', 'rest', false),
   ];
 
   return {
@@ -150,9 +153,11 @@ export function replanAfterActualExit(
 
   const homeAt = addMinutes(actualExit, snapshot.commuteBackMin);
   const recoveryAt = addMinutes(homeAt, snapshot.recoveryMin);
-  let flexibleCursor = toMinutes(recoveryAt);
+  const restAt = addMinutes(recoveryAt, 30);
+  let flexibleCursor = toMinutes(recoveryAt) + 45;
+  const commuteBackIndex = currentPlan.moments.findIndex((item) => item.type === 'commute-back');
 
-  const moments = currentPlan.moments.map((item) => {
+  const moments = currentPlan.moments.map((item, index) => {
     if (item.type === 'commute-back') {
       return {
         ...item,
@@ -170,20 +175,25 @@ export function replanAfterActualExit(
       };
     }
 
-    if (item.flexible && ['food', 'move', 'personal'].includes(item.type)) {
-      const originalTime = toMinutes(item.time);
-      const shiftEnd = toMinutes(snapshot.shift.end);
-      const occursAfterShift = originalTime >= shiftEnd || snapshot.shift.end < snapshot.shift.start;
+    if (item.type === 'rest' && currentPlan.mode === 'night-shift' && index > commuteBackIndex) {
+      return {
+        ...item,
+        time: restAt,
+        detail: 'Ventana de recuperación reajustada desde tu salida real.',
+      };
+    }
 
-      if (occursAfterShift) {
-        const time = formatMinutes(flexibleCursor);
-        flexibleCursor += 45;
-        return {
-          ...item,
-          time,
-          detail: `${item.detail} · Reprogramado por tu salida real.`,
-        };
-      }
+    // Only move flexible items that are truly after the commute-back event in
+    // the plan. This is crucial for night shifts: pre-shift food must never be
+    // teleported to the morning just because the clock wrapped past midnight.
+    if (item.flexible && index > commuteBackIndex && ['food', 'move', 'personal'].includes(item.type)) {
+      const time = formatMinutes(flexibleCursor);
+      flexibleCursor += 45;
+      return {
+        ...item,
+        time,
+        detail: `${item.detail} · Reprogramado por tu salida real.`,
+      };
     }
 
     return item;

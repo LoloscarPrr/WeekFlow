@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '@/src/theme/colors';
 
-type PillarTab = 'move' | 'food';
+type PillarTab = 'move' | 'food' | 'rest';
 
 export function PillarTabs({ active }: { active: PillarTab }) {
   return (
@@ -12,6 +12,9 @@ export function PillarTabs({ active }: { active: PillarTab }) {
       </Pressable>
       <Pressable style={[styles.tab, active === 'food' && styles.tabActive]} onPress={() => router.replace('/food')}>
         <Text style={[styles.text, active === 'food' && styles.textActive]}>Food</Text>
+      </Pressable>
+      <Pressable style={[styles.tab, active === 'rest' && styles.tabActive]} onPress={() => router.replace('/rest')}>
+        <Text style={[styles.text, active === 'rest' && styles.textActive]}>Rest</Text>
       </Pressable>
     </View>
   );
@@ -30,7 +33,7 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
   },
   tab: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingVertical: 9,
     borderRadius: 12,
   },

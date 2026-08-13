@@ -37,7 +37,7 @@ export function BottomNav() {
             : pathname === item.path
               || pathname.startsWith(`${item.path}/`)
               || (item.path === '/week' && pathname === '/import')
-              || (item.path === '/pillars' && pathname === '/food');
+              || (item.path === '/pillars' && ['/food', '/rest'].includes(pathname));
           return (
             <Pressable
               key={item.path}
