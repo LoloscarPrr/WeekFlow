@@ -97,12 +97,16 @@ export default function NowScreen() {
   const [weekState, setWeekState] = useState<PersistedWeekState>(() => loadWeekState());
   const [clockNow, setClockNow] = useState(() => new Date());
 
+  const refreshNow = useCallback(() => {
+    setDayState(loadDayState());
+    setWeekState(loadWeekState());
+    setClockNow(new Date());
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
-      setDayState(loadDayState());
-      setWeekState(loadWeekState());
-      setClockNow(new Date());
-    }, []),
+      refreshNow();
+    }, [refreshNow]),
   );
 
   useEffect(() => {
@@ -142,10 +146,10 @@ export default function NowScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <RefreshableScrollView contentContainerStyle={styles.content}>
+      <RefreshableScrollView contentContainerStyle={styles.content} onRefreshData={refreshNow}>
         <View style={styles.top}>
           <Brand />
-          <View style={styles.build}><Text style={styles.buildText}>Alpha 0.5.2</Text></View>
+          <View style={styles.build}><Text style={styles.buildText}>Alpha 0.5.3</Text></View>
         </View>
 
         <View style={styles.hero}>
