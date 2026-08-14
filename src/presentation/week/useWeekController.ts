@@ -33,11 +33,6 @@ export function useWeekController() {
 
   const summary = useMemo(() => getWeekSummary(week), [week]);
 
-  const commit = useCallback((next: WeekSchedule) => {
-    setWeek(next);
-    saveWeekState(next);
-  }, []);
-
   const refreshWeek = useCallback(() => {
     setWeek(loadWeekState());
     setEditingDay(null);
