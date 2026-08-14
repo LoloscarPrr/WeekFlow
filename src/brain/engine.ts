@@ -1,22 +1,5 @@
+import { addMinutes, formatMinutes, toMinutes } from '@/src/domain/services/time';
 import type { BrainMoment, BrainPlan, BrainSnapshot } from './types';
-
-const DAY = 24 * 60;
-
-function toMinutes(time: string) {
-  const [hours, minutes] = time.split(':').map(Number);
-  return hours * 60 + minutes;
-}
-
-function formatMinutes(value: number) {
-  const normalized = ((value % DAY) + DAY) % DAY;
-  const hours = Math.floor(normalized / 60);
-  const minutes = normalized % 60;
-  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-}
-
-function addMinutes(time: string, amount: number) {
-  return formatMinutes(toMinutes(time) + amount);
-}
 
 function moment(time: string, icon: string, title: string, detail: string, type: BrainMoment['type'], flexible = true): BrainMoment {
   return { time, icon, title, detail, type, flexible };
