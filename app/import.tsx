@@ -1,4 +1,4 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Brand } from '@/src/components/Brand';
@@ -6,9 +6,14 @@ import { ScheduleImportCard } from '@/src/components/ScheduleImportCard';
 import { colors } from '@/src/theme/colors';
 
 export default function ImportScheduleScreen() {
+  const insets = useSafeAreaInsets();
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: 96 + insets.bottom }]}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.top}>
           <Brand />
           <Pressable style={styles.back} onPress={() => router.back()}>
@@ -30,7 +35,7 @@ export default function ImportScheduleScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 22, paddingBottom: 48 },
+  content: { padding: 22 },
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
   back: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface },
   backText: { color: colors.text, fontWeight: '800', fontSize: 13 },
