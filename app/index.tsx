@@ -1,21 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Brand } from '@/src/components/Brand';
 import { RefreshableScrollView } from '@/src/components/AppRefresh';
-import { buildBrainPlan, replanAfterActualExit } from '@/src/brain/engine';
-import { assessExitReplanImpact } from '@/src/brain/exitImpact';
-import type { BrainMoment, BrainSnapshot, Energy } from '@/src/brain/types';
-import {
-  loadDayState,
-  loadWeekState,
-  moveSessionDoneToday,
-  saveDayState,
-  shiftContextForDate,
-  type PersistedDayState,
-  type PersistedWeekState,
-} from '@/src/state/persistence';
+import type { Energy } from '@/src/domain/entities/DailyState';
+import { useNowController } from '@/src/presentation/now/useNowController';
 import { colors } from '@/src/theme/colors';
 
 const energyOptions: { value: Energy; label: string; icon: string }[] = [
@@ -24,87 +12,6 @@ const energyOptions: { value: Energy; label: string; icon: string }[] = [
   { value: 'cansado', label: 'Cansado', icon: '😮‍💨' },
   { value: 'agotado', label: 'Agotado', icon: '😴' },
 ];
-
-type DayPhase = 'off' | 'before' | 'commuting' | 'working' | 'after';
-
-function currentHm(now = new Date()) {
-  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-}
-
-function dateAtHm(base: Date, value: string) {
-  const [hours, minutes] = value.split(':').map(Number);
-  const result = new Date(base);
-  result.setHours(hours, minutes, 0, 0);
-  return result;
-}
-
-function phaseForShift(
-  startAtIso: string | null,
-  endAtIso: string | null,
-  off: boolean,
-  commuteOutMin: number,
-  bufferMin: number,
-  now: Date,
-): DayPhase {
-  if (off || !startAtIso || !endAtIso) return 'off';
-
-  const startAt = new Date(startAtIso);
-  const endAt = new Date(endAtIso);
-  if (now >= startAt && now < endAt) return 'working';
-  if (now >= endAt) return 'after';
-
-  const leaveAt = new Date(startAt.getTime() - (commuteOutMin + bufferMin) * 60_000);
-  if (now >= leaveAt) return 'commuting';
-  return 'before';
-}
-
-function shiftProgress(startAtIso: string | null, endAtIso: string | null, now: Date) {
-  if (!startAtIso || !endAtIso) return null;
-  const startAt = new Date(startAtIso);
-  const endAt = new Date(endAtIso);
-  const durationMs = endAt.getTime() - startAt.getTime();
-  if (durationMs <= 0) return null;
-
-  const elapsedMs = Math.max(0, Math.min(durationMs, now.getTime() - startAt.getTime()));
-  const remainingMs = Math.max(0, durationMs - elapsedMs);
-  return {
-    percent: Math.round((elapsedMs / durationMs) * 100),
-    remaining: Math.ceil(remainingMs / 60_000),
-  };
-}
-
-function datedPlanMoments(moments: BrainMoment[], shiftStartAtIso: string | null, now: Date) {
-  if (!shiftStartAtIso) {
-    return moments.map((item) => ({ item, at: dateAtHm(now, item.time) }));
-  }
-
-  const shiftStartAt = new Date(shiftStartAtIso);
-  const workIndex = moments.findIndex((item) => item.type === 'work');
-  let previous: Date | null = null;
-
-  return moments.map((item, index) => {
-    let at = dateAtHm(shiftStartAt, item.time);
-
-    // Pre-shift moments can belong to the previous calendar day when the
-    // jornada starts shortly after midnight.
-    if (workIndex >= 0 && index < workIndex && at > shiftStartAt) {
-      at.setDate(at.getDate() - 1);
-    }
-
-    if (workIndex >= 0 && index === workIndex) {
-      at = new Date(shiftStartAt);
-    }
-
-    // The plan array is chronological. If the clock wraps (night shift), move
-    // that moment to the next calendar day instead of guessing from HH:mm.
-    if (previous && at < previous) {
-      at.setDate(at.getDate() + 1);
-    }
-
-    previous = at;
-    return { item, at };
-  });
-}
 
 function remainingLabel(totalMinutes: number) {
   const hours = Math.floor(totalMinutes / 60);
@@ -130,128 +37,25 @@ function deltaLabel(deltaMinutes: number) {
 }
 
 export default function NowScreen() {
-  const [dayState, setDayState] = useState<PersistedDayState>(() => loadDayState());
-  const [weekState, setWeekState] = useState<PersistedWeekState>(() => loadWeekState());
-  const [clockNow, setClockNow] = useState(() => new Date());
-  const [moveDoneToday, setMoveDoneToday] = useState(() => moveSessionDoneToday());
-
-  const refreshNow = useCallback(() => {
-    const now = new Date();
-    setDayState(loadDayState());
-    setWeekState(loadWeekState());
-    setClockNow(now);
-    setMoveDoneToday(moveSessionDoneToday(now));
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      refreshNow();
-    }, [refreshNow]),
-  );
-
-  useEffect(() => {
-    const timer = setInterval(() => setClockNow(new Date()), 30_000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const shiftContext = useMemo(() => shiftContextForDate(weekState, clockNow), [clockNow, weekState]);
-  const todayShift = shiftContext.shift;
-  const snapshot = useMemo<BrainSnapshot>(() => ({ ...dayState.settings, shift: todayShift, energy: dayState.energy }), [dayState.energy, dayState.settings, todayShift]);
-  const basePlan = useMemo(() => buildBrainPlan(snapshot), [snapshot]);
-  const hasActualExit = Boolean(
-    dayState.actualExit
-    && dayState.actualExitAt
-    && dayState.actualExitShiftKey === shiftContext.key
-    && todayShift.type !== 'off',
-  );
-  const exitImpact = useMemo(
-    () => hasActualExit && dayState.actualExit ? assessExitReplanImpact(snapshot, basePlan, dayState.actualExit) : null,
-    [basePlan, dayState.actualExit, hasActualExit, snapshot],
-  );
-  const needsExitReview = Boolean(exitImpact?.requiresConfirmation && !dayState.actualExitReplanConfirmed);
-  const plan = useMemo(
-    () => hasActualExit && dayState.actualExit
-      ? replanAfterActualExit(snapshot, basePlan, dayState.actualExit, !needsExitReview)
-      : basePlan,
-    [basePlan, dayState.actualExit, hasActualExit, needsExitReview, snapshot],
-  );
-  const phase = phaseForShift(
-    shiftContext.startAt,
-    shiftContext.endAt,
-    todayShift.type === 'off',
-    dayState.settings.commuteOutMin,
-    dayState.settings.bufferMin,
-    clockNow,
-  );
-  const workProgress = phase === 'working' ? shiftProgress(shiftContext.startAt, shiftContext.endAt, clockNow) : null;
-
-  const upcomingMoments = useMemo(() => {
-    const dated = datedPlanMoments(plan.moments, shiftContext.startAt, clockNow);
-    return dated
-      .filter(({ item, at }) => {
-        if (moveDoneToday && item.type === 'move') return false;
-        if (needsExitReview && item.flexible) return false;
-        return at.getTime() >= clockNow.getTime();
-      })
-      .map(({ item }) => item)
-      .slice(0, 7);
-  }, [clockNow, moveDoneToday, needsExitReview, plan.moments, shiftContext.startAt]);
-
-  useEffect(() => saveDayState(dayState), [dayState]);
-
-  function updateEnergy(energy: Energy) {
-    setDayState((current) => ({ ...current, energy }));
-  }
-
-  function markActualExit() {
-    const now = new Date();
-    const actualExit = currentHm(now);
-    const impact = assessExitReplanImpact(snapshot, basePlan, actualExit);
-    setClockNow(now);
-    setDayState((current) => ({
-      ...current,
-      actualExit,
-      actualExitAt: now.toISOString(),
-      actualExitShiftKey: shiftContext.key,
-      actualExitReplanConfirmed: !impact.requiresConfirmation,
-    }));
-  }
-
-  function confirmExitReplan() {
-    setDayState((current) => ({ ...current, actualExitReplanConfirmed: true }));
-  }
-
-  function undoActualExit() {
-    setDayState((current) => ({
-      ...current,
-      actualExit: null,
-      actualExitAt: null,
-      actualExitShiftKey: null,
-      actualExitReplanConfirmed: false,
-    }));
-  }
-
-  const jornadaLabel = snapshot.shift.type === 'off' ? 'Libre' : `${snapshot.shift.start}–${snapshot.shift.end}`;
-
-  const live = (() => {
-    if (hasActualExit && needsExitReview) {
-      return {
-        title: 'Salida real registrada',
-        blue: `${dayState.actualExit} · Falta confirmar un cambio`,
-        copy: 'Regreso y recuperación ya siguen tu salida real. Dejé los bloques flexibles fuera hasta que decidas si quieres moverlos.',
-        icon: '✓',
-      };
-    }
-    if (hasActualExit) return { title: plan.headline, blue: `${dayState.actualExit} · Salida real`, copy: plan.primary.detail, icon: '✓' };
-    if (phase === 'working') return { title: 'Trabajando ahora', blue: `${todayShift.start}–${todayShift.end} · Jornada en curso`, copy: 'Tu jornada está en curso. Cuando termines, toca “Ya salí” y WeekFlow reajustará solo lo flexible.', icon: '💼' };
-    if (phase === 'commuting') return { title: 'En camino al trabajo', blue: `${todayShift.start} · Entrada`, copy: 'Ya estás en la ventana de traslado. Lo importante ahora es llegar con margen.', icon: '🚇' };
-    if (phase === 'after') return { title: 'Jornada finalizada', blue: `${todayShift.end} · Salida programada`, copy: 'Si saliste a otra hora, registra la salida real para ajustar solo lo que viene después.', icon: '✓' };
-
-    const next = upcomingMoments[0];
-    if (next) return { title: plan.headline, blue: `${next.time} · ${next.title}`, copy: next.detail, icon: next.icon };
-    if (moveDoneToday) return { title: 'Lo importante de hoy ya está cubierto', blue: 'Move · Hecho', copy: 'No voy a inventarte otra tarea solo para llenar el día.', icon: '✓' };
-    return { title: 'Día despejado', blue: 'Sin pendientes inmediatos', copy: 'No hay una acción próxima que necesite competir por tu atención.', icon: '🌿' };
-  })();
+  const {
+    dayState,
+    refreshNow,
+    updateEnergy,
+    markActualExit,
+    confirmExitReplan,
+    undoActualExit,
+    todayShift,
+    snapshot,
+    plan,
+    hasActualExit,
+    exitImpact,
+    needsExitReview,
+    phase,
+    workProgress,
+    upcomingMoments,
+    jornadaLabel,
+    live,
+  } = useNowController();
 
   return (
     <SafeAreaView style={styles.safe}>
