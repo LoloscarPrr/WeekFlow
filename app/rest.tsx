@@ -8,6 +8,7 @@ import { colors } from '@/src/theme/colors';
 
 export default function RestScreen() {
   const { view, refreshRest } = useRestController();
+  const content = view.content;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -26,42 +27,42 @@ export default function RestScreen() {
           <Text style={styles.contextMeta}>{view.contextMeta}</Text>
         </View>
 
-        {view.content.kind === 'timeline' ? (
+        {content.kind === 'timeline' ? (
           <>
-            <Text style={styles.section}>{view.content.sectionTitle}</Text>
+            <Text style={styles.section}>{content.sectionTitle}</Text>
             <View style={styles.timelineCard}>
-              {view.content.rows.map((row, index) => (
+              {content.rows.map((row, index) => (
                 <RestRow
                   key={`${row.time}-${row.title}`}
                   time={row.time}
                   icon={row.icon}
                   title={row.title}
                   copy={row.copy}
-                  last={index === view.content.rows.length - 1}
+                  last={index === content.rows.length - 1}
                 />
               ))}
             </View>
           </>
-        ) : view.content.kind === 'plan' ? (
+        ) : content.kind === 'plan' ? (
           <>
-            <Text style={styles.section}>{view.content.sectionTitle}</Text>
+            <Text style={styles.section}>{content.sectionTitle}</Text>
             <View style={styles.planCard}>
               <View style={styles.planMain}>
                 <Text style={styles.planLabel}>CIERRE ORIENTATIVO</Text>
-                <Text style={styles.planTime}>{view.content.plan.windDownAt}</Text>
+                <Text style={styles.planTime}>{content.plan.windDownAt}</Text>
                 <Text style={styles.planCopy}>Referencia calculada desde la próxima entrada. Dejamos 45 min para bajar el ritmo antes de una ventana base de descanso.</Text>
               </View>
               <View style={styles.planStats}>
-                <MiniStat label="Descanso" value={view.content.plan.sleepAt} />
-                <MiniStat label="Despertar" value={view.content.plan.wakeAt} />
-                <MiniStat label="Entrada" value={view.content.plan.nextStart} />
+                <MiniStat label="Descanso" value={content.plan.sleepAt} />
+                <MiniStat label="Despertar" value={content.plan.wakeAt} />
+                <MiniStat label="Entrada" value={content.plan.nextStart} />
               </View>
               <Text style={styles.note}>La ventana base se usa para organizar, no como una orden rígida. Más adelante será personalizable.</Text>
             </View>
           </>
         ) : (
           <>
-            <Text style={styles.section}>{view.content.sectionTitle}</Text>
+            <Text style={styles.section}>{content.sectionTitle}</Text>
             <View style={styles.emptyCard}>
               <Text style={styles.emptyTitle}>No hay otro turno registrado todavía.</Text>
               <Text style={styles.emptyCopy}>Rest no inventa una alarma ni una hora de dormir cuando Semana no tiene una próxima entrada.</Text>
