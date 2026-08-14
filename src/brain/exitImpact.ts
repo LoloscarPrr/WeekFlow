@@ -1,22 +1,5 @@
+import { addMinutes, timeConstants, toMinutes } from '@/src/domain/services/time';
 import type { BrainPlan, BrainSnapshot } from './types';
-
-const DAY = 24 * 60;
-
-function toMinutes(time: string) {
-  const [hours, minutes] = time.split(':').map(Number);
-  return hours * 60 + minutes;
-}
-
-function formatMinutes(value: number) {
-  const normalized = ((value % DAY) + DAY) % DAY;
-  const hours = Math.floor(normalized / 60);
-  const minutes = normalized % 60;
-  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-}
-
-function addMinutes(time: string, amount: number) {
-  return formatMinutes(toMinutes(time) + amount);
-}
 
 function actualExitDelta(snapshot: BrainSnapshot, actualExit: string) {
   const start = toMinutes(snapshot.shift.start);
@@ -25,8 +8,8 @@ function actualExitDelta(snapshot: BrainSnapshot, actualExit: string) {
   const overnight = plannedEnd <= start;
 
   if (overnight) {
-    plannedEnd += DAY;
-    if (actual < start) actual += DAY;
+    plannedEnd += timeConstants.dayMinutes;
+    if (actual < start) actual += timeConstants.dayMinutes;
   }
 
   return actual - plannedEnd;
