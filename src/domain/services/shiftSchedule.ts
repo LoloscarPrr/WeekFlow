@@ -1,4 +1,4 @@
-import type { Shift, WeekSchedule, WeekShift } from '../entities/Shift';
+import type { Shift, ShiftType, WeekSchedule, WeekShift } from '../entities/Shift';
 import { toMinutes } from './time';
 
 export type ShiftContext = {
@@ -20,6 +20,23 @@ export type UpcomingShift = {
 
 export function localDateKey(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+export function classifyShift(start: string, end: string): ShiftType {
+  if (!start || !end) return 'off';
+  const startHour = Number(start.split(':')[0]);
+  const endHour = Number(end.split(':')[0]);
+  if (endHour < startHour || startHour >= 19) return 'night';
+  if (startHour < 11) return 'morning';
+  if (startHour >= 12 && startHour < 19) return 'afternoon';
+  return 'custom';
+}
+
+export function shiftDurationMinutes(start: string, end: string) {
+  if (!start || !end) return 0;
+  let duration = toMinutes(end) - toMinutes(start);
+  if (duration < 0) duration += 24 * 60;
+  return duration;
 }
 
 function mondayBasedDay(date: Date) {

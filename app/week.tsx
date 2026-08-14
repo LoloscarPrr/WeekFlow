@@ -1,109 +1,28 @@
-import { useCallback, useMemo, useState } from 'react';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker from '@expo/ui/community/datetime-picker';
 import { Brand } from '@/src/components/Brand';
 import { RefreshableScrollView } from '@/src/components/AppRefresh';
-import { loadWeekState, saveWeekState, type PersistedWeekState } from '@/src/state/persistence';
-import type { ShiftType } from '@/src/brain/types';
+import { useWeekController } from '@/src/presentation/week/useWeekController';
 import { colors } from '@/src/theme/colors';
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
-type TimePickerTarget = { day: number; field: 'start' | 'end'; value: Date };
-
-function classifyShift(start: string, end: string): ShiftType {
-  if (!start || !end) return 'off';
-  const startHour = Number(start.split(':')[0]);
-  const endHour = Number(end.split(':')[0]);
-  if (endHour < startHour || startHour >= 19) return 'night';
-  if (startHour < 11) return 'morning';
-  if (startHour >= 12 && startHour < 19) return 'afternoon';
-  return 'custom';
-}
-
-function dateFromTime(value: string, fallback: string) {
-  const source = /^\d{2}:\d{2}$/.test(value) ? value : fallback;
-  const [hours, minutes] = source.split(':').map(Number);
-  const date = new Date();
-  date.setHours(hours, minutes, 0, 0);
-  return date;
-}
-
-function timeFromDate(date: Date) {
-  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-}
-
-function durationMinutes(start: string, end: string) {
-  if (!start || !end) return 0;
-  const [sh, sm] = start.split(':').map(Number);
-  const [eh, em] = end.split(':').map(Number);
-  let result = eh * 60 + em - (sh * 60 + sm);
-  if (result < 0) result += 1440;
-  return result;
-}
-
 export default function WeekScreen() {
-  const [week, setWeek] = useState<PersistedWeekState>(() => loadWeekState());
-  const [editingDay, setEditingDay] = useState<number | null>(null);
-  const [timePicker, setTimePicker] = useState<TimePickerTarget | null>(null);
-
-  const refreshWeek = useCallback(() => {
-    setWeek(loadWeekState());
-    setEditingDay(null);
-    setTimePicker(null);
-  }, []);
-
-  const summary = useMemo(() => {
-    const working = week.shifts.filter((shift) => shift.type !== 'off');
-    const totalMinutes = working.reduce((sum, shift) => sum + durationMinutes(shift.start, shift.end), 0);
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    return {
-      workDays: working.length,
-      freeDays: 7 - working.length,
-      total: `${hours}${minutes ? ` h ${minutes} min` : ' h'}`,
-    };
-  }, [week]);
-
-  function commit(next: PersistedWeekState) {
-    setWeek(next);
-    saveWeekState(next);
-  }
-
-  function updateShift(day: number, patch: { start?: string; end?: string; off?: boolean }) {
-    const next: PersistedWeekState = {
-      shifts: week.shifts.map((item) => {
-        if (item.day !== day) return item;
-        if (patch.off) return { ...item, start: '', end: '', type: 'off' as ShiftType };
-        const start = patch.start !== undefined ? patch.start : item.start;
-        const end = patch.end !== undefined ? patch.end : item.end;
-        return { ...item, start, end, type: classifyShift(start, end) };
-      }),
-    };
-    commit(next);
-  }
-
-  function setWorkDay(day: number) {
-    const next: PersistedWeekState = {
-      shifts: week.shifts.map((item) => item.day === day
-        ? { ...item, start: item.start || '09:00', end: item.end || '17:00', type: classifyShift(item.start || '09:00', item.end || '17:00') }
-        : item),
-    };
-    commit(next);
-  }
-
-  function openTimePicker(day: number, field: 'start' | 'end', value: string) {
-    setTimePicker({ day, field, value: dateFromTime(value, field === 'start' ? '09:00' : '17:00') });
-  }
-
-  function applyPickedTime(selectedDate: Date) {
-    if (!timePicker) return;
-    const value = timeFromDate(selectedDate);
-    updateShift(timePicker.day, timePicker.field === 'start' ? { start: value } : { end: value });
-    setTimePicker(null);
-  }
+  const {
+    week,
+    summary,
+    editingDay,
+    timePicker,
+    refreshWeek,
+    toggleEditingDay,
+    setWorkDay,
+    setFreeDay,
+    openTimePicker,
+    applyPickedTime,
+    closeTimePicker,
+  } = useWeekController();
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -130,7 +49,7 @@ export default function WeekScreen() {
             const open = editingDay === shift.day;
             return (
               <View key={shift.day} style={[styles.dayBlock, index === 6 && styles.dayBlockLast]}>
-                <Pressable style={styles.dayRow} onPress={() => setEditingDay(open ? null : shift.day)}>
+                <Pressable style={styles.dayRow} onPress={() => toggleEditingDay(shift.day)}>
                   <View>
                     <Text style={styles.day}>{DAYS[shift.day]}</Text>
                     <Text style={[styles.dayShift, off && styles.dayOff]}>{off ? 'Libre' : `${shift.start}–${shift.end}`}</Text>
@@ -144,7 +63,7 @@ export default function WeekScreen() {
                       <Pressable style={[styles.segment, !off && styles.segmentActive]} onPress={() => setWorkDay(shift.day)}>
                         <Text style={[styles.segmentText, !off && styles.segmentTextActive]}>Trabajo</Text>
                       </Pressable>
-                      <Pressable style={[styles.segment, off && styles.segmentOffActive]} onPress={() => updateShift(shift.day, { off: true })}>
+                      <Pressable style={[styles.segment, off && styles.segmentOffActive]} onPress={() => setFreeDay(shift.day)}>
                         <Text style={[styles.segmentText, off && styles.segmentTextActive]}>Libre</Text>
                       </Pressable>
                     </View>
@@ -186,7 +105,7 @@ export default function WeekScreen() {
           is24Hour
           accentColor={colors.blue}
           onValueChange={(_, selectedDate) => applyPickedTime(selectedDate)}
-          onDismiss={() => setTimePicker(null)}
+          onDismiss={closeTimePicker}
         />
       ) : null}
     </SafeAreaView>
