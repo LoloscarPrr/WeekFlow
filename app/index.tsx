@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Brand } from '@/src/components/Brand';
@@ -159,16 +160,27 @@ export default function NowScreen() {
 
         <Text style={styles.section}>LO QUE VIENE</Text>
         <View style={styles.timelineCard}>
-          {upcomingMoments.length ? upcomingMoments.map((item, index) => (
-            <View key={`${item.time}-${item.type}-${index}`} style={[styles.timelineRow, index === upcomingMoments.length - 1 && styles.timelineRowLast]}>
-              <Text style={styles.timelineTime}>{item.time}</Text>
-              <Text style={styles.timelineIcon}>{item.icon}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.timelineTitle}>{item.title}</Text>
-                <Text style={styles.timelineDetail}>{item.detail}</Text>
-              </View>
-            </View>
-          )) : (
+          {upcomingMoments.length ? upcomingMoments.map((item, index) => {
+            const actionable = item.type === 'move';
+            return (
+              <Pressable
+                key={`${item.time}-${item.type}-${index}`}
+                style={[styles.timelineRow, index === upcomingMoments.length - 1 && styles.timelineRowLast]}
+                onPress={actionable ? () => router.push('/pillars') : undefined}
+                disabled={!actionable}
+                accessibilityRole={actionable ? 'button' : undefined}
+                accessibilityLabel={actionable ? `Abrir ${item.title}` : undefined}
+              >
+                <Text style={styles.timelineTime}>{item.time}</Text>
+                <Text style={styles.timelineIcon}>{item.icon}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.timelineTitle}>{item.title}</Text>
+                  <Text style={styles.timelineDetail}>{item.detail}</Text>
+                  {actionable ? <Text style={styles.timelineAction}>Abrir Move →</Text> : null}
+                </View>
+              </Pressable>
+            );
+          }) : (
             <View style={styles.emptyTimeline}>
               <Text style={styles.emptyTimelineTitle}>Nada urgente después de esto.</Text>
               <Text style={styles.emptyTimelineCopy}>Dejamos el espacio libre en vez de llenarlo por llenar.</Text>
@@ -252,6 +264,7 @@ const styles = StyleSheet.create({
   timelineIcon: { fontSize: 18, width: 24 },
   timelineTitle: { color: colors.text, fontSize: 14, fontWeight: '900' },
   timelineDetail: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 3 },
+  timelineAction: { color: '#76AFFF', fontSize: 11, fontWeight: '900', marginTop: 7 },
   emptyTimeline: { paddingVertical: 18 },
   emptyTimelineTitle: { color: colors.text, fontSize: 14, fontWeight: '900' },
   emptyTimelineCopy: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 4 },
