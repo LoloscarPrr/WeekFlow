@@ -39,6 +39,14 @@ export function shiftDurationMinutes(start: string, end: string) {
   return duration;
 }
 
+export function isNightShift(shift: Shift) {
+  if (shift.type === 'night') return true;
+  if (shift.type === 'off' || !shift.start || !shift.end) return false;
+  return toMinutes(shift.start) >= 18 * 60
+    || toMinutes(shift.end) <= 8 * 60
+    || toMinutes(shift.end) <= toMinutes(shift.start);
+}
+
 function mondayBasedDay(date: Date) {
   return (date.getDay() + 6) % 7;
 }
