@@ -5,6 +5,8 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 import { Brand } from '@/src/components/Brand';
 import { PillarTabs } from '@/src/components/PillarTabs';
 import { RefreshableScrollView } from '@/src/components/AppRefresh';
+import { FoodGuidedRecipe } from '@/src/food/FoodGuidedRecipe';
+import { recipeForSuggestion } from '@/src/food/recipes';
 import { contextCopy, contextTitle, foodContextForShift, suggestionsFor, type FoodSuggestion } from '@/src/food/suggestions';
 import {
   loadDayState,
@@ -33,6 +35,7 @@ export default function FoodScreen() {
   const [foodDay, setFoodDay] = useState<FoodDayRecord>(() => loadFoodDay(initialNow));
   const [manualOpen, setManualOpen] = useState(false);
   const [manualText, setManualText] = useState('');
+  const [guidedSuggestion, setGuidedSuggestion] = useState<FoodSuggestion | null>(null);
   const scrollRef = useRef<ScrollView>(null);
 
   const todayShift = useMemo(() => shiftForDate(weekState, clockNow), [clockNow, weekState]);
@@ -45,6 +48,7 @@ export default function FoodScreen() {
     () => baseSuggestions.filter((item) => !loggedTitles.has(item.title)).slice(0, 3),
     [baseSuggestions, loggedTitles],
   );
+  const guidedRecipe = guidedSuggestion ? recipeForSuggestion(guidedSuggestion.id) : null;
 
   const refreshFood = useCallback(() => {
     const now = new Date();
@@ -95,6 +99,19 @@ export default function FoodScreen() {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 160);
   }
 
+  if (guidedSuggestion && guidedRecipe) {
+    return (
+      <FoodGuidedRecipe
+        recipe={guidedRecipe}
+        onCancel={() => setGuidedSuggestion(null)}
+        onComplete={() => {
+          addSuggestion(guidedSuggestion);
+          setGuidedSuggestion(null);
+        }}
+      />
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <KeyboardAvoidingView
@@ -130,19 +147,29 @@ export default function FoodScreen() {
 
           {suggestions.length ? (
             <View style={styles.suggestions}>
-              {suggestions.map((item) => (
-                <View key={item.id} style={styles.suggestionCard}>
-                  <View style={styles.suggestionIcon}><Text style={styles.suggestionEmoji}>{item.icon}</Text></View>
-                  <View style={styles.suggestionBody}>
-                    <Text style={styles.suggestionTag}>{item.tag}</Text>
-                    <Text style={styles.suggestionTitle}>{item.title}</Text>
-                    <Text style={styles.suggestionCopy}>{item.copy}</Text>
+              {suggestions.map((item) => {
+                const recipe = recipeForSuggestion(item.id);
+                return (
+                  <View key={item.id} style={styles.suggestionCard}>
+                    <View style={styles.suggestionIcon}><Text style={styles.suggestionEmoji}>{item.icon}</Text></View>
+                    <View style={styles.suggestionBody}>
+                      <Text style={styles.suggestionTag}>{item.tag}</Text>
+                      <Text style={styles.suggestionTitle}>{item.title}</Text>
+                      <Text style={styles.suggestionCopy}>{item.copy}</Text>
+                    </View>
+                    <View style={styles.suggestionActions}>
+                      {recipe ? (
+                        <Pressable style={styles.cookButton} onPress={() => setGuidedSuggestion(item)}>
+                          <Text style={styles.cookButtonText}>Cocinar conmigo</Text>
+                        </Pressable>
+                      ) : null}
+                      <Pressable style={styles.logButton} onPress={() => addSuggestion(item)}>
+                        <Text style={styles.logButtonText}>Ya comí esto</Text>
+                      </Pressable>
+                    </View>
                   </View>
-                  <Pressable style={styles.logButton} onPress={() => addSuggestion(item)}>
-                    <Text style={styles.logButtonText}>Ya comí esto</Text>
-                  </Pressable>
-                </View>
-              ))}
+                );
+              })}
             </View>
           ) : (
             <View style={styles.allLoggedCard}>
@@ -231,7 +258,10 @@ const styles = StyleSheet.create({
   suggestionTag: { color: '#74AEF5', fontSize: 10, fontWeight: '900', letterSpacing: 1.5 },
   suggestionTitle: { color: colors.text, fontSize: 18, fontWeight: '900', marginTop: 4 },
   suggestionCopy: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 5 },
-  logButton: { alignSelf: 'flex-start', marginTop: 13, borderRadius: 13, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: '#173B69', borderWidth: 1, borderColor: '#3A76B9' },
+  suggestionActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 13 },
+  cookButton: { borderRadius: 13, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: colors.blue },
+  cookButtonText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
+  logButton: { borderRadius: 13, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: '#173B69', borderWidth: 1, borderColor: '#3A76B9' },
   logButtonText: { color: '#DCEBFF', fontSize: 12, fontWeight: '900' },
   allLoggedCard: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 20, padding: 17 },
   allLoggedTitle: { color: colors.text, fontSize: 14, fontWeight: '900' },
