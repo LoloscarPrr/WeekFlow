@@ -43,6 +43,31 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Building WeekFlow Alpha v$VERSION"
 
+      - name: Assign monotonic Android versionCode
+        id: android_version
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const configPath = 'app.json';
+          const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+          const runNumber = Number(process.env.GITHUB_RUN_NUMBER);
+
+          if (!Number.isInteger(runNumber) || runNumber <= 0) {
+            throw new Error(`Invalid GITHUB_RUN_NUMBER: ${process.env.GITHUB_RUN_NUMBER}`);
+          }
+
+          // Public WeekFlow stays at 0.1.0 Alpha while Android receives a
+          // strictly increasing technical version code for in-place updates.
+          const versionCode = 100000 + runNumber;
+          config.expo.android = config.expo.android || {};
+          config.expo.android.versionCode = versionCode;
+
+          fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `version_code=${versionCode}\n`);
+          console.log(`Android versionCode: ${versionCode}`);
+          NODE
+
       - name: Install dependencies
         run: npm install
 
@@ -89,6 +114,16 @@ jobs:
 
       - name: Generate Android project
         run: npx expo prebuild --platform android --no-install --clean
+
+      - name: Verify update identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION_CODE="${{ steps.android_version.outputs.version_code }}"
+          grep -q 'applicationId "com.weekflow.app"' android/app/build.gradle
+          grep -q "versionCode ${VERSION_CODE}" android/app/build.gradle
+          keytool -list -keystore android/app/debug.keystore -storepass android -alias androiddebugkey >/dev/null
+          echo "Update identity OK: com.weekflow.app / versionCode ${VERSION_CODE}"
 
       - name: Build standalone release APK
         working-directory: android
