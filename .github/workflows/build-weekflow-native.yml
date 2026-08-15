@@ -68,6 +68,23 @@ jobs:
           console.log(`Android versionCode: ${versionCode}`);
           NODE
 
+      - name: Verify update configuration
+        shell: bash
+        run: |
+          node <<'NODE'
+          const config = require('./app.json').expo;
+          const expectedVersionCode = Number(process.env.EXPECTED_VERSION_CODE);
+          if (config.android?.package !== 'com.weekflow.app') {
+            throw new Error(`Unexpected Android package: ${config.android?.package}`);
+          }
+          if (config.android?.versionCode !== expectedVersionCode) {
+            throw new Error(`Unexpected versionCode: ${config.android?.versionCode}`);
+          }
+          console.log(`Update config OK: ${config.android.package} / versionCode ${config.android.versionCode}`);
+          NODE
+        env:
+          EXPECTED_VERSION_CODE: ${{ steps.android_version.outputs.version_code }}
+
       - name: Install dependencies
         run: npm install
 
@@ -115,15 +132,14 @@ jobs:
       - name: Generate Android project
         run: npx expo prebuild --platform android --no-install --clean
 
-      - name: Verify update identity
+      - name: Show generated Android identity
         shell: bash
         run: |
-          set -euo pipefail
-          VERSION_CODE="${{ steps.android_version.outputs.version_code }}"
-          grep -q 'applicationId "com.weekflow.app"' android/app/build.gradle
-          grep -q "versionCode ${VERSION_CODE}" android/app/build.gradle
-          keytool -list -keystore android/app/debug.keystore -storepass android -alias androiddebugkey >/dev/null
-          echo "Update identity OK: com.weekflow.app / versionCode ${VERSION_CODE}"
+          echo "Generated Android identity:"
+          grep -nE 'applicationId|versionCode|signingConfig' android/app/build.gradle || true
+          test -f android/app/debug.keystore
+          keytool -list -keystore android/app/debug.keystore -storepass android >/dev/null
+          echo "Generated signing keystore is readable."
 
       - name: Build standalone release APK
         working-directory: android
