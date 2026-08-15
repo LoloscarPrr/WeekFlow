@@ -52,20 +52,26 @@ jobs:
           const configPath = 'app.json';
           const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
           const runNumber = Number(process.env.GITHUB_RUN_NUMBER);
-
-          if (!Number.isInteger(runNumber) || runNumber <= 0) {
-            throw new Error(`Invalid GITHUB_RUN_NUMBER: ${process.env.GITHUB_RUN_NUMBER}`);
-          }
-
-          // Public WeekFlow stays at 0.1.0 Alpha while Android receives a
-          // strictly increasing technical version code for in-place updates.
+          if (!Number.isInteger(runNumber) || runNumber <= 0) throw new Error(`Invalid GITHUB_RUN_NUMBER: ${process.env.GITHUB_RUN_NUMBER}`);
           const versionCode = 100000 + runNumber;
           config.expo.android = config.expo.android || {};
           config.expo.android.versionCode = versionCode;
-
           fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `version_code=${versionCode}\n`);
           console.log(`Android versionCode: ${versionCode}`);
+          NODE
+
+      - name: Verify update configuration
+        shell: bash
+        env:
+          EXPECTED_VERSION_CODE: ${{ steps.android_version.outputs.version_code }}
+        run: |
+          node <<'NODE'
+          const config = require('./app.json').expo;
+          const expectedVersionCode = Number(process.env.EXPECTED_VERSION_CODE);
+          if (config.android?.package !== 'com.weekflow.app') throw new Error(`Unexpected Android package: ${config.android?.package}`);
+          if (config.android?.versionCode !== expectedVersionCode) throw new Error(`Unexpected versionCode: ${config.android?.versionCode}`);
+          console.log(`Update config OK: ${config.android.package} / versionCode ${config.android.versionCode}`);
           NODE
 
       - name: Install dependencies
@@ -80,19 +86,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
-          # assets/brand is the single source of truth for WeekFlow branding.
-          # Build steps may only convert or resize these files; never redraw,
-          # recolor, crop or reinterpret the founder-approved artwork.
           dwebp assets/brand/weekflow-splash.webp -o assets/splash-official.png
-
           python3 - <<'PY'
           from PIL import Image
-
           icon = Image.open('assets/brand/weekflow-icon.webp').convert('RGB')
           icon.resize((1024, 1024), Image.Resampling.LANCZOS).save('assets/icon.png')
           icon.resize((1024, 1024), Image.Resampling.LANCZOS).save('assets/adaptive-icon.png')
-
           splash = Image.open('assets/splash-official.png')
           print('Official icon source:', icon.size)
           print('Official splash source:', splash.size)
@@ -115,20 +114,65 @@ jobs:
       - name: Generate Android project
         run: npx expo prebuild --platform android --no-install --clean
 
-      - name: Verify update identity
+      - name: Restore permanent WeekFlow signing key
         shell: bash
+        env:
+          WEEKFLOW_KEYSTORE_BASE64: ${{ secrets.WEEKFLOW_KEYSTORE_BASE64 }}
+          WEEKFLOW_KEYSTORE_PASSWORD: ${{ secrets.WEEKFLOW_KEYSTORE_PASSWORD }}
+          WEEKFLOW_KEY_ALIAS: ${{ secrets.WEEKFLOW_KEY_ALIAS }}
+          WEEKFLOW_KEY_PASSWORD: ${{ secrets.WEEKFLOW_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          VERSION_CODE="${{ steps.android_version.outputs.version_code }}"
-          grep -q 'applicationId "com.weekflow.app"' android/app/build.gradle
-          grep -q "versionCode ${VERSION_CODE}" android/app/build.gradle
-          keytool -list -keystore android/app/debug.keystore -storepass android -alias androiddebugkey >/dev/null
-          echo "Update identity OK: com.weekflow.app / versionCode ${VERSION_CODE}"
+          test -n "$WEEKFLOW_KEYSTORE_BASE64"
+          test -n "$WEEKFLOW_KEYSTORE_PASSWORD"
+          test -n "$WEEKFLOW_KEY_ALIAS"
+          test -n "$WEEKFLOW_KEY_PASSWORD"
+          printf '%s' "$WEEKFLOW_KEYSTORE_BASE64" | base64 --decode > android/app/weekflow-release.jks
+          chmod 600 android/app/weekflow-release.jks
+          keytool -list -keystore android/app/weekflow-release.jks -storepass "$WEEKFLOW_KEYSTORE_PASSWORD" -alias "$WEEKFLOW_KEY_ALIAS" >/dev/null
+          echo "Permanent WeekFlow signing key restored."
+
+      - name: Configure generated release signing
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = 'android/app/build.gradle';
+          const lines = fs.readFileSync(path, 'utf8').split('\n');
+          const signingIndex = lines.findIndex((line) => line.includes('signingConfigs {'));
+          const buildTypesIndex = lines.findIndex((line) => line.includes('buildTypes {'));
+          if (signingIndex < 0 || buildTypesIndex < 0 || buildTypesIndex <= signingIndex) throw new Error('Could not locate Android signing/buildTypes blocks.');
+          lines.splice(buildTypesIndex - 1, 0,
+            '        release {',
+            '            storeFile file(System.getenv("WEEKFLOW_KEYSTORE_PATH"))',
+            '            storePassword System.getenv("WEEKFLOW_KEYSTORE_PASSWORD")',
+            '            keyAlias System.getenv("WEEKFLOW_KEY_ALIAS")',
+            '            keyPassword System.getenv("WEEKFLOW_KEY_PASSWORD")',
+            '        }'
+          );
+          const nextBuildTypesIndex = lines.findIndex((line) => line.includes('buildTypes {'));
+          const releaseIndex = lines.findIndex((line, index) => index > nextBuildTypesIndex && line.trim() === 'release {');
+          if (releaseIndex < 0) throw new Error('Could not locate release build type.');
+          let replaced = false;
+          for (let i = releaseIndex + 1; i < lines.length && i < releaseIndex + 30; i += 1) {
+            if (lines[i].includes('signingConfig signingConfigs.debug')) {
+              lines[i] = lines[i].replace('signingConfig signingConfigs.debug', 'signingConfig signingConfigs.release');
+              replaced = true;
+              break;
+            }
+          }
+          if (!replaced) throw new Error('Could not switch release build to WeekFlow signing config.');
+          fs.writeFileSync(path, lines.join('\n'));
+          NODE
 
       - name: Build standalone release APK
         working-directory: android
         env:
           NODE_ENV: production
+          WEEKFLOW_KEYSTORE_PATH: ${{ github.workspace }}/android/app/weekflow-release.jks
+          WEEKFLOW_KEYSTORE_PASSWORD: ${{ secrets.WEEKFLOW_KEYSTORE_PASSWORD }}
+          WEEKFLOW_KEY_ALIAS: ${{ secrets.WEEKFLOW_KEY_ALIAS }}
+          WEEKFLOW_KEY_PASSWORD: ${{ secrets.WEEKFLOW_KEY_PASSWORD }}
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
@@ -139,10 +183,7 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           mkdir -p output
           APK="$(find android/app/build/outputs/apk/release -name '*.apk' | head -n 1)"
-          if [ -z "$APK" ]; then
-            echo "No release APK found"
-            exit 1
-          fi
+          if [ -z "$APK" ]; then echo "No release APK found"; exit 1; fi
           cp "$APK" "output/WeekFlow-Alpha-v${VERSION}-Standalone.apk"
           ls -lh output/
 
