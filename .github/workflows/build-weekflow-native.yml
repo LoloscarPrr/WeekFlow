@@ -132,19 +132,82 @@ jobs:
       - name: Generate Android project
         run: npx expo prebuild --platform android --no-install --clean
 
+      - name: Restore permanent WeekFlow signing key
+        shell: bash
+        env:
+          WEEKFLOW_KEYSTORE_B64: ${{ secrets.WEEKFLOW_KEYSTORE_B64 }}
+          WEEKFLOW_KEYSTORE_PASSWORD: ${{ secrets.WEEKFLOW_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "$WEEKFLOW_KEYSTORE_B64" ] || [ -z "$WEEKFLOW_KEYSTORE_PASSWORD" ]; then
+            echo "WeekFlow signing secrets are missing."
+            exit 1
+          fi
+          printf '%s' "$WEEKFLOW_KEYSTORE_B64" | base64 --decode > android/app/weekflow-release.jks
+          chmod 600 android/app/weekflow-release.jks
+          keytool -list \
+            -keystore android/app/weekflow-release.jks \
+            -storepass "$WEEKFLOW_KEYSTORE_PASSWORD" \
+            -alias weekflow >/dev/null
+          echo "Permanent WeekFlow signing key restored."
+
+      - name: Configure generated release signing
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = 'android/app/build.gradle';
+          const lines = fs.readFileSync(path, 'utf8').split('\n');
+          const signingIndex = lines.findIndex((line) => line.includes('signingConfigs {'));
+          const buildTypesIndex = lines.findIndex((line) => line.includes('buildTypes {'));
+          if (signingIndex < 0 || buildTypesIndex < 0 || buildTypesIndex <= signingIndex) {
+            throw new Error('Could not locate Android signing/buildTypes blocks.');
+          }
+
+          const signingCloseIndex = buildTypesIndex - 1;
+          lines.splice(
+            signingCloseIndex,
+            0,
+            '        release {',
+            '            storeFile file(System.getenv("WEEKFLOW_KEYSTORE_PATH"))',
+            '            storePassword System.getenv("WEEKFLOW_KEYSTORE_PASSWORD")',
+            '            keyAlias "weekflow"',
+            '            keyPassword System.getenv("WEEKFLOW_KEYSTORE_PASSWORD")',
+            '        }',
+          );
+
+          const nextBuildTypesIndex = lines.findIndex((line) => line.includes('buildTypes {'));
+          const releaseIndex = lines.findIndex(
+            (line, index) => index > nextBuildTypesIndex && line.trim() === 'release {',
+          );
+          if (releaseIndex < 0) throw new Error('Could not locate release build type.');
+
+          let replaced = false;
+          for (let i = releaseIndex + 1; i < lines.length && i < releaseIndex + 30; i += 1) {
+            if (lines[i].includes('signingConfig signingConfigs.debug')) {
+              lines[i] = lines[i].replace('signingConfig signingConfigs.debug', 'signingConfig signingConfigs.release');
+              replaced = true;
+              break;
+            }
+          }
+          if (!replaced) throw new Error('Could not switch release build to WeekFlow signing config.');
+
+          fs.writeFileSync(path, lines.join('\n'));
+          NODE
+
       - name: Show generated Android identity
         shell: bash
         run: |
           echo "Generated Android identity:"
           grep -nE 'applicationId|versionCode|signingConfig' android/app/build.gradle || true
-          test -f android/app/debug.keystore
-          keytool -list -keystore android/app/debug.keystore -storepass android >/dev/null
-          echo "Generated signing keystore is readable."
+          echo "Permanent release signing configured."
 
       - name: Build standalone release APK
         working-directory: android
         env:
           NODE_ENV: production
+          WEEKFLOW_KEYSTORE_PATH: ${{ github.workspace }}/android/app/weekflow-release.jks
+          WEEKFLOW_KEYSTORE_PASSWORD: ${{ secrets.WEEKFLOW_KEYSTORE_PASSWORD }}
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
