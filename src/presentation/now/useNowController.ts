@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { getNowView } from '@/src/application/useCases/getNowView';
-import { registerActualExit } from '@/src/application/useCases/registerActualExit';
+import {
+  correctActualExitTime as correctActualExitTimeUseCase,
+  registerActualExit,
+} from '@/src/application/useCases/registerActualExit';
 import {
   confirmNowExitReplan,
-  undoNowActualExit,
   updateNowEnergy,
 } from '@/src/application/useCases/updateNowState';
 import type { Energy } from '@/src/domain/entities/DailyState';
@@ -68,9 +70,16 @@ export function useNowController() {
     setDayState((current) => confirmNowExitReplan(current));
   }, []);
 
-  const undoActualExit = useCallback(() => {
-    setDayState((current) => undoNowActualExit(current));
-  }, []);
+  const correctActualExitTime = useCallback((time: string) => {
+    const result = correctActualExitTimeUseCase({
+      state: dayState,
+      shiftKey: view.shiftContext.key,
+      snapshot: view.snapshot,
+      currentPlan: view.basePlan,
+      time,
+    });
+    setDayState(result.state);
+  }, [dayState, view.basePlan, view.shiftContext.key, view.snapshot]);
 
   return {
     dayState,
@@ -78,7 +87,7 @@ export function useNowController() {
     updateEnergy,
     markActualExit,
     confirmExitReplan,
-    undoActualExit,
+    correctActualExitTime,
     ...view,
   };
 }

@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Brand } from '@/src/components/Brand';
 import { RefreshableScrollView } from '@/src/components/AppRefresh';
+import { TimeEditModal } from '@/src/components/TimeEditModal';
 import type { Energy } from '@/src/domain/entities/DailyState';
 import { useNowController } from '@/src/presentation/now/useNowController';
 import { colors } from '@/src/theme/colors';
@@ -44,7 +46,7 @@ export default function NowScreen() {
     updateEnergy,
     markActualExit,
     confirmExitReplan,
-    undoActualExit,
+    correctActualExitTime,
     todayShift,
     snapshot,
     plan,
@@ -57,6 +59,7 @@ export default function NowScreen() {
     jornadaLabel,
     live,
   } = useNowController();
+  const [exitEditorOpen, setExitEditorOpen] = useState(false);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -139,8 +142,8 @@ export default function NowScreen() {
                 {exitImpact.flexibleCount} {exitImpact.flexibleCount === 1 ? 'bloque flexible espera' : 'bloques flexibles esperan'} tu confirmación.
               </Text>
               <View style={styles.exitReviewActions}>
-                <Pressable style={styles.exitSecondary} onPress={undoActualExit}>
-                  <Text style={styles.exitSecondaryText}>Corregir salida</Text>
+                <Pressable style={styles.exitSecondary} onPress={() => setExitEditorOpen(true)}>
+                  <Text style={styles.exitSecondaryText}>Corregir hora</Text>
                 </Pressable>
                 <Pressable style={styles.exitPrimary} onPress={confirmExitReplan}>
                   <Text style={styles.exitPrimaryText}>Aplicar reajuste</Text>
@@ -151,8 +154,8 @@ export default function NowScreen() {
             <View style={styles.confirmation}>
               <Text style={styles.confirmationText}>Salida real registrada · {dayState.actualExit}</Text>
               <Text style={styles.confirmationMuted}>Regreso y recuperación parten de la hora real. Solo se movió lo flexible que correspondía.</Text>
-              <Pressable onPress={undoActualExit} style={styles.correctButton}>
-                <Text style={styles.correctButtonText}>Corregir salida</Text>
+              <Pressable onPress={() => setExitEditorOpen(true)} style={styles.correctButton}>
+                <Text style={styles.correctButtonText}>Corregir hora</Text>
               </Pressable>
             </View>
           ) : null}
@@ -188,6 +191,18 @@ export default function NowScreen() {
           )}
         </View>
       </RefreshableScrollView>
+      <TimeEditModal
+        visible={exitEditorOpen}
+        title="¿A qué hora saliste realmente?"
+        description="Cambiaré la hora de salida y volveré a calcular el regreso, la recuperación y solo los bloques flexibles que dependan de ella."
+        initialTime={dayState.actualExit ?? ''}
+        saveLabel="Guardar salida"
+        onCancel={() => setExitEditorOpen(false)}
+        onSave={(time) => {
+          correctActualExitTime(time);
+          setExitEditorOpen(false);
+        }}
+      />
     </SafeAreaView>
   );
 }

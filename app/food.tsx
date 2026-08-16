@@ -5,6 +5,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 import { Brand } from '@/src/components/Brand';
 import { PillarTabs } from '@/src/components/PillarTabs';
 import { RefreshableScrollView } from '@/src/components/AppRefresh';
+import { TimeEditModal } from '@/src/components/TimeEditModal';
 import { FoodGuidedRecipe } from '@/src/food/FoodGuidedRecipe';
 import { recipeForSuggestion } from '@/src/food/recipes';
 import { contextCopy, contextTitle, foodContextForShift, suggestionsFor, type FoodSuggestion } from '@/src/food/suggestions';
@@ -15,6 +16,7 @@ import {
   removeFoodEntry,
   saveFoodEntry,
   shiftForDate,
+  updateFoodEntryTime,
   type FoodDayRecord,
   type FoodEntry,
   type PersistedDayState,
@@ -36,6 +38,7 @@ export default function FoodScreen() {
   const [manualOpen, setManualOpen] = useState(false);
   const [manualText, setManualText] = useState('');
   const [guidedSuggestion, setGuidedSuggestion] = useState<FoodSuggestion | null>(null);
+  const [editingEntry, setEditingEntry] = useState<FoodEntry | null>(null);
   const scrollRef = useRef<ScrollView>(null);
 
   const todayShift = useMemo(() => shiftForDate(weekState, clockNow), [clockNow, weekState]);
@@ -93,6 +96,12 @@ export default function FoodScreen() {
 
   function removeEntry(id: string) {
     setFoodDay(removeFoodEntry(id));
+  }
+
+  function correctEntryTime(time: string) {
+    if (!editingEntry) return;
+    setFoodDay(updateFoodEntryTime(editingEntry.id, time, foodDay.date));
+    setEditingEntry(null);
   }
 
   function keepManualVisible() {
@@ -193,9 +202,14 @@ export default function FoodScreen() {
                     <Text style={styles.logTitle}>{entry.title}</Text>
                     <Text style={styles.logSource}>{entry.source === 'manual' ? 'Registrado por ti' : 'Desde una sugerencia'}</Text>
                   </View>
-                  <Pressable onPress={() => removeEntry(entry.id)} style={styles.removeButton}>
-                    <Text style={styles.removeText}>Quitar</Text>
-                  </Pressable>
+                  <View style={styles.logActions}>
+                    <Pressable onPress={() => setEditingEntry(entry)} style={styles.editTimeButton}>
+                      <Text style={styles.editTimeText}>Corregir hora</Text>
+                    </Pressable>
+                    <Pressable onPress={() => removeEntry(entry.id)} style={styles.removeButton}>
+                      <Text style={styles.removeText}>Quitar</Text>
+                    </Pressable>
+                  </View>
                 </View>
               ))}
             </View>
@@ -230,6 +244,14 @@ export default function FoodScreen() {
             </View>
           )}
         </RefreshableScrollView>
+        <TimeEditModal
+          visible={Boolean(editingEntry)}
+          title="¿A qué hora comiste esto?"
+          description={editingEntry ? `Corregiré solo la hora de “${editingEntry.title}”; el alimento seguirá registrado.` : ''}
+          initialTime={editingEntry ? timeLabel(editingEntry.at) : ''}
+          onCancel={() => setEditingEntry(null)}
+          onSave={correctEntryTime}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -275,6 +297,9 @@ const styles = StyleSheet.create({
   logTime: { color: '#76AFFF', fontSize: 11, fontWeight: '900' },
   logTitle: { color: colors.text, fontSize: 15, fontWeight: '900', marginTop: 2 },
   logSource: { color: colors.muted, fontSize: 11, marginTop: 3 },
+  logActions: { alignItems: 'flex-end', gap: 2 },
+  editTimeButton: { paddingHorizontal: 8, paddingVertical: 8 },
+  editTimeText: { color: '#76AFFF', fontSize: 11, fontWeight: '900' },
   removeButton: { paddingHorizontal: 8, paddingVertical: 8 },
   removeText: { color: '#88A5C7', fontSize: 11, fontWeight: '800' },
   manualButton: { marginTop: 14, borderWidth: 1, borderColor: colors.line, borderRadius: 17, paddingVertical: 14, alignItems: 'center' },
