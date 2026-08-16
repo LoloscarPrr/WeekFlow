@@ -20,6 +20,30 @@ export type RegisterActualExitResult = {
   requiresConfirmation: boolean;
 };
 
+export type CorrectActualExitTimeInput = Omit<RegisterActualExitInput, 'now'> & {
+  time: string;
+};
+
+function dateAtClosestTime(reference: Date, time: string) {
+  const match = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(time);
+  if (!match) throw new Error(`Invalid clock time: ${time}`);
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const candidates = [-1, 0, 1].map((dayOffset) => {
+    const candidate = new Date(reference);
+    candidate.setDate(candidate.getDate() + dayOffset);
+    candidate.setHours(hours, minutes, 0, 0);
+    return candidate;
+  });
+
+  return candidates.reduce((closest, candidate) => (
+    Math.abs(candidate.getTime() - reference.getTime()) < Math.abs(closest.getTime() - reference.getTime())
+      ? candidate
+      : closest
+  ));
+}
+
 export function registerActualExit({
   state,
   shiftKey,
@@ -41,4 +65,24 @@ export function registerActualExit({
       actualExitReplanConfirmed: !impact.requiresConfirmation,
     },
   };
+}
+
+export function correctActualExitTime({
+  state,
+  shiftKey,
+  snapshot,
+  currentPlan,
+  time,
+}: CorrectActualExitTimeInput): RegisterActualExitResult {
+  const parsedReference = state.actualExitAt ? new Date(state.actualExitAt) : new Date();
+  const reference = Number.isNaN(parsedReference.getTime()) ? new Date() : parsedReference;
+  const correctedAt = dateAtClosestTime(reference, time);
+
+  return registerActualExit({
+    state,
+    shiftKey,
+    snapshot,
+    currentPlan,
+    now: correctedAt,
+  });
 }

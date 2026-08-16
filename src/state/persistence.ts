@@ -167,6 +167,38 @@ export function saveFoodEntry(entry: FoodEntry, date = new Date()): FoodDayRecor
   return updated;
 }
 
+export function updateFoodEntryTime(entryId: string, time: string, dateKey: string): FoodDayRecord {
+  const match = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(time);
+  const history = loadFoodHistory();
+  const current = history.find((item) => item.date === dateKey) ?? { date: dateKey, entries: [] };
+  const existing = current.entries.find((item) => item.id === entryId);
+  if (!match || !existing) return current;
+
+  const [year, month, day] = dateKey.split('-').map(Number);
+  const correctedAt = new Date(
+    year,
+    month - 1,
+    day,
+    Number(match[1]),
+    Number(match[2]),
+    0,
+    0,
+  );
+  if (Number.isNaN(correctedAt.getTime())) return current;
+
+  const updated: FoodDayRecord = {
+    ...current,
+    entries: current.entries
+      .map((item) => item.id === entryId ? { ...item, at: correctedAt.toISOString() } : item)
+      .sort((a, b) => a.at.localeCompare(b.at)),
+  };
+  const next = [updated, ...history.filter((item) => item.date !== dateKey)]
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 14);
+  sqliteStateStore.write(FOOD_HISTORY_KEY, next);
+  return updated;
+}
+
 export function removeFoodEntry(entryId: string, date = new Date()): FoodDayRecord {
   const key = localDateKey(date);
   const history = loadFoodHistory();
