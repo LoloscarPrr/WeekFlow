@@ -2,7 +2,12 @@ import { Pressable, Text, TextInput, View } from 'react-native';
 import { moveStyles as styles } from '@/src/move/styles';
 import { MOVE_FEEDBACK, moveRecordDuration, type MoveController } from '@/src/move/useMoveController';
 
-export function MoveFeedback({ move }: { move: MoveController }) {
+type MoveFeedbackProps = {
+  move: MoveController;
+  onNoteFocus: () => void;
+};
+
+export function MoveFeedback({ move, onNoteFocus }: MoveFeedbackProps) {
   const { feedback, feedbackNote, setFeedbackNote, noteSaved, setNoteSaved, lastRecord, applyFeedback, saveNote, resetFinished } = move;
   if (!lastRecord) return null;
 
@@ -20,7 +25,16 @@ export function MoveFeedback({ move }: { move: MoveController }) {
         ))}
       </View>
       <Text style={styles.noteLabel}>Comentario opcional</Text>
-      <TextInput value={feedbackNote} onChangeText={(value) => { setFeedbackNote(value); setNoteSaved(false); }} placeholder="Escribe una nota breve" placeholderTextColor="#64758F" multiline maxLength={240} style={styles.noteInput} />
+      <TextInput
+        value={feedbackNote}
+        onChangeText={(value) => { setFeedbackNote(value); setNoteSaved(false); }}
+        onFocus={onNoteFocus}
+        placeholder="Escribe una nota breve"
+        placeholderTextColor="#64758F"
+        multiline
+        maxLength={240}
+        style={styles.noteInput}
+      />
       <Pressable style={styles.noteButton} onPress={saveNote}><Text style={styles.noteButtonText}>{noteSaved ? 'Nota guardada ✓' : 'Guardar nota'}</Text></Pressable>
       <Pressable style={styles.secondaryWide} onPress={resetFinished}><Text style={styles.secondaryButtonText}>Volver a Move</Text></Pressable>
     </View>
