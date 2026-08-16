@@ -8,10 +8,12 @@ import { buildBrainPlan, replanAfterActualExit } from '../src/brain/engine';
 import { pendingDatabaseMigrations } from '../src/data/migrations/databaseSchema';
 import { migrateDayState, migrateUserProfile, migrateWeekSchedule } from '../src/data/migrations/stateMigrations';
 import { defaultDayState, defaultWeekState } from '../src/domain/defaults';
-import type { BrainSnapshot } from '../src/domain/entities/Planning';
+import type { BrainMoment, BrainSnapshot } from '../src/domain/entities/Planning';
 import type { WeekSchedule } from '../src/domain/entities/Shift';
 import { importantMomentsForDate } from '../src/domain/services/importantMoments';
+import { IMPORTANT_MOMENT_ICON, timelineAfterFeaturedMoment } from '../src/domain/services/nowTimeline';
 import { shiftContextForDate, shiftDurationMinutes } from '../src/domain/services/shiftSchedule';
+import { shiftSummaryLabel } from '../src/domain/services/weekPresentation';
 import { correctFoodEntryTime, type FoodEntry } from '../src/food/history';
 import { parseScheduleOcr, type OcrElement, type OcrTextResult } from '../src/import/scheduleOcr';
 
@@ -238,6 +240,30 @@ run('Ahora recibe únicamente los momentos importantes del día calendario', () 
   equal(monday.length, 1, 'solo lunes');
   equal(monday[0].moment.title, 'Médico', 'momento visible');
   equal(monday[0].at.getHours(), 18, 'hora local conservada');
+});
+
+run('Ahora destaca el momento importante sin repetirlo en la lista', () => {
+  const moments: BrainMoment[] = [
+    { time: '20:00', icon: IMPORTANT_MOMENT_ICON, title: 'Dentista', detail: 'Importante', type: 'personal', flexible: false },
+    { time: '23:30', icon: '😴', title: 'Cerrar el día', detail: 'Descanso', type: 'rest', flexible: false },
+  ];
+  const timeline = timelineAfterFeaturedMoment(moments, 'off', false);
+  equal(IMPORTANT_MOMENT_ICON, '📌', 'icono visible');
+  ok(!timeline.some((moment) => moment.title === 'Dentista'), 'sin duplicado inmediato');
+  equal(timeline[0]?.title, 'Cerrar el día', 'siguiente momento real');
+});
+
+run('Semana oculta la colación cero sin perder una colación real', () => {
+  equal(
+    shiftSummaryLabel({ start: '20:45', end: '07:30', type: 'night', breakMinutes: 0 }),
+    '20:45–07:30',
+    'sin ruido visual',
+  );
+  equal(
+    shiftSummaryLabel({ start: '20:45', end: '07:30', type: 'night', breakMinutes: 30 }),
+    '20:45–07:30 · colación 30 min',
+    'colación real visible',
+  );
 });
 
 run('la migración de perfil conserva el nombre de planilla', () => {

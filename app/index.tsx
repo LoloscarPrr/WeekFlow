@@ -55,18 +55,18 @@ export default function NowScreen() {
     needsExitReview,
     phase,
     workProgress,
-    upcomingMoments,
+    timelineMoments,
     jornadaLabel,
     live,
   } = useNowController();
   const [exitEditorOpen, setExitEditorOpen] = useState(false);
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top']}>
       <RefreshableScrollView contentContainerStyle={styles.content} onRefreshData={refreshNow}>
         <View style={styles.top}>
           <Brand />
-          <View style={styles.build}><Text style={styles.buildText}>Alpha 0.2.0</Text></View>
+          <View style={styles.build}><Text style={styles.buildText}>Alpha 0.2.1</Text></View>
         </View>
 
         <View style={styles.hero}>
@@ -163,12 +163,12 @@ export default function NowScreen() {
 
         <Text style={styles.section}>LO QUE VIENE</Text>
         <View style={styles.timelineCard}>
-          {upcomingMoments.length ? upcomingMoments.map((item, index) => {
+          {timelineMoments.length ? timelineMoments.map((item, index) => {
             const actionable = item.type === 'move';
             return (
               <Pressable
                 key={`${item.time}-${item.type}-${index}`}
-                style={[styles.timelineRow, index === upcomingMoments.length - 1 && styles.timelineRowLast]}
+                style={[styles.timelineRow, index === timelineMoments.length - 1 && styles.timelineRowLast]}
                 onPress={actionable ? () => router.push('/pillars') : undefined}
                 disabled={!actionable}
                 accessibilityRole={actionable ? 'button' : undefined}

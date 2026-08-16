@@ -6,6 +6,7 @@ import { Brand } from '@/src/components/Brand';
 import { RefreshableScrollView } from '@/src/components/AppRefresh';
 import { WeekRitualCard } from '@/src/components/WeekRitualCard';
 import { useWeekController } from '@/src/presentation/week/useWeekController';
+import { shiftSummaryLabel } from '@/src/domain/services/weekPresentation';
 import { colors } from '@/src/theme/colors';
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -62,7 +63,7 @@ export default function WeekScreen() {
                   <View>
                     <Text style={styles.day}>{DAYS[shift.day]}</Text>
                     <Text style={[styles.dayShift, off && styles.dayOff]}>
-                      {off ? 'Libre' : `${shift.start}–${shift.end} · colación ${shift.breakMinutes ?? 0} min`}
+                      {shiftSummaryLabel(shift)}
                     </Text>
                   </View>
                   <Text style={[styles.chevron, open && styles.chevronOpen]}>⌄</Text>

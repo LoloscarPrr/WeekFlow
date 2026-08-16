@@ -4,6 +4,7 @@ import type { DayState } from '@/src/domain/entities/DailyState';
 import type { BrainMoment, BrainPlan, BrainSnapshot } from '@/src/domain/entities/Planning';
 import type { Shift, WeekSchedule } from '@/src/domain/entities/Shift';
 import { importantMomentsForDate } from '@/src/domain/services/importantMoments';
+import { IMPORTANT_MOMENT_ICON, timelineAfterFeaturedMoment } from '@/src/domain/services/nowTimeline';
 import { shiftContextForDate, type ShiftContext } from '@/src/domain/services/shiftSchedule';
 
 export type DayPhase = 'off' | 'before' | 'commuting' | 'working' | 'after';
@@ -32,6 +33,7 @@ export type NowView = {
   phase: DayPhase;
   workProgress: WorkProgress | null;
   upcomingMoments: BrainMoment[];
+  timelineMoments: BrainMoment[];
   jornadaLabel: string;
   live: NowLiveCard;
 };
@@ -234,7 +236,7 @@ export function getNowView({ dayState, weekState, moveDoneToday, now }: GetNowVi
     at,
     item: {
       time: moment.time,
-      icon: '◆',
+      icon: IMPORTANT_MOMENT_ICON,
       title: moment.title,
       detail: 'Momento importante que elegiste proteger esta semana.',
       type: 'personal' as const,
@@ -259,6 +261,8 @@ export function getNowView({ dayState, weekState, moveDoneToday, now }: GetNowVi
     ? 'Libre'
     : `${snapshot.shift.start}–${snapshot.shift.end}`;
 
+  const timelineMoments = timelineAfterFeaturedMoment(upcomingMoments, phase, hasActualExit);
+
   return {
     shiftContext,
     todayShift,
@@ -271,6 +275,7 @@ export function getNowView({ dayState, weekState, moveDoneToday, now }: GetNowVi
     phase,
     workProgress,
     upcomingMoments,
+    timelineMoments,
     jornadaLabel,
     live: liveCard(
       dayState,
