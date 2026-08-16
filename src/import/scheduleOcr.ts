@@ -11,6 +11,7 @@ export type ReviewShift = {
   label: string;
   start: string;
   end: string;
+  breakMinutes: number | null;
   type: ShiftType;
   off: boolean;
   confidence: 'high' | 'medium' | 'low';
@@ -108,7 +109,7 @@ function shiftMinutes(start: string, end: string) {
 
 function isLikelyBreakDuration(time: string) {
   const minutes = toMinutes(time);
-  return minutes > 0 && minutes <= 90;
+  return minutes > 0 && minutes <= 180;
 }
 
 function shiftType(start: string, end: string): ShiftType {
@@ -126,6 +127,7 @@ function emptyShift(day: number, issue: string, sourceText = ''): ReviewShift {
     label: DAYS[day],
     start: '',
     end: '',
+    breakMinutes: 0,
     type: 'custom',
     off: false,
     confidence: 'low',
@@ -144,6 +146,7 @@ function fromStructuredSlots(day: number, slots: DaySlots, confidence: ReviewShi
       label: DAYS[day],
       start: '',
       end: '',
+      breakMinutes: 0,
       type: 'off',
       off: true,
       confidence,
@@ -162,6 +165,7 @@ function fromStructuredSlots(day: number, slots: DaySlots, confidence: ReviewShi
       label: DAYS[day],
       start: '',
       end: '',
+      breakMinutes: 0,
       type: 'off',
       off: true,
       confidence,
@@ -185,6 +189,7 @@ function fromStructuredSlots(day: number, slots: DaySlots, confidence: ReviewShi
     label: DAYS[day],
     start,
     end,
+    breakMinutes: breakTime ? toMinutes(breakTime) : 0,
     type: shiftType(start, end),
     off: false,
     confidence,

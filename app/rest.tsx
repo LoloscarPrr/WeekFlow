@@ -18,7 +18,7 @@ export default function RestScreen() {
 
         <Text style={styles.eyebrow}>PILARES · REST</Text>
         <Text style={styles.title}>{view.heroTitle}</Text>
-        <Text style={styles.copy}>Rest usa los mismos turnos y tiempos reales que Ahora. Si la semana cambia, la recuperación cambia con ella.</Text>
+        <Text style={styles.copy}>Rest usa las mismas jornadas y tiempos reales que Ahora. Si la semana cambia, la recuperación cambia con ella.</Text>
 
         <View style={styles.contextCard}>
           <Text style={styles.contextEyebrow}>AHORA</Text>

@@ -1,10 +1,16 @@
 import { correctActualExitTime, registerActualExit } from '../src/application/useCases/registerActualExit';
+import {
+  completeWeekRitual,
+  upsertImportantMoment,
+  updateWeekShift,
+} from '../src/application/useCases/updateWeekSchedule';
 import { buildBrainPlan, replanAfterActualExit } from '../src/brain/engine';
 import { pendingDatabaseMigrations } from '../src/data/migrations/databaseSchema';
 import { migrateDayState, migrateUserProfile, migrateWeekSchedule } from '../src/data/migrations/stateMigrations';
 import { defaultDayState, defaultWeekState } from '../src/domain/defaults';
 import type { BrainSnapshot } from '../src/domain/entities/Planning';
 import type { WeekSchedule } from '../src/domain/entities/Shift';
+import { importantMomentsForDate } from '../src/domain/services/importantMoments';
 import { shiftContextForDate, shiftDurationMinutes } from '../src/domain/services/shiftSchedule';
 import { correctFoodEntryTime, type FoodEntry } from '../src/food/history';
 import { parseScheduleOcr, type OcrElement, type OcrTextResult } from '../src/import/scheduleOcr';
@@ -36,6 +42,7 @@ function run(name: string, assertion: () => void) {
 
 function weekWithMondayNight(): WeekSchedule {
   return {
+    ...defaultWeekState,
     shifts: defaultWeekState.shifts.map((shift) => shift.day === 0
       ? { day: 0, start: '22:00', end: '06:00', type: 'night' }
       : { ...shift }),
@@ -163,14 +170,74 @@ run('la migración conserva datos antiguos y completa campos nuevos', () => {
 run('la migración semanal preserva jornadas y rellena días ausentes', () => {
   const migrated = migrateWeekSchedule({
     shifts: [
-      { day: 0, start: '07:00', end: '15:00', type: 'morning' },
+      { day: 0, start: '07:00', end: '15:00', type: 'morning', breakMinutes: 45 },
       { day: 2, start: '22:00', end: '06:00' },
+    ],
+    importantMoments: [
+      { id: 'medico', day: 3, time: '10:30', title: 'Médico' },
+      { id: 'invalido', day: 9, time: '99:00', title: 'No guardar' },
     ],
   });
   equal(migrated.shifts.length, 7, 'semana completa');
   equal(migrated.shifts[0].start, '07:00', 'lunes conservado');
   equal(migrated.shifts[2].type, 'night', 'tipo nocturno reconstruido');
   equal(migrated.shifts[1].type, 'off', 'día ausente seguro');
+  equal(migrated.shifts[0].breakMinutes, 45, 'colación conservada');
+  equal(migrated.importantMoments.length, 1, 'momentos válidos conservados');
+  equal(migrated.importantMoments[0].title, 'Médico', 'título conservado');
+  equal(migrated.source, 'legacy', 'origen heredado explícito');
+  equal(migrated.organizedAt, null, 'cierre ausente seguro');
+});
+
+run('editar una jornada conserva momentos y reabre el Ritual', () => {
+  const organized: WeekSchedule = {
+    ...defaultWeekState,
+    organizedAt: '2026-08-16T20:00:00.000Z',
+    source: 'camera',
+    importantMoments: [{ id: 'cumple', day: 4, time: '19:00', title: 'Cumpleaños' }],
+  };
+  const updated = updateWeekShift(organized, 0, {
+    start: '07:00',
+    end: '15:00',
+    breakMinutes: 30,
+  });
+  equal(updated.shifts[0].breakMinutes, 30, 'colación manual');
+  equal(updated.importantMoments[0].title, 'Cumpleaños', 'momento conservado');
+  equal(updated.organizedAt, null, 'Ritual reabierto');
+  equal(updated.source, 'manual', 'origen corregido');
+});
+
+run('los momentos importantes se validan, ordenan y permiten cerrar la semana', () => {
+  const friday = upsertImportantMoment(defaultWeekState, {
+    id: 'viernes',
+    day: 4,
+    time: '20:00',
+    title: '  Cena familiar  ',
+  });
+  const monday = upsertImportantMoment(friday, {
+    id: 'lunes',
+    day: 0,
+    time: '09:00',
+    title: 'Médico',
+  });
+  equal(monday.importantMoments[0].id, 'lunes', 'orden semanal');
+  equal(monday.importantMoments[1].title, 'Cena familiar', 'título normalizado');
+  const completed = completeWeekRitual(monday, '2026-08-16T21:00:00.000Z');
+  equal(completed.organizedAt, '2026-08-16T21:00:00.000Z', 'cierre persistido');
+});
+
+run('Ahora recibe únicamente los momentos importantes del día calendario', () => {
+  const week: WeekSchedule = {
+    ...defaultWeekState,
+    importantMoments: [
+      { id: 'lunes', day: 0, time: '18:30', title: 'Médico' },
+      { id: 'martes', day: 1, time: '10:00', title: 'Trámite' },
+    ],
+  };
+  const monday = importantMomentsForDate(week, new Date(2026, 7, 17, 8, 0));
+  equal(monday.length, 1, 'solo lunes');
+  equal(monday[0].moment.title, 'Médico', 'momento visible');
+  equal(monday[0].at.getHours(), 18, 'hora local conservada');
 });
 
 run('la migración de perfil conserva el nombre de planilla', () => {
@@ -204,6 +271,7 @@ run('el OCR reconoce la fila configurada y separa jornadas', () => {
   equal(parsed.shifts[1].end, '22:00', 'salida martes');
   equal(parsed.shifts[2].type, 'night', 'miércoles nocturno');
   equal(parsed.shifts[3].off, true, 'jueves libre');
+  equal(parsed.shifts[0].breakMinutes, 30, 'colación separada');
 });
 
 run('el OCR no inventa horarios cuando falta el nombre', () => {

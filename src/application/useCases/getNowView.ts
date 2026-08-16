@@ -3,6 +3,7 @@ import { assessExitReplanImpact, type ExitReplanImpact } from '@/src/brain/exitI
 import type { DayState } from '@/src/domain/entities/DailyState';
 import type { BrainMoment, BrainPlan, BrainSnapshot } from '@/src/domain/entities/Planning';
 import type { Shift, WeekSchedule } from '@/src/domain/entities/Shift';
+import { importantMomentsForDate } from '@/src/domain/services/importantMoments';
 import { shiftContextForDate, type ShiftContext } from '@/src/domain/services/shiftSchedule';
 
 export type DayPhase = 'off' | 'before' | 'commuting' | 'working' | 'after';
@@ -229,12 +230,28 @@ export function getNowView({ dayState, weekState, moveDoneToday, now }: GetNowVi
     ? shiftProgress(shiftContext.startAt, shiftContext.endAt, now)
     : null;
 
-  const upcomingMoments = datedPlanMoments(plan.moments, shiftContext.startAt, now)
+  const datedImportantMoments = importantMomentsForDate(weekState, now).map(({ moment, at }) => ({
+    at,
+    item: {
+      time: moment.time,
+      icon: '◆',
+      title: moment.title,
+      detail: 'Momento importante que elegiste proteger esta semana.',
+      type: 'personal' as const,
+      flexible: false,
+    },
+  }));
+
+  const upcomingMoments = [
+    ...datedPlanMoments(plan.moments, shiftContext.startAt, now),
+    ...datedImportantMoments,
+  ]
     .filter(({ item, at }) => {
       if (moveDoneToday && item.type === 'move') return false;
       if (needsExitReview && item.flexible) return false;
       return at.getTime() >= now.getTime();
     })
+    .sort((a, b) => a.at.getTime() - b.at.getTime())
     .map(({ item }) => item)
     .slice(0, 7);
 

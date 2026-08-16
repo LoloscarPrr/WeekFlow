@@ -24,7 +24,7 @@ export default function ImportScheduleScreen() {
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>SEMANA · IMPORTAR</Text>
           <Text style={styles.title}>Tu horario, sin copiarlo a mano<Text style={styles.blue}>.</Text></Text>
-          <Text style={styles.subtitle}>Toma una foto o elige una captura. WeekFlow busca tu fila, extrae los turnos y te obliga a revisarlos antes de guardar.</Text>
+          <Text style={styles.subtitle}>Toma una foto o elige una captura. WeekFlow busca tu fila, separa entrada, colación y salida, y te pide revisar todo antes de guardar.</Text>
         </View>
 
         <ScheduleImportCard />
