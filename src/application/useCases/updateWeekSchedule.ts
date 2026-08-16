@@ -1,5 +1,5 @@
-import type { WeekSchedule } from '@/src/domain/entities/Shift';
-import { classifyShift } from '@/src/domain/services/shiftSchedule';
+import type { WeekSchedule } from '../../domain/entities/Shift';
+import { classifyShift } from '../../domain/services/shiftSchedule';
 
 export type WeekShiftPatch = {
   start?: string;

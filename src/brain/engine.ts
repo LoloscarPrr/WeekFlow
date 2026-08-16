@@ -1,4 +1,4 @@
-import { addMinutes, formatMinutes, toMinutes } from '@/src/domain/services/time';
+import { addMinutes, formatMinutes, toMinutes } from '../domain/services/time';
 import type { BrainMoment, BrainPlan, BrainSnapshot } from './types';
 
 function moment(time: string, icon: string, title: string, detail: string, type: BrainMoment['type'], flexible = true): BrainMoment {

@@ -3,5 +3,6 @@ node_modules/
 android/
 ios/
 dist/
+.test-build/
 *.jks
 *.keystore

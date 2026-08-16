@@ -1,12 +1,14 @@
-name: Typecheck
+name: Quality
 
 on:
   pull_request:
     branches: ["main"]
+  push:
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
-  typecheck:
+  quality:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -22,5 +24,5 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: TypeScript
-        run: npx tsc --noEmit
+      - name: Typecheck and regression tests
+        run: npm run quality

@@ -1,18 +1,13 @@
-import { defaultUserProfile } from '@/src/domain/defaults';
 import type { UserProfile } from '@/src/domain/entities/UserProfile';
 import type { UserProfileRepository } from '@/src/domain/repositories/UserProfileRepository';
 import { sqliteStateStore } from '@/src/data/local/sqlite/SQLiteStateStore';
+import { migrateUserProfile } from '@/src/data/migrations/stateMigrations';
 
 const USER_PROFILE_KEY = 'user-profile';
 
 export class SQLiteUserProfileRepository implements UserProfileRepository {
   load(): UserProfile {
-    const parsed = sqliteStateStore.read<Partial<UserProfile>>(USER_PROFILE_KEY);
-    return {
-      scheduleName: typeof parsed?.scheduleName === 'string'
-        ? parsed.scheduleName
-        : defaultUserProfile.scheduleName,
-    };
+    return migrateUserProfile(sqliteStateStore.read<unknown>(USER_PROFILE_KEY));
   }
 
   save(profile: UserProfile) {
