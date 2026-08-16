@@ -19,6 +19,11 @@ import type { DaySettings as DomainDaySettings, DayState } from '@/src/domain/en
 import type { Shift, WeekSchedule, WeekShift } from '@/src/domain/entities/Shift';
 import type { UserProfile as DomainUserProfile } from '@/src/domain/entities/UserProfile';
 import {
+  correctFoodEntryTime,
+  type FoodDayRecord,
+  type FoodEntry,
+} from '@/src/food/history';
+import {
   localDateKey,
   nextWorkingShift as nextWorkingShiftDomain,
   shiftContextForDate as shiftContextForDateDomain,
@@ -65,18 +70,7 @@ export type ActiveMoveSession = {
   pausedTotalMs: number;
 };
 
-export type FoodEntry = {
-  id: string;
-  at: string;
-  title: string;
-  kind: 'meal' | 'snack' | 'drink' | 'other';
-  source: 'suggestion' | 'manual';
-};
-
-export type FoodDayRecord = {
-  date: string;
-  entries: FoodEntry[];
-};
+export type { FoodDayRecord, FoodEntry } from '@/src/food/history';
 
 export function loadDayState(): PersistedDayState {
   return loadDayStateUseCase(sqliteDayStateRepository);
@@ -168,29 +162,14 @@ export function saveFoodEntry(entry: FoodEntry, date = new Date()): FoodDayRecor
 }
 
 export function updateFoodEntryTime(entryId: string, time: string, dateKey: string): FoodDayRecord {
-  const match = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(time);
   const history = loadFoodHistory();
   const current = history.find((item) => item.date === dateKey) ?? { date: dateKey, entries: [] };
-  const existing = current.entries.find((item) => item.id === entryId);
-  if (!match || !existing) return current;
-
-  const [year, month, day] = dateKey.split('-').map(Number);
-  const correctedAt = new Date(
-    year,
-    month - 1,
-    day,
-    Number(match[1]),
-    Number(match[2]),
-    0,
-    0,
-  );
-  if (Number.isNaN(correctedAt.getTime())) return current;
+  const entries = correctFoodEntryTime(current.entries, entryId, time, dateKey);
+  if (!entries) return current;
 
   const updated: FoodDayRecord = {
     ...current,
-    entries: current.entries
-      .map((item) => item.id === entryId ? { ...item, at: correctedAt.toISOString() } : item)
-      .sort((a, b) => a.at.localeCompare(b.at)),
+    entries,
   };
   const next = [updated, ...history.filter((item) => item.date !== dateKey)]
     .sort((a, b) => b.date.localeCompare(a.date))

@@ -1,4 +1,4 @@
-import type { ShiftType } from '@/src/brain/types';
+import type { ShiftType } from '../domain/entities/Shift';
 
 export type OcrRect = { left: number; top: number; right: number; bottom: number };
 export type OcrElement = { text: string; frame: OcrRect };

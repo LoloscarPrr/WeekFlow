@@ -7,7 +7,10 @@
     "start": "expo start",
     "android": "expo start --android",
     "doctor": "expo-doctor",
-    "prebuild": "expo prebuild"
+    "prebuild": "expo prebuild",
+    "typecheck": "tsc --noEmit",
+    "test": "tsc -p tsconfig.tests.json && node .test-build/tests/regression.test.js",
+    "quality": "npm run typecheck && npm test"
   },
   "dependencies": {
     "@expo/ui": "~57.0.7",

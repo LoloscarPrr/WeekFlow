@@ -1,4 +1,4 @@
-import { addMinutes, timeConstants, toMinutes } from '@/src/domain/services/time';
+import { addMinutes, timeConstants, toMinutes } from '../domain/services/time';
 import type { BrainPlan, BrainSnapshot } from './types';
 
 function actualExitDelta(snapshot: BrainSnapshot, actualExit: string) {
