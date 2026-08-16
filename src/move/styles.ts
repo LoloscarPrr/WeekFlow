@@ -3,7 +3,8 @@ import { colors } from '@/src/theme/colors';
 
 export const moveStyles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 22, paddingBottom: 118 },
+  keyboardShell: { flex: 1 },
+  content: { padding: 22, paddingBottom: 148 },
   sessionScroll: { flex: 1 },
   sessionShell: { flexGrow: 1, padding: 22, paddingBottom: 132 },
   eyebrow: { color: '#76AFFF', fontWeight: '800', letterSpacing: 4, fontSize: 14, marginTop: 24 },

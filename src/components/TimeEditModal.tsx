@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -49,6 +51,7 @@ export function TimeEditModal({
   const [hours, setHours] = useState('');
   const [minutes, setMinutes] = useState('');
   const [error, setError] = useState('');
+  const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     if (!visible) return;
@@ -75,6 +78,15 @@ export function TimeEditModal({
     setError('');
   }
 
+  function keepActionsVisible() {
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 180);
+  }
+
+  function cancel() {
+    Keyboard.dismiss();
+    onCancel();
+  }
+
   function save() {
     const hourValue = Number(hours);
     const minuteValue = Number(minutes);
@@ -92,6 +104,7 @@ export function TimeEditModal({
       return;
     }
 
+    Keyboard.dismiss();
     onSave(`${String(hourValue).padStart(2, '0')}:${String(minuteValue).padStart(2, '0')}`);
   }
 
@@ -101,67 +114,79 @@ export function TimeEditModal({
       transparent
       animationType="fade"
       statusBarTranslucent
-      onRequestClose={onCancel}
+      onRequestClose={cancel}
     >
       <KeyboardAvoidingView
         style={styles.overlay}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <Pressable
           style={StyleSheet.absoluteFill}
-          onPress={onCancel}
+          onPress={cancel}
           accessibilityRole="button"
           accessibilityLabel="Cerrar editor de hora"
         />
-        <View style={styles.card} accessibilityViewIsModal>
-          <Text style={styles.eyebrow}>CORREGIR REGISTRO</Text>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.description}>{description}</Text>
+        <ScrollView
+          ref={scrollRef}
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          <View style={styles.card} accessibilityViewIsModal>
+            <Text style={styles.eyebrow}>CORREGIR REGISTRO</Text>
+            <Text style={styles.title}>{title}</Text>
+            <Text style={styles.description}>{description}</Text>
 
-          <View style={styles.timeRow}>
-            <View style={styles.field}>
-              <Text style={styles.label}>Hora</Text>
-              <TextInput
-                value={hours}
-                onChangeText={updateHours}
-                style={styles.input}
-                keyboardType="number-pad"
-                maxLength={2}
-                selectTextOnFocus
-                accessibilityLabel="Hora, de cero a veintitrés"
-              />
+            <View style={styles.timeRow}>
+              <View style={styles.field}>
+                <Text style={styles.label}>Hora</Text>
+                <TextInput
+                  value={hours}
+                  onChangeText={updateHours}
+                  onFocus={keepActionsVisible}
+                  style={styles.input}
+                  keyboardType="number-pad"
+                  maxLength={2}
+                  selectTextOnFocus
+                  accessibilityLabel="Hora, de cero a veintitrés"
+                />
+              </View>
+              <Text style={styles.separator}>:</Text>
+              <View style={styles.field}>
+                <Text style={styles.label}>Minutos</Text>
+                <TextInput
+                  value={minutes}
+                  onChangeText={updateMinutes}
+                  onFocus={keepActionsVisible}
+                  style={styles.input}
+                  keyboardType="number-pad"
+                  maxLength={2}
+                  selectTextOnFocus
+                  accessibilityLabel="Minutos, de cero a cincuenta y nueve"
+                  onSubmitEditing={save}
+                />
+              </View>
             </View>
-            <Text style={styles.separator}>:</Text>
-            <View style={styles.field}>
-              <Text style={styles.label}>Minutos</Text>
-              <TextInput
-                value={minutes}
-                onChangeText={updateMinutes}
-                style={styles.input}
-                keyboardType="number-pad"
-                maxLength={2}
-                selectTextOnFocus
-                accessibilityLabel="Minutos, de cero a cincuenta y nueve"
-                onSubmitEditing={save}
-              />
+
+            <Pressable style={styles.nowButton} onPress={useCurrentTime}>
+              <Text style={styles.nowButtonText}>Usar la hora actual</Text>
+            </Pressable>
+
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+
+            <View style={styles.actions}>
+              <Pressable style={styles.cancelButton} onPress={cancel}>
+                <Text style={styles.cancelText}>Cancelar</Text>
+              </Pressable>
+              <Pressable style={styles.saveButton} onPress={save}>
+                <Text style={styles.saveText}>{saveLabel}</Text>
+              </Pressable>
             </View>
           </View>
-
-          <Pressable style={styles.nowButton} onPress={useCurrentTime}>
-            <Text style={styles.nowButtonText}>Usar la hora actual</Text>
-          </Pressable>
-
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-
-          <View style={styles.actions}>
-            <Pressable style={styles.cancelButton} onPress={onCancel}>
-              <Text style={styles.cancelText}>Cancelar</Text>
-            </Pressable>
-            <Pressable style={styles.saveButton} onPress={save}>
-              <Text style={styles.saveText}>{saveLabel}</Text>
-            </Pressable>
-          </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -170,10 +195,10 @@ export function TimeEditModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    justifyContent: 'center',
-    padding: 22,
     backgroundColor: 'rgba(0, 3, 16, 0.78)',
   },
+  scroll: { flex: 1, width: '100%' },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', padding: 22 },
   card: {
     width: '100%',
     maxWidth: 420,
