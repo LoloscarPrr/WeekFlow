@@ -1,4 +1,4 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Brand } from '@/src/components/Brand';
 import { moveStyles as styles } from '@/src/move/styles';
@@ -12,11 +12,16 @@ export function MovePlayer({ move }: { move: MoveController }) {
   const nextStep = routine.steps[Math.min(currentStepIndex + 1, routine.steps.length - 1)];
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.sessionShell}>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <ScrollView
+        style={styles.sessionScroll}
+        contentContainerStyle={styles.sessionShell}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
         <Brand />
         <View style={styles.sessionHeader}>
-          <View>
+          <View style={styles.sessionHeaderCopy}>
             <Text style={styles.sessionEyebrow}>MOVE · SESIÓN</Text>
             <Text style={styles.sessionCounter}>{resting ? 'Descanso' : `Ejercicio ${currentStepIndex + 1} de ${routine.steps.length}`}</Text>
           </View>
@@ -24,8 +29,12 @@ export function MovePlayer({ move }: { move: MoveController }) {
         </View>
 
         <View style={styles.playerCard}>
-          <Text style={styles.playerIcon}>{resting ? '😮‍💨' : currentExercise.icon}</Text>
-          <Text style={styles.playerTitle}>{resting ? 'Descanso breve' : currentExercise.title}</Text>
+          <View style={styles.exerciseIdentity}>
+            <Text style={styles.playerIcon}>{resting ? '😮‍💨' : currentExercise.icon}</Text>
+            <Text style={styles.playerTitle} numberOfLines={3} adjustsFontSizeToFit minimumFontScale={0.72}>
+              {resting ? 'Descanso breve' : currentExercise.title}
+            </Text>
+          </View>
           <Text style={styles.playerCopy}>{resting ? `Respira y baja un poco el ritmo. Después: ${nextStep.exercise.title}.` : currentExercise.cue}</Text>
 
           {!resting ? (
@@ -61,7 +70,7 @@ export function MovePlayer({ move }: { move: MoveController }) {
           {activeSession.paused ? <Text style={styles.pauseCopy}>En pausa. Ni el ejercicio ni el tiempo de sesión avanzan.</Text> : null}
           <Text style={styles.safetyCopy}>Muévete a un ritmo cómodo. Si algo duele o te marea, detén la sesión.</Text>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
