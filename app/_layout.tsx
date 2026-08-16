@@ -12,7 +12,7 @@ export default function RootLayout() {
         <Stack screenOptions={{ headerShown: false, animation: 'none' }} />
       </View>
 
-      <View pointerEvents="box-none" style={styles.navLayer}>
+      <View style={styles.navLayer}>
         <BottomNav />
       </View>
     </View>
@@ -23,10 +23,6 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   content: { flex: 1 },
   navLayer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
     zIndex: 20,
   },
 });
