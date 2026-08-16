@@ -4,7 +4,12 @@ import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { recognizeText } from '@infinitered/react-native-mlkit-text-recognition';
 import { parseScheduleOcr, type ReviewShift } from '@/src/import/scheduleOcr';
-import { loadUserProfile, saveUserProfile, saveWeekState } from '@/src/state/persistence';
+import {
+  loadUserProfile,
+  loadWeekState,
+  saveUserProfile,
+  saveWeekState,
+} from '@/src/state/persistence';
 import { colors } from '@/src/theme/colors';
 
 export type PendingScheduleImport = {
@@ -29,8 +34,13 @@ function inferType(start: string, end: string): ReviewShift['type'] {
   return 'custom';
 }
 
-function reviewIssue(start: string, end: string) {
+function validBreakMinutes(value: number | null) {
+  return value !== null && Number.isInteger(value) && value >= 0 && value <= 180;
+}
+
+function reviewIssue(start: string, end: string, breakMinutes: number | null) {
   if (!validTime(start) || !validTime(end)) return 'Usa formato HH:MM en entrada y salida.';
+  if (!validBreakMinutes(breakMinutes)) return 'Revisa la duración de colación (0 a 180 min).';
   return null;
 }
 
@@ -132,9 +142,15 @@ export function ScheduleImportCard() {
     setReview((current) => current?.map((shift) => {
       if (shift.day !== day) return shift;
       const next = { ...shift, ...patch };
-      if (patch.start !== undefined || patch.end !== undefined) {
-        if (next.off) return { ...next, type: 'off', issue: null, confidence: 'high' };
-        const issue = reviewIssue(next.start, next.end);
+      if (patch.start !== undefined || patch.end !== undefined || patch.breakMinutes !== undefined) {
+        if (next.off) return {
+          ...next,
+          type: 'off',
+          breakMinutes: 0,
+          issue: null,
+          confidence: 'high',
+        };
+        const issue = reviewIssue(next.start, next.end, next.breakMinutes);
         next.type = inferType(next.start, next.end);
         next.issue = issue;
         next.confidence = issue ? 'medium' : 'high';
@@ -153,6 +169,7 @@ export function ScheduleImportCard() {
           type: 'custom',
           start: '',
           end: '',
+          breakMinutes: 30,
           issue: 'Ingresa entrada y salida.',
           confidence: 'medium',
         };
@@ -163,6 +180,7 @@ export function ScheduleImportCard() {
         type: 'off',
         start: '',
         end: '',
+        breakMinutes: 0,
         issue: null,
         confidence: 'high',
       };
@@ -171,7 +189,12 @@ export function ScheduleImportCard() {
 
   const readyToConfirm = Boolean(
     review?.length === 7
-      && review.every((shift) => shift.off || (validTime(shift.start) && validTime(shift.end) && !shift.issue)),
+      && review.every((shift) => shift.off || (
+        validTime(shift.start)
+        && validTime(shift.end)
+        && validBreakMinutes(shift.breakMinutes)
+        && !shift.issue
+      )),
   );
 
   function confirmWeek() {
@@ -181,18 +204,23 @@ export function ScheduleImportCard() {
     }
 
     const cleanName = scheduleName.trim();
+    const currentWeek = loadWeekState();
     saveUserProfile({ scheduleName: cleanName });
     saveWeekState({
       shifts: review.map((shift) => ({
         day: shift.day,
         start: shift.off ? '' : shift.start,
         end: shift.off ? '' : shift.end,
+        breakMinutes: shift.off ? 0 : shift.breakMinutes ?? 0,
         type: shift.off ? 'off' : inferType(shift.start, shift.end),
       })),
+      importantMoments: currentWeek.importantMoments,
+      organizedAt: null,
+      source: pending?.source ?? 'library',
     });
 
-    Alert.alert('Semana confirmada', 'Tu semana ya quedó actualizada.', [
-      { text: 'Ver Semana', onPress: () => router.replace('/week') },
+    Alert.alert('Horario revisado', 'Tu jornada ya quedó lista. Ahora añade tus momentos importantes y cierra la organización de la semana.', [
+      { text: 'Continuar', onPress: () => router.replace('/week') },
     ]);
   }
 
@@ -207,34 +235,56 @@ export function ScheduleImportCard() {
 
         {review.map((shift) => (
           <View key={shift.day} style={styles.shiftRow}>
-            <View style={styles.dayColumn}>
-              <Text style={styles.day}>{shift.label}</Text>
-              <Text style={shift.issue ? styles.issue : styles.ok}>{shift.issue ? 'Revisar' : 'Listo'}</Text>
+            <View style={styles.shiftHead}>
+              <View style={styles.dayColumn}>
+                <Text style={styles.day}>{shift.label}</Text>
+                <Text style={shift.issue ? styles.issue : styles.ok}>{shift.issue ? shift.issue : 'Listo para confirmar'}</Text>
+              </View>
+              <Pressable style={[styles.offButton, shift.off && styles.offButtonActive]} onPress={() => toggleOff(shift.day)}>
+                <Text style={[styles.offText, shift.off && styles.offTextActive]}>Día libre</Text>
+              </Pressable>
             </View>
-            <Pressable style={[styles.offButton, shift.off && styles.offButtonActive]} onPress={() => toggleOff(shift.day)}>
-              <Text style={[styles.offText, shift.off && styles.offTextActive]}>Libre</Text>
-            </Pressable>
             {!shift.off ? (
-              <View style={styles.times}>
-                <TextInput
-                  value={shift.start}
-                  onChangeText={(start) => patchShift(shift.day, { start })}
-                  placeholder="--:--"
-                  placeholderTextColor="#60728E"
-                  keyboardType="numbers-and-punctuation"
-                  maxLength={5}
-                  style={[styles.timeInput, shift.issue && styles.timeInputIssue]}
-                />
-                <Text style={styles.dash}>–</Text>
-                <TextInput
-                  value={shift.end}
-                  onChangeText={(end) => patchShift(shift.day, { end })}
-                  placeholder="--:--"
-                  placeholderTextColor="#60728E"
-                  keyboardType="numbers-and-punctuation"
-                  maxLength={5}
-                  style={[styles.timeInput, shift.issue && styles.timeInputIssue]}
-                />
+              <View style={styles.reviewTimes}>
+                <View style={styles.reviewField}>
+                  <Text style={styles.reviewLabel}>ENTRADA</Text>
+                  <TextInput
+                    value={shift.start}
+                    onChangeText={(start) => patchShift(shift.day, { start })}
+                    placeholder="--:--"
+                    placeholderTextColor="#60728E"
+                    keyboardType="numbers-and-punctuation"
+                    maxLength={5}
+                    style={[styles.timeInput, shift.issue && styles.timeInputIssue]}
+                  />
+                </View>
+                <View style={styles.reviewField}>
+                  <Text style={styles.reviewLabel}>COLACIÓN · MIN</Text>
+                  <TextInput
+                    value={shift.breakMinutes === null ? '' : String(shift.breakMinutes)}
+                    onChangeText={(value) => {
+                      const digits = value.replace(/\D/g, '').slice(0, 3);
+                      patchShift(shift.day, { breakMinutes: digits ? Number(digits) : null });
+                    }}
+                    placeholder="30"
+                    placeholderTextColor="#60728E"
+                    keyboardType="number-pad"
+                    maxLength={3}
+                    style={[styles.timeInput, shift.issue && styles.timeInputIssue]}
+                  />
+                </View>
+                <View style={styles.reviewField}>
+                  <Text style={styles.reviewLabel}>SALIDA</Text>
+                  <TextInput
+                    value={shift.end}
+                    onChangeText={(end) => patchShift(shift.day, { end })}
+                    placeholder="--:--"
+                    placeholderTextColor="#60728E"
+                    keyboardType="numbers-and-punctuation"
+                    maxLength={5}
+                    style={[styles.timeInput, shift.issue && styles.timeInputIssue]}
+                  />
+                </View>
               </View>
             ) : null}
           </View>
@@ -347,19 +397,21 @@ const styles = StyleSheet.create({
   reviewEyebrow: { color: '#76AFFF', fontWeight: '900', letterSpacing: 2.1, fontSize: 10 },
   reviewTitle: { color: colors.text, fontSize: 22, fontWeight: '900', marginTop: 7 },
   reviewCopy: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 6, marginBottom: 5 },
-  shiftRow: { marginTop: 10, padding: 11, borderRadius: 16, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.line, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dayColumn: { width: 78 },
-  day: { color: colors.text, fontWeight: '900', fontSize: 12 },
-  issue: { color: '#E7C67A', fontSize: 10, marginTop: 3, fontWeight: '800' },
+  shiftRow: { marginTop: 10, padding: 12, borderRadius: 16, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.line, gap: 10 },
+  shiftHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  dayColumn: { flex: 1 },
+  day: { color: colors.text, fontWeight: '900', fontSize: 13 },
+  issue: { color: '#E7C67A', fontSize: 10, lineHeight: 14, marginTop: 3, fontWeight: '800' },
   ok: { color: '#78D7A6', fontSize: 10, marginTop: 3, fontWeight: '800' },
   offButton: { borderWidth: 1, borderColor: colors.line, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 9 },
   offButtonActive: { borderColor: '#438E6A', backgroundColor: '#113224' },
   offText: { color: colors.muted, fontSize: 11, fontWeight: '900' },
   offTextActive: { color: '#8EE5B2' },
-  times: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 5 },
-  timeInput: { width: 60, borderRadius: 11, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 7, paddingVertical: 8, color: colors.text, fontSize: 12, textAlign: 'center', fontWeight: '900' },
+  reviewTimes: { flexDirection: 'row', gap: 8 },
+  reviewField: { flex: 1, gap: 5 },
+  reviewLabel: { color: colors.muted, fontSize: 8, fontWeight: '900', letterSpacing: 0.5 },
+  timeInput: { width: '100%', borderRadius: 11, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 7, paddingVertical: 9, color: colors.text, fontSize: 12, textAlign: 'center', fontWeight: '900' },
   timeInputIssue: { borderColor: '#8B6B37' },
-  dash: { color: colors.muted, fontWeight: '900' },
   actions: { flexDirection: 'row', gap: 10, marginTop: 14 },
   secondary: { flex: 1, borderRadius: 16, paddingVertical: 13, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line, minHeight: 48 },
   secondaryText: { color: colors.text, fontSize: 14, fontWeight: '800' },

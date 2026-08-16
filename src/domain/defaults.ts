@@ -24,7 +24,11 @@ export const defaultWeekState: WeekSchedule = {
     start: '',
     end: '',
     type: 'off' as ShiftType,
+    breakMinutes: 0,
   })),
+  importantMoments: [],
+  organizedAt: null,
+  source: 'manual',
 };
 
 export const defaultUserProfile: UserProfile = {

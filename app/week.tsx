@@ -1,9 +1,10 @@
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import DateTimePicker from '@expo/ui/community/datetime-picker';
 import { Brand } from '@/src/components/Brand';
 import { RefreshableScrollView } from '@/src/components/AppRefresh';
+import { WeekRitualCard } from '@/src/components/WeekRitualCard';
 import { useWeekController } from '@/src/presentation/week/useWeekController';
 import { colors } from '@/src/theme/colors';
 
@@ -19,6 +20,10 @@ export default function WeekScreen() {
     toggleEditingDay,
     setWorkDay,
     setFreeDay,
+    setBreakMinutes,
+    saveImportantMoment,
+    deleteImportantMoment,
+    finishWeekRitual,
     openTimePicker,
     applyPickedTime,
     closeTimePicker,
@@ -26,7 +31,11 @@ export default function WeekScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <RefreshableScrollView contentContainerStyle={styles.content} onRefreshData={refreshWeek}>
+      <RefreshableScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        onRefreshData={refreshWeek}
+      >
         <Brand />
 
         <View style={styles.hero}>
@@ -52,7 +61,9 @@ export default function WeekScreen() {
                 <Pressable style={styles.dayRow} onPress={() => toggleEditingDay(shift.day)}>
                   <View>
                     <Text style={styles.day}>{DAYS[shift.day]}</Text>
-                    <Text style={[styles.dayShift, off && styles.dayOff]}>{off ? 'Libre' : `${shift.start}–${shift.end}`}</Text>
+                    <Text style={[styles.dayShift, off && styles.dayOff]}>
+                      {off ? 'Libre' : `${shift.start}–${shift.end} · colación ${shift.breakMinutes ?? 0} min`}
+                    </Text>
                   </View>
                   <Text style={[styles.chevron, open && styles.chevronOpen]}>⌄</Text>
                 </Pressable>
@@ -69,17 +80,39 @@ export default function WeekScreen() {
                     </View>
 
                     {!off ? (
-                      <View style={styles.times}>
-                        <Pressable style={styles.timeButton} onPress={() => openTimePicker(shift.day, 'start', shift.start)}>
-                          <Text style={styles.timeLabel}>Entrada</Text>
-                          <Text style={styles.timeValue}>{shift.start}</Text>
-                        </Pressable>
-                        <Text style={styles.timeArrow}>→</Text>
-                        <Pressable style={styles.timeButton} onPress={() => openTimePicker(shift.day, 'end', shift.end)}>
-                          <Text style={styles.timeLabel}>Salida</Text>
-                          <Text style={styles.timeValue}>{shift.end}</Text>
-                        </Pressable>
-                      </View>
+                      <>
+                        <View style={styles.times}>
+                          <Pressable style={styles.timeButton} onPress={() => openTimePicker(shift.day, 'start', shift.start)}>
+                            <Text style={styles.timeLabel}>Entrada</Text>
+                            <Text style={styles.timeValue}>{shift.start}</Text>
+                          </Pressable>
+                          <Text style={styles.timeArrow}>→</Text>
+                          <Pressable style={styles.timeButton} onPress={() => openTimePicker(shift.day, 'end', shift.end)}>
+                            <Text style={styles.timeLabel}>Salida</Text>
+                            <Text style={styles.timeValue}>{shift.end}</Text>
+                          </Pressable>
+                        </View>
+                        <View style={styles.breakRow}>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.breakTitle}>Colación</Text>
+                            <Text style={styles.breakCopy}>Duración entre 0 y 180 minutos.</Text>
+                          </View>
+                          <View style={styles.breakInputWrap}>
+                            <TextInput
+                              value={String(shift.breakMinutes ?? 0)}
+                              onChangeText={(value) => {
+                                const digits = value.replace(/\D/g, '').slice(0, 3);
+                                setBreakMinutes(shift.day, Number(digits || 0));
+                              }}
+                              keyboardType="number-pad"
+                              maxLength={3}
+                              selectTextOnFocus
+                              style={styles.breakInput}
+                            />
+                            <Text style={styles.breakUnit}>min</Text>
+                          </View>
+                        </View>
+                      </>
                     ) : (
                       <Text style={styles.freeCopy}>Día libre. WeekFlow no programará una jornada aquí.</Text>
                     )}
@@ -91,9 +124,21 @@ export default function WeekScreen() {
         </View>
 
         <Pressable style={styles.importLink} onPress={() => router.push('/import')}>
-          <Text style={styles.importText}>Importar desde una captura</Text>
-          <Text style={styles.experimental}>Experimental</Text>
+          <View>
+            <Text style={styles.importText}>Importar o reemplazar horario</Text>
+            <Text style={styles.importSub}>Cámara o imagen · siempre con revisión</Text>
+          </View>
+          <Text style={styles.importArrow}>→</Text>
         </Pressable>
+
+        <WeekRitualCard
+          week={week}
+          workDays={summary.workDays}
+          freeDays={summary.freeDays}
+          onSaveMoment={saveImportantMoment}
+          onDeleteMoment={deleteImportantMoment}
+          onFinish={finishWeekRitual}
+        />
       </RefreshableScrollView>
 
       {timePicker ? (
@@ -146,8 +191,15 @@ const styles = StyleSheet.create({
   timeLabel: { color: colors.muted, fontSize: 11, fontWeight: '700' },
   timeValue: { color: colors.text, fontSize: 20, fontWeight: '900', marginTop: 4 },
   timeArrow: { color: colors.blue, fontSize: 20, fontWeight: '900' },
+  breakRow: { marginTop: 10, padding: 12, borderRadius: 15, backgroundColor: '#081628', borderWidth: 1, borderColor: colors.line, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  breakTitle: { color: colors.text, fontSize: 12, fontWeight: '900' },
+  breakCopy: { color: colors.muted, fontSize: 10, lineHeight: 14, marginTop: 3 },
+  breakInputWrap: { minWidth: 94, minHeight: 42, paddingHorizontal: 10, borderRadius: 13, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.line, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6 },
+  breakInput: { minWidth: 44, color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'right', paddingVertical: 6 },
+  breakUnit: { color: colors.muted, fontSize: 10, fontWeight: '800' },
   freeCopy: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 12 },
-  importLink: { marginTop: 18, minHeight: 52, paddingHorizontal: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  importText: { color: colors.muted, fontSize: 13, fontWeight: '700' },
-  experimental: { color: '#70829C', fontSize: 11, fontWeight: '700' },
+  importLink: { marginTop: 18, minHeight: 66, paddingHorizontal: 15, paddingVertical: 12, borderRadius: 18, backgroundColor: '#0D203A', borderWidth: 1, borderColor: '#234A76', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  importText: { color: colors.text, fontSize: 13, fontWeight: '900' },
+  importSub: { color: colors.muted, fontSize: 10, marginTop: 4 },
+  importArrow: { color: '#78B7FF', fontSize: 20, fontWeight: '900' },
 });
