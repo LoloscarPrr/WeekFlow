@@ -41,6 +41,7 @@ const DAY_WORDS = [
 type PositionedText = { text: string; frame: OcrRect };
 type RowCluster = { center: number; items: PositionedText[] };
 type DaySlots = { start: string | null; breakTime: string | null; end: string | null; sourceText: string };
+type NameCandidate = { item: PositionedText; score: number; normalizedText: string };
 
 function normalize(value: string) {
   return value
@@ -81,13 +82,58 @@ function nameScore(text: string, configuredName: string) {
   const needle = normalize(configuredName);
   if (!needle) return 0;
   if (hay === needle) return 100;
-  if (hay.includes(needle)) return 90;
+  if (hay.includes(needle) && needle.length >= 4) return 90;
+
   const tokens = needle.split(' ').filter((token) => token.length >= 2);
-  if (!tokens.length) return 0;
-  const hits = tokens.filter((token) => hay.includes(token)).length;
-  if (hits === tokens.length) return 80;
-  if (hits >= Math.max(1, tokens.length - 1)) return 55;
+  if (tokens.length < 2) return 0;
+  const hits = tokens.filter((token) => hay.split(' ').includes(token)).length;
+  if (hits === tokens.length) return 82;
+  if (tokens.length >= 3 && hits === tokens.length - 1) return 60;
   return 0;
+}
+
+function uniqueNameCandidates(items: PositionedText[], configuredName: string): NameCandidate[] {
+  const candidates = items
+    .map((item) => ({ item, score: nameScore(item.text, configuredName), normalizedText: normalize(item.text) }))
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  const unique: NameCandidate[] = [];
+  for (const candidate of candidates) {
+    const duplicate = unique.some((existing) =>
+      existing.normalizedText === candidate.normalizedText
+      && Math.abs(centerY(existing.item.frame) - centerY(candidate.item.frame)) <= Math.max(height(existing.item.frame), height(candidate.item.frame)),
+    );
+    if (!duplicate) unique.push(candidate);
+  }
+  return unique;
+}
+
+function selectName(items: PositionedText[], configuredName: string) {
+  const ranked = uniqueNameCandidates(items, configuredName);
+  const best = ranked[0] ?? null;
+  if (!best) return { item: null, warning: 'No encontré el nombre configurado. Revisa cómo apareces en la planilla o usa una captura más nítida.' };
+
+  if (best.score < 80) {
+    return {
+      item: null,
+      warning: `Encontré una coincidencia parcial (“${best.item.text}”), pero no es suficientemente segura para elegir tu fila.`,
+    };
+  }
+
+  const competing = ranked.find((candidate, index) =>
+    index > 0
+    && candidate.normalizedText !== best.normalizedText
+    && candidate.score >= best.score - 8,
+  );
+  if (competing) {
+    return {
+      item: null,
+      warning: `Encontré más de una fila compatible con tu nombre (“${best.item.text}” y “${competing.item.text}”). No elegí ninguna automáticamente.`,
+    };
+  }
+
+  return { item: best.item, warning: null };
 }
 
 function parseTimes(text: string) {
@@ -136,6 +182,12 @@ function emptyShift(day: number, issue: string, sourceText = ''): ReviewShift {
   };
 }
 
+function reviewIssueForConfidence(confidence: ReviewShift['confidence']) {
+  return confidence === 'medium'
+    ? 'Lectura de confianza media. Revisa o vuelve a escribir este día antes de guardar.'
+    : null;
+}
+
 function fromStructuredSlots(day: number, slots: DaySlots, confidence: ReviewShift['confidence']): ReviewShift {
   const { start, breakTime, end, sourceText } = slots;
   const readValues = [start, breakTime, end].filter((value): value is string => Boolean(value));
@@ -150,14 +202,12 @@ function fromStructuredSlots(day: number, slots: DaySlots, confidence: ReviewShi
       type: 'off',
       off: true,
       confidence,
-      issue: null,
+      issue: reviewIssueForConfidence(confidence),
       sourceText,
     };
   }
 
-  if (!start || !end) {
-    return emptyShift(day, 'No pude leer entrada y salida en sus celdas.', sourceText);
-  }
+  if (!start || !end) return emptyShift(day, 'No pude leer entrada y salida en sus celdas.', sourceText);
 
   if (start === '00:00' && end === '00:00') {
     return {
@@ -169,7 +219,9 @@ function fromStructuredSlots(day: number, slots: DaySlots, confidence: ReviewShi
       type: 'off',
       off: true,
       confidence,
-      issue: breakTime && breakTime !== '00:00' ? 'El día parece libre, pero la celda de colación es distinta de 00:00.' : null,
+      issue: breakTime && breakTime !== '00:00'
+        ? 'El día parece libre, pero la celda de colación es distinta de 00:00.'
+        : reviewIssueForConfidence(confidence),
       sourceText,
     };
   }
@@ -184,6 +236,10 @@ function fromStructuredSlots(day: number, slots: DaySlots, confidence: ReviewShi
   }
 
   const breakLooksValid = !breakTime || breakTime === '00:00' || isLikelyBreakDuration(breakTime);
+  const issue = !breakLooksValid
+    ? 'La celda central no parece una colación; revisa este día.'
+    : reviewIssueForConfidence(confidence);
+
   return {
     day,
     label: DAYS[day],
@@ -193,7 +249,7 @@ function fromStructuredSlots(day: number, slots: DaySlots, confidence: ReviewShi
     type: shiftType(start, end),
     off: false,
     confidence,
-    issue: breakLooksValid ? null : 'La celda central no parece una colación; revisa este día.',
+    issue,
     sourceText,
   };
 }
@@ -241,22 +297,14 @@ function fittedDayCenters(headers: Map<number, PositionedText>) {
   const signedGap = numerator / denominator;
   if (!Number.isFinite(signedGap) || Math.abs(signedGap) < 24) return null;
   const intercept = meanX - signedGap * meanDay;
-  return {
-    gap: Math.abs(signedGap),
-    centers: Array.from({ length: 7 }, (_, day) => intercept + signedGap * day),
-  };
+  return { gap: Math.abs(signedGap), centers: Array.from({ length: 7 }, (_, day) => intercept + signedGap * day) };
 }
 
 function readDaySlots(rowItems: PositionedText[], dayCenter: number, dayGap: number): DaySlots {
   const left = dayCenter - dayGap * 0.5;
   const right = dayCenter + dayGap * 0.5;
   const entries = rowItems
-    .flatMap((item) => parseTimes(item.text).map((time, order) => ({
-      time,
-      item,
-      x: centerX(item.frame),
-      order,
-    })))
+    .flatMap((item) => parseTimes(item.text).map((time, order) => ({ time, item, x: centerX(item.frame), order })))
     .filter((entry) => entry.x >= left && entry.x < right)
     .sort((a, b) => a.x - b.x || a.order - b.order);
 
@@ -264,51 +312,29 @@ function readDaySlots(rowItems: PositionedText[], dayCenter: number, dayGap: num
     .map((entry) => entry.item)
     .filter((item, index, array) => array.indexOf(item) === index)
     .sort((a, b) => centerX(a.frame) - centerX(b.frame));
+  const sourceText = sourceItems.map((item) => item.text).join(' ');
 
-  if (entries.length >= 3) {
-    return {
-      start: entries[0].time,
-      breakTime: entries[1].time,
-      end: entries[2].time,
-      sourceText: sourceItems.map((item) => item.text).join(' '),
-    };
-  }
-
+  if (entries.length >= 3) return { start: entries[0].time, breakTime: entries[1].time, end: entries[2].time, sourceText };
   if (entries.length === 2 && entries.every((entry) => entry.time === '00:00')) {
-    return {
-      start: '00:00',
-      breakTime: '00:00',
-      end: null,
-      sourceText: sourceItems.map((item) => item.text).join(' '),
-    };
+    return { start: '00:00', breakTime: '00:00', end: null, sourceText };
   }
-
-  return {
-    start: entries[0]?.time ?? null,
-    breakTime: null,
-    end: entries[1]?.time ?? null,
-    sourceText: sourceItems.map((item) => item.text).join(' '),
-  };
+  return { start: entries[0]?.time ?? null, breakTime: null, end: entries[1]?.time ?? null, sourceText };
 }
 
 export function parseScheduleOcr(result: OcrTextResult, configuredName: string): ParsedSchedule {
   const lines = flattenLines(result).filter((line) => line.text?.trim());
   const atomic = flattenAtomic(result).filter((item) => item.text?.trim());
   const searchUnits: PositionedText[] = [...lines, ...atomic];
+  const selectedName = selectName(searchUnits, configuredName);
+  const best = selectedName.item;
 
-  const ranked = searchUnits
-    .map((item) => ({ item, score: nameScore(item.text, configuredName) }))
-    .filter((entry) => entry.score > 0)
-    .sort((a, b) => b.score - a.score);
-
-  const best = ranked[0]?.item ?? null;
   if (!best) {
     return {
       nameFound: false,
       matchedNameText: null,
       rowText: '',
-      shifts: DAYS.map((_, day) => emptyShift(day, 'No encontré tu nombre en la planilla.')),
-      warnings: ['No encontré el nombre configurado. Revisa cómo apareces en la planilla o usa una captura más nítida.'],
+      shifts: DAYS.map((_, day) => emptyShift(day, selectedName.warning ?? 'No pude identificar tu fila con seguridad.')),
+      warnings: [selectedName.warning ?? 'No pude identificar tu fila con seguridad.'],
     };
   }
 
@@ -322,9 +348,19 @@ export function parseScheduleOcr(result: OcrTextResult, configuredName: string):
     .sort((a, b) => a.distance - b.distance)[0]?.index ?? -1;
   const selectedRow = selectedIndex >= 0 ? candidateRows[selectedIndex] : null;
 
-  const rowCenter = selectedRow?.center ?? nameY;
+  if (!selectedRow || Math.abs(selectedRow.center - nameY) > Math.max(typicalHeight * 2.5, 60)) {
+    return {
+      nameFound: true,
+      matchedNameText: best.text,
+      rowText: '',
+      shifts: DAYS.map((_, day) => emptyShift(day, 'Encontré tu nombre, pero no pude asociarlo con una fila de horarios con seguridad.')),
+      warnings: ['Encontré tu nombre, pero la fila de horas quedó demasiado lejos o incompleta. No inventé ningún horario.'],
+    };
+  }
+
+  const rowCenter = selectedRow.center;
   const previousRow = selectedIndex > 0 ? candidateRows[selectedIndex - 1] : null;
-  const nextRow = selectedIndex >= 0 && selectedIndex < candidateRows.length - 1 ? candidateRows[selectedIndex + 1] : null;
+  const nextRow = selectedIndex < candidateRows.length - 1 ? candidateRows[selectedIndex + 1] : null;
   const topBound = previousRow ? (previousRow.center + rowCenter) / 2 : rowCenter - typicalHeight;
   const bottomBound = nextRow ? (rowCenter + nextRow.center) / 2 : rowCenter + typicalHeight;
 
@@ -339,7 +375,6 @@ export function parseScheduleOcr(result: OcrTextResult, configuredName: string):
   const headerCandidates = atomic
     .map((item) => ({ item, day: dayHeaderIndex(item.text) }))
     .filter((entry) => entry.day >= 0);
-
   const headers = new Map<number, PositionedText>();
   for (const entry of headerCandidates) {
     if (!headers.has(entry.day)) headers.set(entry.day, entry.item);
@@ -362,15 +397,9 @@ export function parseScheduleOcr(result: OcrTextResult, configuredName: string):
     warnings.push('No pude reconstruir las columnas de la semana con seguridad. Dejé los días pendientes en vez de inventar horarios.');
   }
 
-  if (shifts.some((shift) => shift.confidence === 'low' || shift.issue)) {
-    warnings.push('Hay datos pendientes de revisión antes de guardar.');
+  if (shifts.some((shift) => shift.confidence !== 'high' || shift.issue)) {
+    warnings.push('Hay días pendientes de revisión manual antes de guardar. Toca o reescribe sus datos para confirmarlos.');
   }
 
-  return {
-    nameFound: true,
-    matchedNameText: best.text,
-    rowText,
-    shifts,
-    warnings,
-  };
+  return { nameFound: true, matchedNameText: best.text, rowText, shifts, warnings };
 }
