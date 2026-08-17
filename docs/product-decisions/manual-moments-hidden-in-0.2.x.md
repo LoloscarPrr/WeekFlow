@@ -1,0 +1,1 @@
+Implementation note for 0.2.5: Semana will no longer render manual add/edit/delete controls for ImportantMoment. The model stays available internally for future Assistant-owned natural-language capture and backward compatibility.
