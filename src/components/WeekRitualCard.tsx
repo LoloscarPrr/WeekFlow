@@ -1,14 +1,5 @@
-import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import DateTimePicker from '@expo/ui/community/datetime-picker';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { ImportantMoment, WeekSchedule } from '@/src/domain/entities/Shift';
-import {
-  localDateKey,
-  longLocalDateLabel,
-  mondayBasedDay,
-  parseLocalDateKey,
-  shortLocalDateLabel,
-} from '@/src/domain/services/calendarDate';
 import { colors } from '@/src/theme/colors';
 
 type Props = {
@@ -29,90 +20,16 @@ function sourceLabel(source: WeekSchedule['source']) {
   return 'Ingreso manual';
 }
 
-function dateFromTime(value: string) {
-  const [hours, minutes] = value.split(':').map(Number);
-  const date = new Date();
-  date.setHours(hours || 0, minutes || 0, 0, 0);
-  return date;
-}
-
-function timeFromDate(date: Date) {
-  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-}
-
-function newMomentId() {
-  return `moment-${Date.now().toString(36)}`;
-}
-
-export function WeekRitualCard({
-  week,
-  workDays,
-  freeDays,
-  onSaveMoment,
-  onDeleteMoment,
-  onFinish,
-}: Props) {
-  const [editing, setEditing] = useState(false);
-  const [draftId, setDraftId] = useState<string | null>(null);
-  const [title, setTitle] = useState('');
-  const [date, setDate] = useState(() => localDateKey(new Date()));
-  const [time, setTime] = useState('18:00');
-  const [datePickerOpen, setDatePickerOpen] = useState(false);
-  const [timePickerOpen, setTimePickerOpen] = useState(false);
-
-  function resetEditor() {
-    setEditing(false);
-    setDraftId(null);
-    setTitle('');
-    setDate(localDateKey(new Date()));
-    setTime('18:00');
-    setDatePickerOpen(false);
-    setTimePickerOpen(false);
-  }
-
-  function editMoment(moment: ImportantMoment) {
-    setDraftId(moment.id);
-    setTitle(moment.title);
-    setDate(moment.date);
-    setTime(moment.time);
-    setDatePickerOpen(false);
-    setTimePickerOpen(false);
-    setEditing(true);
-  }
-
-  function saveMoment() {
-    const cleanTitle = title.trim();
-    if (!cleanTitle) {
-      Alert.alert('Falta el momento', 'Escribe qué quieres proteger esta semana.');
-      return;
-    }
-
-    const selectedDate = parseLocalDateKey(date);
-    if (!selectedDate) {
-      Alert.alert('Fecha inválida', 'Elige nuevamente la fecha del momento.');
-      return;
-    }
-
-    onSaveMoment({
-      id: draftId ?? newMomentId(),
-      date,
-      day: mondayBasedDay(selectedDate),
-      time,
-      title: cleanTitle,
-    });
-    resetEditor();
-  }
+export function WeekRitualCard({ week, workDays, freeDays, onFinish }: Props) {
+  const organized = Boolean(week.organizedAt);
 
   function finish() {
     onFinish();
-    const moments = week.importantMoments.length;
     Alert.alert(
       'Semana organizada',
-      `${workDays} ${workDays === 1 ? 'jornada' : 'jornadas'}, ${freeDays} ${freeDays === 1 ? 'día libre' : 'días libres'} y ${moments} ${moments === 1 ? 'momento importante' : 'momentos importantes'}. Puedes corregir cualquier dato cuando cambie la realidad.`,
+      `${workDays} ${workDays === 1 ? 'jornada' : 'jornadas'} y ${freeDays} ${freeDays === 1 ? 'día libre' : 'días libres'}. Tu horario queda como la base real de WeekFlow.`,
     );
   }
-
-  const organized = Boolean(week.organizedAt);
 
   return (
     <View style={styles.card}>
@@ -121,12 +38,12 @@ export function WeekRitualCard({
           <Text style={styles.statusIconText}>{organized ? '✓' : '○'}</Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.eyebrow}>RITUAL DE LA SEMANA</Text>
-          <Text style={styles.title}>{organized ? 'Semana organizada' : 'Termina de organizarla'}</Text>
+          <Text style={styles.eyebrow}>SEMANA · CIERRE</Text>
+          <Text style={styles.title}>{organized ? 'Horario confirmado' : 'Confirma tu semana'}</Text>
           <Text style={styles.copy}>
             {organized
-              ? 'Horario y momentos importantes comparten una sola verdad.'
-              : 'Revisa tu horario, protege lo importante y cierra con un resumen simple.'}
+              ? 'Tu jornada real queda como la base de Ahora, Move, Food y Rest.'
+              : 'Revisa tus jornadas y días libres. Si todo coincide, confirma y sigue.'}
           </Text>
         </View>
       </View>
@@ -136,131 +53,21 @@ export function WeekRitualCard({
         <Text style={styles.sourceValue}>{sourceLabel(week.source)}</Text>
       </View>
 
-      <View style={styles.momentsHead}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.sectionTitle}>Momentos importantes</Text>
-          <Text style={styles.sectionCopy}>Solo lo que no debe perderse entre las jornadas.</Text>
-        </View>
-        {!editing ? (
-          <Pressable style={styles.addButton} onPress={() => setEditing(true)}>
-            <Text style={styles.addButtonText}>+ Añadir</Text>
-          </Pressable>
-        ) : null}
+      <View style={styles.assistantBox}>
+        <Text style={styles.assistantEyebrow}>ACTIVIDADES PERSONALES</Text>
+        <Text style={styles.assistantTitle}>No hace falta registrarlas aquí.</Text>
+        <Text style={styles.assistantCopy}>
+          WeekFlow deja de pedirte que clasifiques manualmente actividades importantes o poco importantes. Cuando el Asistente entre en esta etapa, podrás contarle tus compromisos en lenguaje natural y usará la misma verdad del Brain.
+        </Text>
       </View>
-
-      {week.importantMoments.length ? (
-        <View style={styles.momentsList}>
-          {week.importantMoments.map((moment) => (
-            <View key={moment.id} style={styles.momentRow}>
-              <View style={styles.momentWhen}>
-                <Text style={styles.momentDay}>{shortLocalDateLabel(moment.date)}</Text>
-                <Text style={styles.momentTime}>{moment.time}</Text>
-              </View>
-              <Text style={styles.momentTitle}>{moment.title}</Text>
-              <View style={styles.momentActions}>
-                <Pressable onPress={() => editMoment(moment)} hitSlop={8}>
-                  <Text style={styles.editText}>Editar</Text>
-                </Pressable>
-                <Pressable onPress={() => onDeleteMoment(moment.id)} hitSlop={8}>
-                  <Text style={styles.deleteText}>Quitar</Text>
-                </Pressable>
-              </View>
-            </View>
-          ))}
-        </View>
-      ) : (
-        <View style={styles.emptyBox}>
-          <Text style={styles.emptyTitle}>No añadiste nada todavía.</Text>
-          <Text style={styles.emptyCopy}>Está bien dejarlo vacío si esta semana no hay otro compromiso que proteger.</Text>
-        </View>
-      )}
-
-      {editing ? (
-        <View style={styles.editor}>
-          <Text style={styles.inputLabel}>¿Qué quieres proteger?</Text>
-          <TextInput
-            value={title}
-            onChangeText={setTitle}
-            placeholder="Ej. Médico, cumpleaños o trámite"
-            placeholderTextColor="#60728E"
-            maxLength={80}
-            returnKeyType="done"
-            style={styles.input}
-          />
-
-          <Text style={styles.inputLabel}>Fecha</Text>
-          <Pressable
-            style={styles.timeButton}
-            onPress={() => {
-              setTimePickerOpen(false);
-              setDatePickerOpen(true);
-            }}
-          >
-            <Text style={styles.dateButtonValue}>{longLocalDateLabel(date)}</Text>
-            <Text style={styles.timeButtonHint}>Cambiar</Text>
-          </Pressable>
-
-          <Text style={styles.inputLabel}>Hora</Text>
-          <Pressable
-            style={styles.timeButton}
-            onPress={() => {
-              setDatePickerOpen(false);
-              setTimePickerOpen(true);
-            }}
-          >
-            <Text style={styles.timeButtonValue}>{time}</Text>
-            <Text style={styles.timeButtonHint}>Cambiar</Text>
-          </Pressable>
-
-          <View style={styles.editorActions}>
-            <Pressable style={styles.cancelButton} onPress={resetEditor}>
-              <Text style={styles.cancelText}>Cancelar</Text>
-            </Pressable>
-            <Pressable style={styles.saveButton} onPress={saveMoment}>
-              <Text style={styles.saveText}>{draftId ? 'Guardar cambio' : 'Añadir momento'}</Text>
-            </Pressable>
-          </View>
-        </View>
-      ) : null}
 
       {!organized ? (
         <Pressable style={styles.finishButton} onPress={finish}>
-          <Text style={styles.finishText}>Terminar organización</Text>
+          <Text style={styles.finishText}>Confirmar semana</Text>
         </Pressable>
       ) : (
-        <Text style={styles.doneCopy}>Si editas el horario o un momento, WeekFlow volverá a abrir este cierre para que lo confirmes de nuevo.</Text>
+        <Text style={styles.doneCopy}>Si cambias una jornada, WeekFlow volverá a pedirte esta confirmación.</Text>
       )}
-
-      {datePickerOpen ? (
-        <DateTimePicker
-          value={parseLocalDateKey(date) ?? new Date()}
-          mode="date"
-          presentation="dialog"
-          display="calendar"
-          accentColor={colors.blue}
-          onValueChange={(_, selectedDate) => {
-            setDate(localDateKey(selectedDate));
-            setDatePickerOpen(false);
-          }}
-          onDismiss={() => setDatePickerOpen(false)}
-        />
-      ) : null}
-
-      {timePickerOpen ? (
-        <DateTimePicker
-          value={dateFromTime(time)}
-          mode="time"
-          presentation="dialog"
-          display="clock"
-          is24Hour
-          accentColor={colors.blue}
-          onValueChange={(_, selectedDate) => {
-            setTime(timeFromDate(selectedDate));
-            setTimePickerOpen(false);
-          }}
-          onDismiss={() => setTimePickerOpen(false)}
-        />
-      ) : null}
     </View>
   );
 }
@@ -277,35 +84,10 @@ const styles = StyleSheet.create({
   sourceRow: { marginTop: 14, padding: 12, borderRadius: 14, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.line, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   sourceLabel: { color: colors.muted, fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
   sourceValue: { color: colors.text, fontSize: 11, fontWeight: '800', flexShrink: 1, textAlign: 'right' },
-  momentsHead: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 18 },
-  sectionTitle: { color: colors.text, fontSize: 15, fontWeight: '900' },
-  sectionCopy: { color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 3 },
-  addButton: { minHeight: 38, paddingHorizontal: 12, borderRadius: 13, backgroundColor: '#153C69', borderWidth: 1, borderColor: '#2E6CAE', alignItems: 'center', justifyContent: 'center' },
-  addButtonText: { color: '#A8D2FF', fontSize: 11, fontWeight: '900' },
-  momentsList: { marginTop: 12, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: colors.line },
-  momentRow: { minHeight: 66, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.bg, borderBottomWidth: 1, borderBottomColor: colors.line },
-  momentWhen: { width: 98 },
-  momentDay: { color: '#76AFFF', fontSize: 9, lineHeight: 13, fontWeight: '900' },
-  momentTime: { color: colors.text, fontSize: 12, fontWeight: '900', marginTop: 3 },
-  momentTitle: { color: colors.text, fontSize: 12, lineHeight: 17, fontWeight: '800', flex: 1 },
-  momentActions: { alignItems: 'flex-end', gap: 7 },
-  editText: { color: '#8CC5FF', fontSize: 10, fontWeight: '900' },
-  deleteText: { color: '#B69A9A', fontSize: 10, fontWeight: '800' },
-  emptyBox: { marginTop: 12, padding: 13, borderRadius: 16, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.line },
-  emptyTitle: { color: colors.text, fontSize: 12, fontWeight: '900' },
-  emptyCopy: { color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 4 },
-  editor: { marginTop: 14, padding: 14, borderRadius: 18, backgroundColor: '#0B1B31', borderWidth: 1, borderColor: '#28558B' },
-  inputLabel: { color: '#9BB5D4', fontSize: 10, fontWeight: '900', letterSpacing: 0.8, marginTop: 10, marginBottom: 6 },
-  input: { minHeight: 48, borderRadius: 14, paddingHorizontal: 13, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.line, color: colors.text, fontSize: 14, fontWeight: '800' },
-  timeButton: { minHeight: 48, borderRadius: 14, paddingHorizontal: 13, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.line, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  dateButtonValue: { color: colors.text, fontSize: 12, lineHeight: 17, fontWeight: '900', flex: 1, marginRight: 10 },
-  timeButtonValue: { color: colors.text, fontSize: 17, fontWeight: '900' },
-  timeButtonHint: { color: '#78B7FF', fontSize: 11, fontWeight: '900' },
-  editorActions: { flexDirection: 'row', gap: 9, marginTop: 14 },
-  cancelButton: { flex: 1, minHeight: 46, borderRadius: 14, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },
-  cancelText: { color: colors.text, fontSize: 12, fontWeight: '800' },
-  saveButton: { flex: 1, minHeight: 46, borderRadius: 14, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center' },
-  saveText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
+  assistantBox: { marginTop: 14, padding: 14, borderRadius: 17, backgroundColor: '#0B1B31', borderWidth: 1, borderColor: '#28558B' },
+  assistantEyebrow: { color: '#76AFFF', fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
+  assistantTitle: { color: colors.text, fontSize: 14, fontWeight: '900', marginTop: 6 },
+  assistantCopy: { color: colors.muted, fontSize: 11, lineHeight: 17, marginTop: 5 },
   finishButton: { minHeight: 52, marginTop: 16, borderRadius: 16, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center' },
   finishText: { color: '#FFFFFF', fontSize: 14, fontWeight: '900' },
   doneCopy: { color: '#86BBA5', fontSize: 11, lineHeight: 17, textAlign: 'center', marginTop: 15 },
