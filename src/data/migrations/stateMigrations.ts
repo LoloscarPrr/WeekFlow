@@ -11,6 +11,12 @@ import type {
   WeekSource,
 } from '../../domain/entities/Shift';
 import type { UserProfile } from '../../domain/entities/UserProfile';
+import {
+  isLocalDateKey,
+  localDateKeyForWeekday,
+  mondayBasedDay,
+  parseLocalDateKey,
+} from '../../domain/services/calendarDate';
 import { classifyShift } from '../../domain/services/shiftSchedule';
 
 type UnknownRecord = Record<string, unknown>;
@@ -46,21 +52,28 @@ function validTime(value: unknown): value is string {
   return typeof value === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
 }
 
-function migrateImportantMoments(value: unknown): ImportantMoment[] {
+function migrateImportantMoments(value: unknown, referenceDate: Date): ImportantMoment[] {
   if (!Array.isArray(value)) return [];
 
   return value
     .filter(isRecord)
     .flatMap((item) => {
       const title = typeof item.title === 'string' ? item.title.trim().slice(0, 80) : '';
-      const day = typeof item.day === 'number' && Number.isInteger(item.day) ? item.day : -1;
-      if (!title || day < 0 || day > 6 || !validTime(item.time)) return [];
+      const legacyDay = typeof item.day === 'number' && Number.isInteger(item.day) ? item.day : -1;
+      const date = isLocalDateKey(item.date)
+        ? item.date
+        : legacyDay >= 0 && legacyDay <= 6
+          ? localDateKeyForWeekday(legacyDay, referenceDate)
+          : '';
+      const parsedDate = parseLocalDateKey(date);
+      if (!title || !parsedDate || !validTime(item.time)) return [];
+      const day = mondayBasedDay(parsedDate);
       const id = typeof item.id === 'string' && item.id.trim()
         ? item.id
-        : `legacy-${day}-${item.time}-${title}`;
-      return [{ id, day, time: item.time, title }];
+        : `legacy-${date}-${item.time}-${title}`;
+      return [{ id, date, day, time: item.time, title }];
     })
-    .sort((a, b) => a.day - b.day || a.time.localeCompare(b.time) || a.title.localeCompare(b.title));
+    .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time) || a.title.localeCompare(b.title));
 }
 
 export function migrateDayState(value: unknown): DayState {
@@ -97,7 +110,7 @@ export function migrateDayState(value: unknown): DayState {
   };
 }
 
-export function migrateWeekSchedule(value: unknown): WeekSchedule {
+export function migrateWeekSchedule(value: unknown, referenceDate = new Date()): WeekSchedule {
   const parsed = isRecord(value) ? value : {};
   const parsedShifts = Array.isArray(parsed.shifts)
     ? parsed.shifts.filter(isRecord)
@@ -122,7 +135,7 @@ export function migrateWeekSchedule(value: unknown): WeekSchedule {
         breakMinutes: type === 'off' ? 0 : breakMinutes(incoming.breakMinutes),
       };
     }),
-    importantMoments: migrateImportantMoments(parsed.importantMoments),
+    importantMoments: migrateImportantMoments(parsed.importantMoments, referenceDate),
     organizedAt: nullableString(parsed.organizedAt),
     source: typeof parsed.source === 'string' && weekSources.includes(parsed.source as WeekSource)
       ? parsed.source as WeekSource

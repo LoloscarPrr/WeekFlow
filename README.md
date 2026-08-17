@@ -2,14 +2,14 @@
 
 **Tu semana. Tu ritmo. Tu equilibrio.**
 
-## Alpha 0.2.1 — Semana e importación
+## Alpha 0.2.2 — Momentos con fecha real
 
 WeekFlow vuelve a una numeración pública coherente con su etapa real de desarrollo. La serie 4.8.x correspondía al avance interno de builds, pero transmitía una madurez de producto que todavía no corresponde.
 
 ### Versionado canónico
 
-- Versión pública actual: **0.2.1 Alpha**.
-- `expo.version` y `package.json` usan `0.2.1`.
+- Versión pública actual: **0.2.2 Alpha**.
+- `expo.version` y `package.json` usan `0.2.2`.
 - Android mantiene un `versionCode` interno creciente para permitir actualizaciones sobre APK anteriores. Este número no representa madurez del producto.
 - Las futuras versiones públicas avanzan desde la línea 0.x mientras WeekFlow siga en desarrollo previo a 1.0.
 
@@ -31,8 +31,9 @@ El mismo icono oficial se usa en el header de la app. Launcher, adaptive icon y 
 - Semana persistente, Día Vivo y `Ya salí` siguen compartiendo la misma fuente de verdad.
 - Semana separa entrada, duración de colación y salida sin romper jornadas nocturnas.
 - Foto/cámara y galería convergen en una revisión obligatoria antes de reemplazar el horario.
-- El Ritual permite proteger momentos importantes y cerrar la semana con un resumen humano.
-- Los momentos importantes del día aparecen en Ahora como bloques fijos, sin mezclarse con actividades flexibles.
+- El Ritual permite proteger momentos importantes con fecha y hora concretas, y cerrar la semana con un resumen humano.
+- Los momentos importantes del día aparecen en Ahora con su fecha visible como bloques fijos, sin mezclarse con actividades flexibles ni repetirse la semana siguiente.
+- Los momentos creados antes de 0.2.2 se migran a la fecha equivalente de la semana actual sin perder título ni hora.
 - El momento destacado no se repite en la lista siguiente y usa un icono visible sobre fondo oscuro.
 - La navegación inferior reserva su propio espacio y nunca cubre el final de una pantalla.
 - Una jornada sin colación registrada muestra solo entrada y salida; el valor cero sigue editable al abrirla.
