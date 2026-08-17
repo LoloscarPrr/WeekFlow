@@ -1,6 +1,6 @@
 {
   "name": "weekflow",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
@@ -9,13 +9,14 @@
     "doctor": "expo-doctor",
     "prebuild": "expo prebuild",
     "typecheck": "tsc --noEmit",
-    "test": "tsc -p tsconfig.tests.json && node .test-build/tests/regression.test.js && node .test-build/tests/ocr-confidence.test.js",
+    "test": "tsc -p tsconfig.tests.json && node .test-build/tests/regression.test.js && node .test-build/tests/ocr-confidence.test.js && node .test-build/tests/excel-import.test.js",
     "quality": "npm run typecheck && npm test"
   },
   "dependencies": {
     "@expo/ui": "~57.0.7",
     "@infinitered/react-native-mlkit-text-recognition": "5.0.1",
     "expo": "~57.0.8",
+    "expo-document-picker": "~57.0.1",
     "expo-image-picker": "~57.0.3",
     "expo-router": "~57.0.7",
     "expo-splash-screen": "~57.0.4",
@@ -25,6 +26,7 @@
     "react-native": "0.86.0",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zustand": "^5.0.8"
   },
   "devDependencies": {
