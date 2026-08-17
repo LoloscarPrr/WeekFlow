@@ -2,10 +2,14 @@ import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import DateTimePicker from '@expo/ui/community/datetime-picker';
 import type { ImportantMoment, WeekSchedule } from '@/src/domain/entities/Shift';
+import {
+  localDateKey,
+  longLocalDateLabel,
+  mondayBasedDay,
+  parseLocalDateKey,
+  shortLocalDateLabel,
+} from '@/src/domain/services/calendarDate';
 import { colors } from '@/src/theme/colors';
-
-const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-const SHORT_DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
 type Props = {
   week: WeekSchedule;
@@ -51,24 +55,28 @@ export function WeekRitualCard({
   const [editing, setEditing] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
-  const [day, setDay] = useState(0);
+  const [date, setDate] = useState(() => localDateKey(new Date()));
   const [time, setTime] = useState('18:00');
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [timePickerOpen, setTimePickerOpen] = useState(false);
 
   function resetEditor() {
     setEditing(false);
     setDraftId(null);
     setTitle('');
-    setDay(0);
+    setDate(localDateKey(new Date()));
     setTime('18:00');
+    setDatePickerOpen(false);
     setTimePickerOpen(false);
   }
 
   function editMoment(moment: ImportantMoment) {
     setDraftId(moment.id);
     setTitle(moment.title);
-    setDay(moment.day);
+    setDate(moment.date);
     setTime(moment.time);
+    setDatePickerOpen(false);
+    setTimePickerOpen(false);
     setEditing(true);
   }
 
@@ -79,9 +87,16 @@ export function WeekRitualCard({
       return;
     }
 
+    const selectedDate = parseLocalDateKey(date);
+    if (!selectedDate) {
+      Alert.alert('Fecha inválida', 'Elige nuevamente la fecha del momento.');
+      return;
+    }
+
     onSaveMoment({
       id: draftId ?? newMomentId(),
-      day,
+      date,
+      day: mondayBasedDay(selectedDate),
       time,
       title: cleanTitle,
     });
@@ -138,7 +153,7 @@ export function WeekRitualCard({
           {week.importantMoments.map((moment) => (
             <View key={moment.id} style={styles.momentRow}>
               <View style={styles.momentWhen}>
-                <Text style={styles.momentDay}>{SHORT_DAYS[moment.day]}</Text>
+                <Text style={styles.momentDay}>{shortLocalDateLabel(moment.date)}</Text>
                 <Text style={styles.momentTime}>{moment.time}</Text>
               </View>
               <Text style={styles.momentTitle}>{moment.title}</Text>
@@ -173,21 +188,26 @@ export function WeekRitualCard({
             style={styles.input}
           />
 
-          <Text style={styles.inputLabel}>Día</Text>
-          <View style={styles.dayGrid}>
-            {SHORT_DAYS.map((label, index) => (
-              <Pressable
-                key={label}
-                style={[styles.dayChip, day === index && styles.dayChipActive]}
-                onPress={() => setDay(index)}
-              >
-                <Text style={[styles.dayChipText, day === index && styles.dayChipTextActive]}>{label}</Text>
-              </Pressable>
-            ))}
-          </View>
+          <Text style={styles.inputLabel}>Fecha</Text>
+          <Pressable
+            style={styles.timeButton}
+            onPress={() => {
+              setTimePickerOpen(false);
+              setDatePickerOpen(true);
+            }}
+          >
+            <Text style={styles.dateButtonValue}>{longLocalDateLabel(date)}</Text>
+            <Text style={styles.timeButtonHint}>Cambiar</Text>
+          </Pressable>
 
           <Text style={styles.inputLabel}>Hora</Text>
-          <Pressable style={styles.timeButton} onPress={() => setTimePickerOpen(true)}>
+          <Pressable
+            style={styles.timeButton}
+            onPress={() => {
+              setDatePickerOpen(false);
+              setTimePickerOpen(true);
+            }}
+          >
             <Text style={styles.timeButtonValue}>{time}</Text>
             <Text style={styles.timeButtonHint}>Cambiar</Text>
           </Pressable>
@@ -210,6 +230,21 @@ export function WeekRitualCard({
       ) : (
         <Text style={styles.doneCopy}>Si editas el horario o un momento, WeekFlow volverá a abrir este cierre para que lo confirmes de nuevo.</Text>
       )}
+
+      {datePickerOpen ? (
+        <DateTimePicker
+          value={parseLocalDateKey(date) ?? new Date()}
+          mode="date"
+          presentation="dialog"
+          display="calendar"
+          accentColor={colors.blue}
+          onValueChange={(_, selectedDate) => {
+            setDate(localDateKey(selectedDate));
+            setDatePickerOpen(false);
+          }}
+          onDismiss={() => setDatePickerOpen(false)}
+        />
+      ) : null}
 
       {timePickerOpen ? (
         <DateTimePicker
@@ -249,8 +284,8 @@ const styles = StyleSheet.create({
   addButtonText: { color: '#A8D2FF', fontSize: 11, fontWeight: '900' },
   momentsList: { marginTop: 12, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: colors.line },
   momentRow: { minHeight: 66, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.bg, borderBottomWidth: 1, borderBottomColor: colors.line },
-  momentWhen: { width: 48 },
-  momentDay: { color: '#76AFFF', fontSize: 10, fontWeight: '900' },
+  momentWhen: { width: 98 },
+  momentDay: { color: '#76AFFF', fontSize: 9, lineHeight: 13, fontWeight: '900' },
   momentTime: { color: colors.text, fontSize: 12, fontWeight: '900', marginTop: 3 },
   momentTitle: { color: colors.text, fontSize: 12, lineHeight: 17, fontWeight: '800', flex: 1 },
   momentActions: { alignItems: 'flex-end', gap: 7 },
@@ -262,12 +297,8 @@ const styles = StyleSheet.create({
   editor: { marginTop: 14, padding: 14, borderRadius: 18, backgroundColor: '#0B1B31', borderWidth: 1, borderColor: '#28558B' },
   inputLabel: { color: '#9BB5D4', fontSize: 10, fontWeight: '900', letterSpacing: 0.8, marginTop: 10, marginBottom: 6 },
   input: { minHeight: 48, borderRadius: 14, paddingHorizontal: 13, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.line, color: colors.text, fontSize: 14, fontWeight: '800' },
-  dayGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  dayChip: { minWidth: 57, minHeight: 38, paddingHorizontal: 10, borderRadius: 12, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },
-  dayChipActive: { backgroundColor: '#173E6E', borderColor: '#4B8DD5' },
-  dayChipText: { color: colors.muted, fontSize: 11, fontWeight: '800' },
-  dayChipTextActive: { color: colors.text },
   timeButton: { minHeight: 48, borderRadius: 14, paddingHorizontal: 13, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.line, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  dateButtonValue: { color: colors.text, fontSize: 12, lineHeight: 17, fontWeight: '900', flex: 1, marginRight: 10 },
   timeButtonValue: { color: colors.text, fontSize: 17, fontWeight: '900' },
   timeButtonHint: { color: '#78B7FF', fontSize: 11, fontWeight: '900' },
   editorActions: { flexDirection: 'row', gap: 9, marginTop: 14 },

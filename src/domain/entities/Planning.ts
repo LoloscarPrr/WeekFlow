@@ -20,6 +20,7 @@ export type BrainMomentType =
 
 export type BrainMoment = {
   time: string;
+  dateLabel?: string;
   icon: string;
   title: string;
   detail: string;

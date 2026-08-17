@@ -1,4 +1,5 @@
 import type { ImportantMoment, WeekSchedule } from '../../domain/entities/Shift';
+import { mondayBasedDay, parseLocalDateKey } from '../../domain/services/calendarDate';
 import { classifyShift } from '../../domain/services/shiftSchedule';
 
 export type WeekShiftPatch = {
@@ -19,15 +20,13 @@ function reopenManualWeek(week: WeekSchedule) {
 function validMoment(moment: ImportantMoment) {
   return Boolean(moment.id.trim())
     && Boolean(moment.title.trim())
-    && moment.day >= 0
-    && moment.day <= 6
-    && Number.isInteger(moment.day)
+    && Boolean(parseLocalDateKey(moment.date))
     && /^([01]\d|2[0-3]):[0-5]\d$/.test(moment.time);
 }
 
 function sortMoments(moments: ImportantMoment[]) {
   return [...moments].sort(
-    (a, b) => a.day - b.day || a.time.localeCompare(b.time) || a.title.localeCompare(b.title),
+    (a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time) || a.title.localeCompare(b.title),
   );
 }
 
@@ -85,9 +84,15 @@ export function upsertImportantMoment(
   week: WeekSchedule,
   moment: ImportantMoment,
 ): WeekSchedule {
+  const date = typeof moment.date === 'string' ? moment.date.trim() : '';
+  const parsedDate = parseLocalDateKey(date);
+  if (!parsedDate) return week;
+
   const normalized: ImportantMoment = {
     ...moment,
     id: moment.id.trim(),
+    date,
+    day: mondayBasedDay(parsedDate),
     title: moment.title.trim().slice(0, 80),
   };
   if (!validMoment(normalized)) return week;

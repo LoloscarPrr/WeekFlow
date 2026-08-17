@@ -16,6 +16,9 @@ export type WeekSource = 'manual' | 'camera' | 'library' | 'pdf' | 'excel' | 'le
 
 export type ImportantMoment = {
   id: string;
+  /** Fecha calendario local YYYY-MM-DD. Es la fuente de verdad del momento. */
+  date: string;
+  /** Día lunes-domingo derivado de date; se conserva para presentación semanal. */
   day: number;
   time: string;
   title: string;

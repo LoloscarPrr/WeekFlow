@@ -7,7 +7,14 @@ const WEEK_STATE_KEY = 'week-state';
 
 export class SQLiteWeekScheduleRepository implements WeekScheduleRepository {
   load(): WeekSchedule {
-    return migrateWeekSchedule(sqliteStateStore.read<unknown>(WEEK_STATE_KEY));
+    const stored = sqliteStateStore.read<unknown>(WEEK_STATE_KEY);
+    const migrated = migrateWeekSchedule(stored);
+
+    if (stored !== null && JSON.stringify(stored) !== JSON.stringify(migrated)) {
+      sqliteStateStore.write(WEEK_STATE_KEY, migrated);
+    }
+
+    return migrated;
   }
 
   save(state: WeekSchedule) {
