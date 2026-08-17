@@ -1,0 +1,1 @@
+Prueba manual sugerida: importar una captura clara, revisar que los 7 días coincidan y confirmar; luego repetir con una captura recortada o dudosa para verificar que WeekFlow deje datos pendientes en vez de adivinar.
