@@ -24,6 +24,7 @@
     "src/application/useCases/registerActualExit.ts",
     "src/application/useCases/updateWeekSchedule.ts",
     "src/import/scheduleOcr.ts",
+    "src/import/scheduleExcel.ts",
     "src/food/history.ts",
     "src/data/migrations/**/*.ts"
   ]

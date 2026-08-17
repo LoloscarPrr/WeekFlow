@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { recognizeText } from '@infinitered/react-native-mlkit-text-recognition';
+import { readScheduleExcel } from '@/src/import/scheduleExcel';
 import { parseScheduleOcr, type ReviewShift } from '@/src/import/scheduleOcr';
 import {
   loadUserProfile,
@@ -13,11 +15,11 @@ import {
 import { colors } from '@/src/theme/colors';
 
 export type PendingScheduleImport = {
-  source: 'library' | 'camera';
+  source: 'library' | 'camera' | 'excel';
   uri: string;
   fileName: string | null;
-  width: number;
-  height: number;
+  width: number | null;
+  height: number | null;
 };
 
 function validTime(value: string) {
@@ -45,7 +47,9 @@ function reviewIssue(start: string, end: string, breakMinutes: number | null) {
 }
 
 function sourceLabel(source: PendingScheduleImport['source']) {
-  return source === 'camera' ? 'Foto tomada con la cámara' : 'Imagen elegida de la galería';
+  if (source === 'camera') return 'Foto tomada con la cámara';
+  if (source === 'excel') return 'Planilla Excel elegida';
+  return 'Imagen elegida de la galería';
 }
 
 export function ScheduleImportCard() {
@@ -58,17 +62,21 @@ export function ScheduleImportCard() {
   const [warnings, setWarnings] = useState<string[]>([]);
   const [review, setReview] = useState<ReviewShift[] | null>(null);
 
-  function useAsset(asset: ImagePicker.ImagePickerAsset, source: PendingScheduleImport['source']) {
-    setPending({
+  function preparePending(next: PendingScheduleImport) {
+    setPending(next);
+    setReview(null);
+    setWarnings([]);
+    setMatchedName(null);
+  }
+
+  function useImageAsset(asset: ImagePicker.ImagePickerAsset, source: 'library' | 'camera') {
+    preparePending({
       source,
       uri: asset.uri,
       fileName: asset.fileName ?? null,
       width: asset.width,
       height: asset.height,
     });
-    setReview(null);
-    setWarnings([]);
-    setMatchedName(null);
   }
 
   async function chooseImage() {
@@ -78,7 +86,7 @@ export function ScheduleImportCard() {
       quality: 1,
     });
     if (result.canceled || !result.assets[0]) return;
-    useAsset(result.assets[0], 'library');
+    useImageAsset(result.assets[0], 'library');
   }
 
   async function takePhoto() {
@@ -94,7 +102,27 @@ export function ScheduleImportCard() {
       quality: 1,
     });
     if (result.canceled || !result.assets[0]) return;
-    useAsset(result.assets[0], 'camera');
+    useImageAsset(result.assets[0], 'camera');
+  }
+
+  async function chooseExcel() {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-excel',
+      ],
+      copyToCacheDirectory: true,
+      multiple: false,
+    });
+    if (result.canceled || !result.assets[0]) return;
+    const asset = result.assets[0];
+    preparePending({
+      source: 'excel',
+      uri: asset.uri,
+      fileName: asset.name,
+      width: null,
+      height: null,
+    });
   }
 
   function discard() {
@@ -120,19 +148,27 @@ export function ScheduleImportCard() {
     setEditingName(false);
 
     try {
-      const result = await recognizeText(pending.uri);
-      const parsed = parseScheduleOcr(result as any, cleanName);
+      const parsed = pending.source === 'excel'
+        ? await readScheduleExcel(pending.uri, cleanName)
+        : parseScheduleOcr(await recognizeText(pending.uri) as any, cleanName);
       setMatchedName(parsed.matchedNameText);
       setWarnings(parsed.warnings);
       if (!parsed.nameFound) {
-        Alert.alert('No te encontré', parsed.warnings[0] ?? 'No pude encontrar tu nombre en esta imagen.');
+        Alert.alert('No te encontré', parsed.warnings[0] ?? 'No pude encontrar tu nombre en este horario.');
         return;
       }
       setReview(parsed.shifts);
     } catch (error) {
-      console.error('WeekFlow OCR failed', error);
-      setWarnings(['No pude leer esta imagen. Prueba con una captura más nítida y completa.']);
-      Alert.alert('No pude leer la planilla', 'Prueba con una captura más nítida y completa. Tu semana no fue modificada.');
+      console.error('WeekFlow schedule import failed', error);
+      const excel = pending.source === 'excel';
+      const warning = excel
+        ? 'No pude leer esta planilla. Prueba con el archivo Excel original o revisa que no esté protegido.'
+        : 'No pude leer esta imagen. Prueba con una captura más nítida y completa.';
+      setWarnings([warning]);
+      Alert.alert(
+        excel ? 'No pude leer la planilla' : 'No pude leer la imagen',
+        `${warning} Tu semana no fue modificada.`,
+      );
     } finally {
       setReading(false);
     }
@@ -339,6 +375,14 @@ export function ScheduleImportCard() {
               <Text style={styles.sourceSub}>Foto o screenshot</Text>
             </Pressable>
           </View>
+          <Pressable style={styles.documentButton} onPress={chooseExcel}>
+            <View style={styles.documentIconWrap}><Text style={styles.documentIcon}>▦</Text></View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.sourceTitle}>Elegir planilla Excel</Text>
+              <Text style={styles.sourceSub}>XLSX o XLS · misma revisión antes de guardar</Text>
+            </View>
+            <Text style={styles.documentArrow}>→</Text>
+          </Pressable>
           <View style={styles.ruleBox}>
             <Text style={styles.ruleTitle}>Regla de WeekFlow</Text>
             <Text style={styles.ruleCopy}>La lectura automática nunca modifica tu semana sin que revises y confirmes el resultado.</Text>
@@ -347,11 +391,17 @@ export function ScheduleImportCard() {
       ) : (
         <>
           <View style={styles.pendingBox}>
-            <Image source={{ uri: pending.uri }} style={styles.preview} resizeMode="cover" />
+            {pending.source === 'excel' ? (
+              <View style={styles.filePreview}><Text style={styles.filePreviewText}>▦</Text></View>
+            ) : (
+              <Image source={{ uri: pending.uri }} style={styles.preview} resizeMode="cover" />
+            )}
             <View style={{ flex: 1 }}>
-              <Text style={styles.ready}>Imagen lista</Text>
+              <Text style={styles.ready}>{pending.source === 'excel' ? 'Planilla lista' : 'Imagen lista'}</Text>
               <Text style={styles.meta}>{sourceLabel(pending.source)}</Text>
-              <Text style={styles.meta} numberOfLines={1}>{pending.fileName ?? `${pending.width} × ${pending.height}`}</Text>
+              <Text style={styles.meta} numberOfLines={1}>
+                {pending.fileName ?? (pending.width && pending.height ? `${pending.width} × ${pending.height}` : 'Archivo seleccionado')}
+              </Text>
             </View>
             <Pressable onPress={discard}><Text style={styles.editText}>Cambiar</Text></Pressable>
           </View>
@@ -381,11 +431,17 @@ const styles = StyleSheet.create({
   sourceIcon: { color: '#78C8FF', fontSize: 28, fontWeight: '900', marginBottom: 12 },
   sourceTitle: { color: colors.text, fontSize: 16, fontWeight: '900' },
   sourceSub: { color: colors.muted, fontSize: 12, lineHeight: 17, marginTop: 5 },
+  documentButton: { minHeight: 82, padding: 14, borderRadius: 20, backgroundColor: '#0B1E35', borderWidth: 1, borderColor: '#28558B', flexDirection: 'row', alignItems: 'center', gap: 12 },
+  documentIconWrap: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#103A32', borderWidth: 1, borderColor: '#2C7661' },
+  documentIcon: { color: '#8EEBD8', fontSize: 24, fontWeight: '900' },
+  documentArrow: { color: '#78B7FF', fontSize: 20, fontWeight: '900' },
   ruleBox: { padding: 15, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
   ruleTitle: { color: '#8EEBD8', fontSize: 12, fontWeight: '900' },
   ruleCopy: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 5 },
   pendingBox: { flexDirection: 'row', gap: 12, alignItems: 'center', padding: 12, borderRadius: 20, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
   preview: { width: 68, height: 68, borderRadius: 14, backgroundColor: colors.surface2 },
+  filePreview: { width: 68, height: 68, borderRadius: 14, backgroundColor: '#103A32', borderWidth: 1, borderColor: '#2C7661', alignItems: 'center', justifyContent: 'center' },
+  filePreviewText: { color: '#8EEBD8', fontSize: 30, fontWeight: '900' },
   ready: { color: '#8EEBD8', fontWeight: '900', fontSize: 15 },
   meta: { color: colors.muted, fontSize: 11, marginTop: 3 },
   readButton: { backgroundColor: colors.blue, borderRadius: 18, paddingVertical: 15, alignItems: 'center', minHeight: 52, justifyContent: 'center' },
