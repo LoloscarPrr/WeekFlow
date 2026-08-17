@@ -219,7 +219,7 @@ export function ScheduleImportCard() {
       source: pending?.source ?? 'library',
     });
 
-    Alert.alert('Horario revisado', 'Tu jornada ya quedó lista. Ahora añade tus momentos importantes y cierra la organización de la semana.', [
+    Alert.alert('Horario revisado', 'Tu jornada ya quedó lista. Revisa la semana y confirma cuando todo coincida.', [
       { text: 'Continuar', onPress: () => router.replace('/week') },
     ]);
   }
