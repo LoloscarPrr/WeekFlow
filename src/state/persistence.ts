@@ -24,6 +24,11 @@ import {
   type FoodEntry,
 } from '@/src/food/history';
 import {
+  DEFAULT_MOVE_PREFERENCES,
+  sanitizeMovePreferences,
+  type MovePreferences,
+} from '@/src/move/adaptation';
+import {
   localDateKey,
   nextWorkingShift as nextWorkingShiftDomain,
   shiftContextForDate as shiftContextForDateDomain,
@@ -34,6 +39,7 @@ import {
 
 const MOVE_HISTORY_KEY = 'move-history';
 const MOVE_ACTIVE_KEY = 'move-active-session';
+const MOVE_PREFERENCES_KEY = 'move-preferences';
 const FOOD_HISTORY_KEY = 'food-history';
 
 // Compatibility aliases for existing screens. New code should import these
@@ -104,6 +110,15 @@ export function loadMoveHistory(): MoveSessionRecord[] {
 export function saveMoveSession(record: MoveSessionRecord) {
   const history = loadMoveHistory().filter((item) => item.id !== record.id);
   sqliteStateStore.write(MOVE_HISTORY_KEY, [record, ...history].slice(0, 30));
+}
+
+export function loadMovePreferences(): MovePreferences {
+  const parsed = sqliteStateStore.read<unknown>(MOVE_PREFERENCES_KEY);
+  return parsed ? sanitizeMovePreferences(parsed) : DEFAULT_MOVE_PREFERENCES;
+}
+
+export function saveMovePreferences(preferences: MovePreferences) {
+  sqliteStateStore.write(MOVE_PREFERENCES_KEY, sanitizeMovePreferences(preferences));
 }
 
 export function loadActiveMoveSession(): ActiveMoveSession | null {
