@@ -1,6 +1,6 @@
 {
   "name": "weekflow",
-  "version": "0.2.6",
+  "version": "0.3.0",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
@@ -9,7 +9,7 @@
     "doctor": "expo-doctor",
     "prebuild": "expo prebuild",
     "typecheck": "tsc --noEmit",
-    "test": "tsc -p tsconfig.tests.json && node .test-build/tests/regression.test.js && node .test-build/tests/ocr-confidence.test.js && node .test-build/tests/excel-import.test.js",
+    "test": "tsc -p tsconfig.tests.json && node .test-build/tests/regression.test.js && node .test-build/tests/ocr-confidence.test.js && node .test-build/tests/excel-import.test.js && node .test-build/tests/move-adaptation.test.js",
     "quality": "npm run typecheck && npm test"
   },
   "dependencies": {
