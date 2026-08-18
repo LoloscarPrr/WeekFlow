@@ -41,6 +41,11 @@ function elapsedMs(session: ActiveMoveSession, nowMs: number) {
   return Math.max(0, nowMs - startedMs - session.pausedTotalMs - currentPauseMs);
 }
 
+function feedbackPendingFor(record: MoveSessionRecord | null, date = new Date()) {
+  if (!record || record.feedback !== null || record.feedbackSkipped) return false;
+  return localDateKey(new Date(record.finishedAt)) === localDateKey(date);
+}
+
 export function formatMoveTime(totalSeconds: number) {
   const safe = Math.max(0, totalSeconds);
   const minutes = Math.floor(safe / 60);
@@ -66,10 +71,11 @@ export function useMoveController() {
   const initialDay = useMemo(() => loadDayState(), []);
   const initialWeek = useMemo(() => loadWeekState(), []);
   const initialPreferences = useMemo(() => loadMovePreferences(), []);
+  const initialRecord = initialHistory[0] ?? null;
   const initialRecommended = useMemo(() => {
     const shift = shiftForDate(initialWeek, new Date());
-    return recommendMoveMinutes(initialDay.energy, initialHistory[0]?.feedback, shift);
-  }, [initialDay, initialHistory, initialWeek]);
+    return recommendMoveMinutes(initialDay.energy, initialRecord?.feedback, shift, Boolean(initialRecord?.endedEarly));
+  }, [initialDay, initialRecord, initialWeek]);
 
   const [dayState, setDayState] = useState(initialDay);
   const [weekState, setWeekState] = useState(initialWeek);
@@ -77,23 +83,23 @@ export function useMoveController() {
   const [duration, setDuration] = useState<number>(initialActive?.plannedMinutes ?? initialRecommended);
   const [activeSession, setActiveSession] = useState<ActiveMoveSession | null>(initialActive);
   const [runtime, setRuntime] = useState<MoveRuntime | null>(() => loadMoveRuntime(initialActive?.id));
-  const [finished, setFinished] = useState(false);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [finished, setFinished] = useState(() => !initialActive && feedbackPendingFor(initialRecord));
+  const [feedback, setFeedback] = useState<string | null>(initialRecord?.feedback ?? null);
   const [feedbackNote, setFeedbackNote] = useState('');
   const [noteSaved, setNoteSaved] = useState(false);
-  const [lastRecord, setLastRecord] = useState<MoveSessionRecord | null>(initialHistory[0] ?? null);
+  const [lastRecord, setLastRecord] = useState<MoveSessionRecord | null>(initialRecord);
   const [clockMs, setClockMs] = useState(Date.now());
   const [extraOpen, setExtraOpen] = useState(false);
 
   const now = useMemo(() => new Date(clockMs), [clockMs]);
   const todayShift = useMemo(() => shiftForDate(weekState, now), [now, weekState]);
   const recommended = useMemo(
-    () => recommendMoveMinutes(dayState.energy, lastRecord?.feedback, todayShift),
-    [dayState.energy, lastRecord?.feedback, todayShift],
+    () => recommendMoveMinutes(dayState.energy, lastRecord?.feedback, todayShift, Boolean(lastRecord?.endedEarly)),
+    [dayState.energy, lastRecord?.endedEarly, lastRecord?.feedback, todayShift],
   );
   const recommendationCopy = useMemo(
-    () => moveRecommendationCopy(dayState.energy, lastRecord?.feedback, todayShift, preferences),
-    [dayState.energy, lastRecord?.feedback, preferences, todayShift],
+    () => moveRecommendationCopy(dayState.energy, lastRecord?.feedback, todayShift, preferences, Boolean(lastRecord?.endedEarly)),
+    [dayState.energy, lastRecord?.endedEarly, lastRecord?.feedback, preferences, todayShift],
   );
   const sessionDuration = activeSession?.plannedMinutes ?? duration;
   const routine = useMemo(() => routineForDuration(sessionDuration, preferences), [preferences, sessionDuration]);
@@ -108,13 +114,20 @@ export function useMoveController() {
     const nextWeek = loadWeekState();
     const history = loadMoveHistory();
     const active = loadActiveMoveSession();
+    const record = history[0] ?? null;
     setDayState(nextDay);
     setWeekState(nextWeek);
     setPreferences(loadMovePreferences());
-    setLastRecord(history[0] ?? null);
+    setLastRecord(record);
     setActiveSession(active);
     setRuntime(loadMoveRuntime(active?.id));
-    if (active) setDuration(active.plannedMinutes);
+    if (active) {
+      setDuration(active.plannedMinutes);
+      setFinished(false);
+    } else if (feedbackPendingFor(record)) {
+      setFinished(true);
+      setFeedback(null);
+    }
     setClockMs(Date.now());
   }, []);
 
@@ -185,7 +198,7 @@ export function useMoveController() {
     const nowMs = Date.now();
     const actualSeconds = Math.max(0, Math.round(elapsedMs(activeSession, nowMs) / 1000));
     const completedSteps = forceComplete ? routine.steps.length : runtime?.phase === 'rest' ? currentStepIndex + 1 : currentStepIndex;
-    const record: MoveSessionRecord = { id: activeSession.id, startedAt: activeSession.startedAt, finishedAt: new Date(nowMs).toISOString(), plannedMinutes: activeSession.plannedMinutes, actualSeconds, completedSteps, totalSteps: routine.steps.length, endedEarly: completedSteps < routine.steps.length, feedback: null };
+    const record: MoveSessionRecord = { id: activeSession.id, startedAt: activeSession.startedAt, finishedAt: new Date(nowMs).toISOString(), plannedMinutes: activeSession.plannedMinutes, actualSeconds, completedSteps, totalSteps: routine.steps.length, endedEarly: completedSteps < routine.steps.length, feedback: null, feedbackSkipped: false };
     saveMoveSession(record);
     clearActiveMoveSession();
     clearMoveRuntime();
@@ -266,9 +279,18 @@ export function useMoveController() {
   function applyFeedback(value: string) {
     setFeedback(value);
     if (!lastRecord) return;
-    const updated = { ...lastRecord, feedback: value };
+    const updated = { ...lastRecord, feedback: value, feedbackSkipped: false };
     saveMoveSession(updated);
     setLastRecord(updated);
+  }
+
+  function skipFeedback() {
+    if (lastRecord) {
+      const updated = { ...lastRecord, feedback: null, feedbackSkipped: true };
+      saveMoveSession(updated);
+      setLastRecord(updated);
+    }
+    resetFinished();
   }
 
   function saveNote() {
@@ -325,6 +347,7 @@ export function useMoveController() {
     togglePause,
     switchExercise,
     applyFeedback,
+    skipFeedback,
     saveNote,
     resetFinished,
   };
