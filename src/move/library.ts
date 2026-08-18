@@ -1,4 +1,4 @@
-import { DEFAULT_MOVE_PREFERENCES, type MoveFocus, type MovePreferences } from '@/src/move/adaptation';
+import { DEFAULT_MOVE_PREFERENCES, type MoveFocus, type MovePreferences } from './adaptation';
 
 export type MoveExercise = {
   id: string;
