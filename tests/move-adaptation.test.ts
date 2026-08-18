@@ -19,6 +19,7 @@ equal(recommendMoveMinutes('bien', null, offShift), 20, 'bien en día libre');
 equal(recommendMoveMinutes('cansado', null, workShift), 10, 'cansado en jornada');
 equal(recommendMoveMinutes('vigoroso', 'Difícil', offShift), 20, 'feedback difícil reduce duración');
 equal(recommendMoveMinutes('vigoroso', 'Demasiado', offShift), 10, 'feedback demasiado reduce más');
+equal(recommendMoveMinutes('bien', null, offShift, true), 10, 'terminar antes reduce la siguiente propuesta sin castigo');
 
 const standing: MovePreferences = { focus: 'fuerza', floorAllowed: false, chairAvailable: false };
 const standingRoutine = routineForDuration(10, standing);
