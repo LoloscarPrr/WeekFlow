@@ -5,15 +5,22 @@ import {
   loadActiveMoveSession,
   loadDayState,
   loadMoveHistory,
+  loadMovePreferences,
   loadWeekState,
   localDateKey,
   saveActiveMoveSession,
+  saveMovePreferences,
   saveMoveSession,
   shiftForDate,
   type ActiveMoveSession,
   type MoveSessionRecord,
-  type PersistedDayState,
 } from '@/src/state/persistence';
+import {
+  moveRecommendationCopy,
+  recommendMoveMinutes,
+  type MoveFocus,
+  type MovePreferences,
+} from '@/src/move/adaptation';
 import { alternateExercise, exerciseById, previewForDuration, routineForDuration } from '@/src/move/library';
 import {
   clearMoveRuntime,
@@ -49,26 +56,6 @@ export function moveRecordDuration(record: MoveSessionRecord) {
   return seconds ? `${minutes} min ${seconds} s reales` : `${minutes} min reales`;
 }
 
-function baseRecommendation(energy: PersistedDayState['energy']) {
-  if (energy === 'agotado') return 5;
-  if (energy === 'cansado') return 10;
-  if (energy === 'vigoroso') return 30;
-  return 20;
-}
-
-function previousDuration(value: number) {
-  if (value >= 30) return 20;
-  if (value >= 20) return 10;
-  return 5;
-}
-
-function recommendationFor(day: PersistedDayState, last: MoveSessionRecord | null) {
-  const base = baseRecommendation(day.energy);
-  if (last?.feedback === 'Demasiado') return previousDuration(previousDuration(base));
-  if (last?.feedback === 'Difícil') return previousDuration(base);
-  return base;
-}
-
 function resetPhase(runtime: MoveRuntime, phase: MoveRuntime['phase'], nowMs: number): MoveRuntime {
   return { ...runtime, phase, phaseStartedAt: new Date(nowMs).toISOString(), phasePausedAt: null, phasePausedTotalMs: 0 };
 }
@@ -78,10 +65,15 @@ export function useMoveController() {
   const initialHistory = useMemo(() => loadMoveHistory(), []);
   const initialDay = useMemo(() => loadDayState(), []);
   const initialWeek = useMemo(() => loadWeekState(), []);
-  const initialRecommended = useMemo(() => recommendationFor(initialDay, initialHistory[0] ?? null), [initialDay, initialHistory]);
+  const initialPreferences = useMemo(() => loadMovePreferences(), []);
+  const initialRecommended = useMemo(() => {
+    const shift = shiftForDate(initialWeek, new Date());
+    return recommendMoveMinutes(initialDay.energy, initialHistory[0]?.feedback, shift);
+  }, [initialDay, initialHistory, initialWeek]);
 
   const [dayState, setDayState] = useState(initialDay);
   const [weekState, setWeekState] = useState(initialWeek);
+  const [preferences, setPreferences] = useState<MovePreferences>(initialPreferences);
   const [duration, setDuration] = useState<number>(initialActive?.plannedMinutes ?? initialRecommended);
   const [activeSession, setActiveSession] = useState<ActiveMoveSession | null>(initialActive);
   const [runtime, setRuntime] = useState<MoveRuntime | null>(() => loadMoveRuntime(initialActive?.id));
@@ -93,12 +85,19 @@ export function useMoveController() {
   const [clockMs, setClockMs] = useState(Date.now());
   const [extraOpen, setExtraOpen] = useState(false);
 
-  const recommended = useMemo(() => recommendationFor(dayState, lastRecord), [dayState, lastRecord]);
   const now = useMemo(() => new Date(clockMs), [clockMs]);
   const todayShift = useMemo(() => shiftForDate(weekState, now), [now, weekState]);
+  const recommended = useMemo(
+    () => recommendMoveMinutes(dayState.energy, lastRecord?.feedback, todayShift),
+    [dayState.energy, lastRecord?.feedback, todayShift],
+  );
+  const recommendationCopy = useMemo(
+    () => moveRecommendationCopy(dayState.energy, lastRecord?.feedback, todayShift, preferences),
+    [dayState.energy, lastRecord?.feedback, preferences, todayShift],
+  );
   const sessionDuration = activeSession?.plannedMinutes ?? duration;
-  const routine = useMemo(() => routineForDuration(sessionDuration), [sessionDuration]);
-  const preview = useMemo(() => previewForDuration(duration), [duration]);
+  const routine = useMemo(() => routineForDuration(sessionDuration, preferences), [preferences, sessionDuration]);
+  const preview = useMemo(() => previewForDuration(duration, preferences), [duration, preferences]);
   const doneToday = useMemo(() => Boolean(lastRecord && localDateKey(new Date(lastRecord.finishedAt)) === localDateKey(now)), [lastRecord, now]);
   const currentStepIndex = Math.min(activeSession?.step ?? 0, routine.steps.length - 1);
   const stepDefinition = routine.steps[currentStepIndex];
@@ -111,6 +110,7 @@ export function useMoveController() {
     const active = loadActiveMoveSession();
     setDayState(nextDay);
     setWeekState(nextWeek);
+    setPreferences(loadMovePreferences());
     setLastRecord(history[0] ?? null);
     setActiveSession(active);
     setRuntime(loadMoveRuntime(active?.id));
@@ -141,10 +141,31 @@ export function useMoveController() {
   const sessionElapsedSeconds = activeSession ? Math.floor(elapsedMs(activeSession, clockMs) / 1000) : 0;
   const overallPercent = routine.totalSeconds > 0 ? Math.min(100, Math.round((sessionElapsedSeconds / routine.totalSeconds) * 100)) : 0;
 
+  function updatePreferences(next: MovePreferences) {
+    saveMovePreferences(next);
+    setPreferences(next);
+  }
+
+  function setFocus(focus: MoveFocus) {
+    updatePreferences({ ...preferences, focus });
+  }
+
+  function toggleFloorAllowed() {
+    updatePreferences({ ...preferences, floorAllowed: !preferences.floorAllowed });
+  }
+
+  function toggleChairAvailable() {
+    updatePreferences({ ...preferences, chairAvailable: !preferences.chairAvailable });
+  }
+
+  function useRecommendation() {
+    setDuration(recommended);
+  }
+
   function startSession() {
     const nowMs = Date.now();
     const id = `${nowMs}`;
-    const selectedRoutine = routineForDuration(duration);
+    const selectedRoutine = routineForDuration(duration, preferences);
     const next: ActiveMoveSession = { id, startedAt: new Date(nowMs).toISOString(), plannedMinutes: duration, step: 0, totalSteps: selectedRoutine.steps.length, paused: false, pausedAt: null, pausedTotalMs: 0 };
     const nextRuntime = createMoveRuntime(id, selectedRoutine.id, new Date(nowMs));
     saveActiveMoveSession(next);
@@ -235,7 +256,7 @@ export function useMoveController() {
   function switchExercise() {
     if (!runtime || runtime.phase !== 'exercise') return;
     const nowMs = Date.now();
-    const alternative = alternateExercise(currentExercise);
+    const alternative = alternateExercise(currentExercise, preferences);
     const nextRuntime = resetPhase({ ...runtime, exerciseOverrides: { ...runtime.exerciseOverrides, [String(currentStepIndex)]: alternative.id } }, 'exercise', nowMs);
     saveMoveRuntime(nextRuntime);
     setRuntime(nextRuntime);
@@ -264,7 +285,49 @@ export function useMoveController() {
     setExtraOpen(false);
   }
 
-  return { activeSession, runtime, duration, setDuration, finished, feedback, feedbackNote, setFeedbackNote, noteSaved, setNoteSaved, lastRecord, extraOpen, setExtraOpen, recommended, todayShift, sessionDuration, routine, preview, doneToday, currentStepIndex, stepDefinition, currentExercise, phaseRemainingSeconds, phasePercent, sessionElapsedSeconds, overallPercent, startSession, finishSession, advanceToNextExercise, completeCurrentExercise, togglePause, switchExercise, applyFeedback, saveNote, resetFinished };
+  return {
+    activeSession,
+    runtime,
+    duration,
+    setDuration,
+    finished,
+    feedback,
+    feedbackNote,
+    setFeedbackNote,
+    noteSaved,
+    setNoteSaved,
+    lastRecord,
+    extraOpen,
+    setExtraOpen,
+    preferences,
+    setFocus,
+    toggleFloorAllowed,
+    toggleChairAvailable,
+    recommended,
+    recommendationCopy,
+    useRecommendation,
+    todayShift,
+    sessionDuration,
+    routine,
+    preview,
+    doneToday,
+    currentStepIndex,
+    stepDefinition,
+    currentExercise,
+    phaseRemainingSeconds,
+    phasePercent,
+    sessionElapsedSeconds,
+    overallPercent,
+    startSession,
+    finishSession,
+    advanceToNextExercise,
+    completeCurrentExercise,
+    togglePause,
+    switchExercise,
+    applyFeedback,
+    saveNote,
+    resetFinished,
+  };
 }
 
 export type MoveController = ReturnType<typeof useMoveController>;
