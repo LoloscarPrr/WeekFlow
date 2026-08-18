@@ -63,6 +63,7 @@ export type MoveSessionRecord = {
   totalSteps: number;
   endedEarly: boolean;
   feedback: string | null;
+  feedbackSkipped?: boolean;
 };
 
 export type ActiveMoveSession = {
