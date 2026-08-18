@@ -8,7 +8,7 @@ type MoveFeedbackProps = {
 };
 
 export function MoveFeedback({ move, onNoteFocus }: MoveFeedbackProps) {
-  const { feedback, feedbackNote, setFeedbackNote, noteSaved, setNoteSaved, lastRecord, applyFeedback, saveNote, resetFinished } = move;
+  const { feedback, feedbackNote, setFeedbackNote, noteSaved, setNoteSaved, lastRecord, applyFeedback, skipFeedback, saveNote, resetFinished } = move;
   if (!lastRecord) return null;
 
   return (
@@ -24,6 +24,7 @@ export function MoveFeedback({ move, onNoteFocus }: MoveFeedbackProps) {
           </Pressable>
         ))}
       </View>
+      <Text style={styles.feedbackHint}>Si cierras WeekFlow antes de responder, esta pregunta volverá a aparecer hoy. Puedes omitirla si no quieres responder.</Text>
       <Text style={styles.noteLabel}>Comentario opcional</Text>
       <TextInput
         value={feedbackNote}
@@ -36,7 +37,9 @@ export function MoveFeedback({ move, onNoteFocus }: MoveFeedbackProps) {
         style={styles.noteInput}
       />
       <Pressable style={styles.noteButton} onPress={saveNote}><Text style={styles.noteButtonText}>{noteSaved ? 'Nota guardada ✓' : 'Guardar nota'}</Text></Pressable>
-      <Pressable style={styles.secondaryWide} onPress={resetFinished}><Text style={styles.secondaryButtonText}>Volver a Move</Text></Pressable>
+      <Pressable style={styles.secondaryWide} onPress={feedback ? resetFinished : skipFeedback}>
+        <Text style={styles.secondaryButtonText}>{feedback ? 'Volver a Move' : 'Ahora no'}</Text>
+      </Pressable>
     </View>
   );
 }
