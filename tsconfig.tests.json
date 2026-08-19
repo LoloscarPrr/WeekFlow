@@ -28,6 +28,7 @@
     "src/move/adaptation.ts",
     "src/move/library.ts",
     "src/food/history.ts",
+    "src/commercial/**/*.ts",
     "src/data/migrations/**/*.ts"
   ]
 }
