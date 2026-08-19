@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import { loadWeekState, shiftForDate } from '@/src/state/persistence';
 
 export const WEEKFLOW_NOTIFICATION_CHANNEL = 'weekflow-reminders';
 
@@ -37,11 +38,8 @@ export async function initializeNotifications(): Promise<boolean> {
   return requested.granted;
 }
 
-export async function scheduleReminder(reminder: WeekFlowReminder): Promise<string | null> {
+async function scheduleAllowedReminder(reminder: WeekFlowReminder): Promise<string | null> {
   if (reminder.at.getTime() <= Date.now()) return null;
-
-  const allowed = await initializeNotifications();
-  if (!allowed) return null;
 
   return Notifications.scheduleNotificationAsync({
     content: {
@@ -58,6 +56,12 @@ export async function scheduleReminder(reminder: WeekFlowReminder): Promise<stri
   });
 }
 
+export async function scheduleReminder(reminder: WeekFlowReminder): Promise<string | null> {
+  const allowed = await initializeNotifications();
+  if (!allowed) return null;
+  return scheduleAllowedReminder(reminder);
+}
+
 export async function cancelReminder(notificationId?: string | null): Promise<void> {
   if (!notificationId) return;
   await Notifications.cancelScheduledNotificationAsync(notificationId);
@@ -69,4 +73,73 @@ export async function cancelAllWeekFlowReminders(): Promise<void> {
 
 export async function getScheduledReminders() {
   return Notifications.getAllScheduledNotificationsAsync();
+}
+
+function localDateTime(dateKey: string, time: string) {
+  const [year, month, day] = dateKey.split('-').map(Number);
+  const [hours, minutes] = time.split(':').map(Number);
+  const result = new Date();
+  result.setFullYear(year, month - 1, day);
+  result.setHours(hours, minutes, 0, 0);
+  return result;
+}
+
+function localDateKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function reminderTime(eventAt: Date, leadMinutes: number) {
+  const proposed = new Date(eventAt.getTime() - leadMinutes * 60_000);
+  if (proposed.getTime() > Date.now()) return proposed;
+  return eventAt;
+}
+
+export async function syncLivePlanReminders(now = new Date()): Promise<number> {
+  const allowed = await initializeNotifications();
+  if (!allowed) return 0;
+
+  await cancelAllWeekFlowReminders();
+  const week = loadWeekState();
+  const reminders: WeekFlowReminder[] = [];
+  const horizon = new Date(now);
+  horizon.setDate(horizon.getDate() + 7);
+
+  for (let offset = 0; offset <= 7; offset += 1) {
+    const date = new Date(now);
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() + offset);
+    const shift = shiftForDate(week, date);
+    if (shift.type === 'off' || !shift.start) continue;
+
+    const startsAt = localDateTime(localDateKey(date), shift.start);
+    if (startsAt <= now || startsAt > horizon) continue;
+
+    reminders.push({
+      id: `shift-${localDateKey(date)}-${shift.start}`,
+      title: 'Tu jornada empieza pronto',
+      body: `Hoy entras a las ${shift.start}. WeekFlow te lo recuerda 30 minutos antes.`,
+      at: reminderTime(startsAt, 30),
+      kind: 'departure',
+    });
+  }
+
+  for (const moment of week.importantMoments) {
+    const eventAt = localDateTime(moment.date, moment.time);
+    if (eventAt <= now || eventAt > horizon) continue;
+
+    reminders.push({
+      id: `important-${moment.id}`,
+      title: 'Momento importante',
+      body: `${moment.title} · ${moment.time}`,
+      at: reminderTime(eventAt, 15),
+      kind: 'important',
+    });
+  }
+
+  let scheduled = 0;
+  for (const reminder of reminders.sort((a, b) => a.at.getTime() - b.at.getTime())) {
+    const id = await scheduleAllowedReminder(reminder);
+    if (id) scheduled += 1;
+  }
+  return scheduled;
 }
