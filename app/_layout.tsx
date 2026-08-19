@@ -1,10 +1,27 @@
+import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View } from 'react-native';
+import { AppState, StyleSheet, View } from 'react-native';
 import { BottomNav } from '@/src/components/BottomNav';
+import { syncLivePlanReminders } from '@/src/services/notifications';
 import { colors } from '@/src/theme/colors';
 
 export default function RootLayout() {
+  useEffect(() => {
+    void syncLivePlanReminders().catch((error) => {
+      console.warn('Could not sync WeekFlow reminders', error);
+    });
+
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') return;
+      void syncLivePlanReminders().catch((error) => {
+        console.warn('Could not refresh WeekFlow reminders', error);
+      });
+    });
+
+    return () => subscription.remove();
+  }, []);
+
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
