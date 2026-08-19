@@ -2,7 +2,7 @@
   "expo": {
     "name": "WeekFlow",
     "slug": "weekflow",
-    "version": "0.3.4",
+    "version": "0.3.5",
     "orientation": "portrait",
     "scheme": "weekflow",
     "userInterfaceStyle": "dark",
@@ -10,7 +10,7 @@
     "icon": "./assets/icon.png",
     "android": {
       "package": "com.weekflow.app",
-      "versionCode": 59,
+      "versionCode": 60,
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
