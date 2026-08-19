@@ -84,22 +84,19 @@ jobs:
       - name: Run release quality gate
         run: npm run quality
 
-      - name: Install brand conversion tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y webp python3-pil
-
       - name: Prepare Android assets from locked official artwork
         shell: bash
         run: |
           set -euo pipefail
-          dwebp assets/brand/weekflow-splash.webp -o assets/splash-official.png
           python3 - <<'PY'
+          from pathlib import Path
           from PIL import Image
+
           icon = Image.open('assets/brand/weekflow-icon.webp').convert('RGB')
+          splash = Image.open('assets/brand/weekflow-splash.webp').convert('RGBA')
           icon.resize((1024, 1024), Image.Resampling.LANCZOS).save('assets/icon.png')
           icon.resize((1024, 1024), Image.Resampling.LANCZOS).save('assets/adaptive-icon.png')
-          splash = Image.open('assets/splash-official.png')
+          splash.save('assets/splash-official.png')
           print('Official icon source:', icon.size)
           print('Official splash source:', splash.size)
           PY
