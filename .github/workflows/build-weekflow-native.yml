@@ -84,12 +84,14 @@ jobs:
       - name: Run release quality gate
         run: npm run quality
 
+      - name: Install lightweight brand image dependency
+        run: python3 -m pip install --user --disable-pip-version-check Pillow
+
       - name: Prepare Android assets from locked official artwork
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          from pathlib import Path
           from PIL import Image
 
           icon = Image.open('assets/brand/weekflow-icon.webp').convert('RGB')
