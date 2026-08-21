@@ -38,8 +38,23 @@ export async function initializeNotifications(): Promise<boolean> {
   return requested.granted;
 }
 
+function logicalReminderId(notification: Notifications.NotificationRequest) {
+  const value = notification.content.data?.weekflowReminderId;
+  return typeof value === 'string' ? value : null;
+}
+
+async function cancelLogicalReminder(reminderId: string): Promise<void> {
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  const matches = scheduled.filter((notification) => logicalReminderId(notification) === reminderId);
+  await Promise.all(matches.map((notification) => Notifications.cancelScheduledNotificationAsync(notification.identifier)));
+}
+
 async function scheduleAllowedReminder(reminder: WeekFlowReminder): Promise<string | null> {
   if (reminder.at.getTime() <= Date.now()) return null;
+
+  // A logical WeekFlow reminder may be synchronized more than once while the app
+  // starts/resumes. Replace any prior native request instead of stacking duplicates.
+  await cancelLogicalReminder(reminder.id);
 
   return Notifications.scheduleNotificationAsync({
     content: {
@@ -98,7 +113,6 @@ export async function syncLivePlanReminders(now = new Date()): Promise<number> {
   const allowed = await initializeNotifications();
   if (!allowed) return 0;
 
-  await cancelAllWeekFlowReminders();
   const week = loadWeekState();
   const reminders: WeekFlowReminder[] = [];
   const horizon = new Date(now);
@@ -136,10 +150,23 @@ export async function syncLivePlanReminders(now = new Date()): Promise<number> {
     });
   }
 
-  let scheduled = 0;
+  // Remove stale WeekFlow requests (deleted/moved events), but preserve exactly one
+  // request per current logical reminder. scheduleAllowedReminder replaces that one.
+  const desiredIds = new Set(reminders.map((reminder) => reminder.id));
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  await Promise.all(
+    scheduled
+      .filter((notification) => {
+        const id = logicalReminderId(notification);
+        return id !== null && !desiredIds.has(id);
+      })
+      .map((notification) => Notifications.cancelScheduledNotificationAsync(notification.identifier)),
+  );
+
+  let scheduledCount = 0;
   for (const reminder of reminders.sort((a, b) => a.at.getTime() - b.at.getTime())) {
     const id = await scheduleAllowedReminder(reminder);
-    if (id) scheduled += 1;
+    if (id) scheduledCount += 1;
   }
-  return scheduled;
+  return scheduledCount;
 }
