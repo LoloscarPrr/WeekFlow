@@ -1,7 +1,6 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { ImportantMoment, WeekSchedule } from '@/src/domain/entities/Shift';
-import { scheduleReminder } from '@/src/services/notifications';
 import { colors } from '@/src/theme/colors';
 
 type Props = {
@@ -44,8 +43,6 @@ export function WeekRitualCard({ week, workDays, freeDays, onSaveMoment, onDelet
   const [title, setTitle] = useState('');
   const [date, setDate] = useState(() => localDateKey());
   const [time, setTime] = useState(() => defaultTime());
-  const [testing, setTesting] = useState(false);
-  const testInFlight = useRef(false);
 
   const sortedMoments = useMemo(
     () => [...week.importantMoments].sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`)),
@@ -91,32 +88,6 @@ export function WeekRitualCard({ week, workDays, freeDays, onSaveMoment, onDelet
     });
     setTitle('');
     Alert.alert('Momento guardado', `${cleanTitle} · ${date} · ${time}`);
-  }
-
-  async function testNotification() {
-    if (testInFlight.current) return;
-    testInFlight.current = true;
-    setTesting(true);
-    try {
-      const at = new Date(Date.now() + 8_000);
-      const result = await scheduleReminder({
-        id: 'manual-notification-test',
-        title: 'WeekFlow está listo 🔔',
-        body: 'Esta es una notificación de prueba. Si la ves, Android y WeekFlow están comunicándose bien.',
-        at,
-        kind: 'general',
-      });
-      if (!result) {
-        Alert.alert('No se pudo programar', 'Revisa que WeekFlow tenga permiso para mostrar notificaciones.');
-        return;
-      }
-      Alert.alert('Prueba programada', 'Debería llegar en unos 8 segundos. Puedes salir de la app para comprobarlo.');
-    } catch {
-      Alert.alert('Error', 'No se pudo programar la notificación de prueba.');
-    } finally {
-      testInFlight.current = false;
-      setTesting(false);
-    }
   }
 
   return (
@@ -196,10 +167,6 @@ export function WeekRitualCard({ week, workDays, freeDays, onSaveMoment, onDelet
         )}
       </View>
 
-      <Pressable style={styles.testButton} onPress={testNotification} disabled={testing}>
-        <Text style={styles.testText}>{testing ? 'Programando…' : '🔔 Enviar notificación de prueba'}</Text>
-      </Pressable>
-
       {!organized ? (
         <Pressable style={styles.finishButton} onPress={finish}>
           <Text style={styles.finishText}>Confirmar semana</Text>
@@ -239,8 +206,6 @@ const styles = StyleSheet.create({
   deleteButton: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: '#703B48' },
   deleteText: { color: '#FF9BAD', fontSize: 10, fontWeight: '900' },
   emptyMoments: { color: colors.muted, fontSize: 10, lineHeight: 15, marginTop: 12 },
-  testButton: { minHeight: 48, marginTop: 14, borderRadius: 15, backgroundColor: '#173C68', borderWidth: 1, borderColor: '#2F6EAD', alignItems: 'center', justifyContent: 'center' },
-  testText: { color: '#DCEEFF', fontSize: 12, fontWeight: '900' },
   finishButton: { minHeight: 52, marginTop: 16, borderRadius: 16, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center' },
   finishText: { color: '#FFFFFF', fontSize: 14, fontWeight: '900' },
   doneCopy: { color: '#86BBA5', fontSize: 11, lineHeight: 17, textAlign: 'center', marginTop: 15 },
