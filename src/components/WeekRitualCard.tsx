@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { ImportantMoment, WeekSchedule } from '@/src/domain/entities/Shift';
 import { scheduleReminder } from '@/src/services/notifications';
@@ -45,6 +45,7 @@ export function WeekRitualCard({ week, workDays, freeDays, onSaveMoment, onDelet
   const [date, setDate] = useState(() => localDateKey());
   const [time, setTime] = useState(() => defaultTime());
   const [testing, setTesting] = useState(false);
+  const testInFlight = useRef(false);
 
   const sortedMoments = useMemo(
     () => [...week.importantMoments].sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`)),
@@ -93,12 +94,13 @@ export function WeekRitualCard({ week, workDays, freeDays, onSaveMoment, onDelet
   }
 
   async function testNotification() {
-    if (testing) return;
+    if (testInFlight.current) return;
+    testInFlight.current = true;
     setTesting(true);
     try {
       const at = new Date(Date.now() + 8_000);
       const result = await scheduleReminder({
-        id: `manual-test-${Date.now()}`,
+        id: 'manual-notification-test',
         title: 'WeekFlow está listo 🔔',
         body: 'Esta es una notificación de prueba. Si la ves, Android y WeekFlow están comunicándose bien.',
         at,
@@ -112,6 +114,7 @@ export function WeekRitualCard({ week, workDays, freeDays, onSaveMoment, onDelet
     } catch {
       Alert.alert('Error', 'No se pudo programar la notificación de prueba.');
     } finally {
+      testInFlight.current = false;
       setTesting(false);
     }
   }
