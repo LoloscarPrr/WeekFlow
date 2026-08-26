@@ -66,13 +66,12 @@ export default function NowScreen() {
       <RefreshableScrollView contentContainerStyle={styles.content} onRefreshData={refreshNow}>
         <View style={styles.top}>
           <Brand />
-          <View style={styles.build}><Text style={styles.buildText}>Alpha 0.2.2</Text></View>
+          <View style={styles.build}><Text style={styles.buildText}>Alpha 0.3.7</Text></View>
         </View>
 
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>AHORA</Text>
-          <Text style={styles.title}>Tu día, sin ruido<Text style={styles.blue}>.</Text></Text>
-          <Text style={styles.subtitle}>WeekFlow mira tu horario y te muestra solo lo que importa en este momento.</Text>
+          <Text style={styles.title}>Tu día de hoy</Text>
         </View>
 
         <View style={styles.card}>
@@ -222,11 +221,9 @@ const styles = StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   build: { paddingHorizontal: 13, paddingVertical: 9, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
   buildText: { color: colors.text, fontSize: 14 },
-  hero: { marginTop: 34, marginBottom: 24 },
+  hero: { marginTop: 24, marginBottom: 12 },
   eyebrow: { color: '#76AFFF', fontWeight: '800', letterSpacing: 4, fontSize: 14 },
-  title: { color: colors.text, fontWeight: '900', fontSize: 48, lineHeight: 52, marginTop: 10 },
-  blue: { color: colors.blue },
-  subtitle: { color: colors.muted, fontSize: 17, lineHeight: 25, marginTop: 12 },
+  title: { color: colors.text, fontWeight: '900', fontSize: 30, lineHeight: 36, marginTop: 6 },
   card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 26, padding: 18 },
   cardHead: { flexDirection: 'row', gap: 14, alignItems: 'center' },
   brainIcon: { width: 54, height: 54, borderRadius: 18, backgroundColor: colors.surface2, borderWidth: 1, borderColor: '#2D75D8', alignItems: 'center', justifyContent: 'center' },
