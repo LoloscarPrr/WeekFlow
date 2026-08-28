@@ -42,7 +42,6 @@ export default function WeekScreen() {
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>SEMANA</Text>
           <Text style={styles.title}>Tu semana<Text style={styles.blue}>.</Text></Text>
-          <Text style={styles.subtitle}>Toca un día para cambiarlo. Nada más.</Text>
         </View>
 
         <View style={styles.summaryCard}>
@@ -161,11 +160,10 @@ export default function WeekScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 22, paddingBottom: 96 },
-  hero: { marginTop: 28, marginBottom: 20 },
+  hero: { marginTop: 24, marginBottom: 12 },
   eyebrow: { color: '#76AFFF', fontWeight: '800', letterSpacing: 4, fontSize: 14 },
-  title: { color: colors.text, fontWeight: '900', fontSize: 44, lineHeight: 49, marginTop: 9 },
+  title: { color: colors.text, fontWeight: '900', fontSize: 30, lineHeight: 36, marginTop: 6 },
   blue: { color: colors.blue },
-  subtitle: { color: colors.muted, fontSize: 16, lineHeight: 23, marginTop: 8 },
   summaryCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 22, paddingVertical: 16, paddingHorizontal: 8, marginBottom: 18 },
   summaryItem: { flex: 1, alignItems: 'center' },
   summaryValue: { color: colors.text, fontWeight: '900', fontSize: 18 },

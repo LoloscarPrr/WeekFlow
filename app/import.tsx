@@ -24,7 +24,6 @@ export default function ImportScheduleScreen() {
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>SEMANA · IMPORTAR</Text>
           <Text style={styles.title}>Tu horario, sin copiarlo a mano<Text style={styles.blue}>.</Text></Text>
-          <Text style={styles.subtitle}>Toma una foto, elige una captura o abre la planilla Excel original. WeekFlow busca tu fila, separa entrada, colación y salida, y te pide revisar todo antes de guardar.</Text>
         </View>
 
         <ScheduleImportCard />
@@ -39,9 +38,8 @@ const styles = StyleSheet.create({
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
   back: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface },
   backText: { color: colors.text, fontWeight: '800', fontSize: 13 },
-  hero: { marginTop: 34, marginBottom: 22 },
+  hero: { marginTop: 24, marginBottom: 12 },
   eyebrow: { color: '#76AFFF', fontWeight: '800', letterSpacing: 2.5, fontSize: 12 },
-  title: { color: colors.text, fontWeight: '900', fontSize: 39, lineHeight: 44, marginTop: 10 },
+  title: { color: colors.text, fontWeight: '900', fontSize: 30, lineHeight: 36, marginTop: 6 },
   blue: { color: colors.blue },
-  subtitle: { color: colors.muted, fontSize: 16, lineHeight: 23, marginTop: 12, maxWidth: 520 },
 });
