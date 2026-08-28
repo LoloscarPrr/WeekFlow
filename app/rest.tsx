@@ -18,7 +18,6 @@ export default function RestScreen() {
 
         <Text style={styles.eyebrow}>PILARES · REST</Text>
         <Text style={styles.title}>{view.heroTitle}</Text>
-        <Text style={styles.copy}>Rest usa las mismas jornadas y tiempos reales que Ahora. Si la semana cambia, la recuperación cambia con ella.</Text>
 
         <View style={styles.contextCard}>
           <Text style={styles.contextEyebrow}>AHORA</Text>
@@ -116,9 +115,8 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 22, paddingBottom: 104 },
   eyebrow: { color: '#76AFFF', fontWeight: '800', letterSpacing: 4, fontSize: 14, marginTop: 24 },
-  title: { color: colors.text, fontWeight: '900', fontSize: 39, lineHeight: 45, marginTop: 10 },
-  copy: { color: colors.muted, fontSize: 16, lineHeight: 24, marginTop: 12 },
-  contextCard: { marginTop: 24, backgroundColor: '#142A48', borderWidth: 1, borderColor: '#315987', borderRadius: 24, padding: 18 },
+  title: { color: colors.text, fontWeight: '900', fontSize: 30, lineHeight: 36, marginTop: 6 },
+  contextCard: { marginTop: 12, backgroundColor: '#142A48', borderWidth: 1, borderColor: '#315987', borderRadius: 24, padding: 18 },
   contextEyebrow: { color: '#79B6FF', fontWeight: '900', fontSize: 11, letterSpacing: 2 },
   contextTitle: { color: colors.text, fontSize: 22, fontWeight: '900', marginTop: 6 },
   contextCopy: { color: '#C1CEE0', fontSize: 14, lineHeight: 21, marginTop: 7 },

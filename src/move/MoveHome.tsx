@@ -32,7 +32,6 @@ export function MoveHome({ move }: { move: MoveController }) {
           <PillarTabs active="move" />
           <Text style={styles.eyebrow}>PILARES · MOVE</Text>
           <Text style={styles.title}>Una sesión real, no una etiqueta.</Text>
-          <Text style={styles.copy}>WeekFlow arma una guía concreta con el tiempo y energía que tienes. Puedes pausarla, cambiar un ejercicio o terminar antes.</Text>
           {move.finished ? <MoveFeedback move={move} onNoteFocus={keepFeedbackVisible} /> : <MovePlan move={move} />}
         </RefreshableScrollView>
       </KeyboardAvoidingView>

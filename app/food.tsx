@@ -140,7 +140,6 @@ export default function FoodScreen() {
 
           <Text style={styles.eyebrow}>PILARES · FOOD</Text>
           <Text style={styles.title}>Come según tu día, no según una hora perfecta.</Text>
-          <Text style={styles.copy}>Food mira tu turno, tu energía y lo que ya registraste hoy para proponerte algo viable.</Text>
 
           <View style={styles.contextCard}>
             <Text style={styles.contextEyebrow}>AHORA</Text>
@@ -262,9 +261,8 @@ const styles = StyleSheet.create({
   keyboardShell: { flex: 1 },
   content: { padding: 22, paddingBottom: 148 },
   eyebrow: { color: '#76AFFF', fontWeight: '800', letterSpacing: 4, fontSize: 14, marginTop: 24 },
-  title: { color: colors.text, fontWeight: '900', fontSize: 38, lineHeight: 44, marginTop: 10 },
-  copy: { color: colors.muted, fontSize: 16, lineHeight: 24, marginTop: 12 },
-  contextCard: { marginTop: 24, backgroundColor: '#12304E', borderWidth: 1, borderColor: '#29577D', borderRadius: 24, padding: 18 },
+  title: { color: colors.text, fontWeight: '900', fontSize: 30, lineHeight: 36, marginTop: 6 },
+  contextCard: { marginTop: 12, backgroundColor: '#12304E', borderWidth: 1, borderColor: '#29577D', borderRadius: 24, padding: 18 },
   contextEyebrow: { color: '#79B6FF', fontWeight: '900', fontSize: 11, letterSpacing: 2 },
   contextTitle: { color: colors.text, fontSize: 22, fontWeight: '900', marginTop: 6 },
   contextCopy: { color: '#B8C9DE', fontSize: 14, lineHeight: 21, marginTop: 7 },
