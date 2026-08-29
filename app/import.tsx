@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Brand } from '@/src/components/Brand';
 import { ScheduleImportCard } from '@/src/components/ScheduleImportCard';
+import { SchedulePdfImportCard } from '@/src/components/SchedulePdfImportCard';
 import { colors } from '@/src/theme/colors';
 
 export default function ImportScheduleScreen() {
@@ -27,6 +28,7 @@ export default function ImportScheduleScreen() {
         </View>
 
         <ScheduleImportCard />
+        <SchedulePdfImportCard />
       </ScrollView>
     </SafeAreaView>
   );
