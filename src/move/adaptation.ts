@@ -2,17 +2,20 @@ import type { Energy } from '@/src/domain/entities/DailyState';
 import type { Shift } from '@/src/domain/entities/Shift';
 
 export type MoveFocus = 'equilibrado' | 'activar' | 'fuerza' | 'movilidad';
+export type MoveAvoidArea = 'shoulders' | 'knees' | 'wrists' | 'lowerBack';
 
 export type MovePreferences = {
   focus: MoveFocus;
   floorAllowed: boolean;
   chairAvailable: boolean;
+  avoidAreas: MoveAvoidArea[];
 };
 
 export const DEFAULT_MOVE_PREFERENCES: MovePreferences = {
   focus: 'equilibrado',
   floorAllowed: false,
   chairAvailable: true,
+  avoidAreas: [],
 };
 
 export const MOVE_FOCUS_OPTIONS: { value: MoveFocus; label: string; icon: string; copy: string }[] = [
@@ -21,6 +24,15 @@ export const MOVE_FOCUS_OPTIONS: { value: MoveFocus; label: string; icon: string
   { value: 'fuerza', label: 'Fuerza suave', icon: '💪', copy: 'Movimientos controlados con tu propio cuerpo o una silla.' },
   { value: 'movilidad', label: 'Movilidad', icon: '🌿', copy: 'Mover articulaciones y bajar rigidez sin buscar intensidad.' },
 ];
+
+export const MOVE_AVOID_AREA_OPTIONS: { value: MoveAvoidArea; label: string; icon: string }[] = [
+  { value: 'shoulders', label: 'Hombros', icon: '🙆' },
+  { value: 'knees', label: 'Rodillas', icon: '🦵' },
+  { value: 'wrists', label: 'Muñecas', icon: '🤲' },
+  { value: 'lowerBack', label: 'Espalda baja', icon: '🧍' },
+];
+
+const MOVE_AVOID_AREAS = new Set<MoveAvoidArea>(MOVE_AVOID_AREA_OPTIONS.map((item) => item.value));
 
 function baseMinutes(energy: Energy) {
   if (energy === 'agotado') return 5;
@@ -73,9 +85,13 @@ export function sanitizeMovePreferences(value: unknown): MovePreferences {
   const focus: MoveFocus = candidate.focus === 'activar' || candidate.focus === 'fuerza' || candidate.focus === 'movilidad'
     ? candidate.focus
     : 'equilibrado';
+  const avoidAreas = Array.isArray(candidate.avoidAreas)
+    ? candidate.avoidAreas.filter((area): area is MoveAvoidArea => MOVE_AVOID_AREAS.has(area as MoveAvoidArea))
+    : [];
   return {
     focus,
     floorAllowed: Boolean(candidate.floorAllowed),
     chairAvailable: candidate.chairAvailable !== false,
+    avoidAreas: Array.from(new Set(avoidAreas)),
   };
 }
