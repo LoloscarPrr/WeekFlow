@@ -13,7 +13,7 @@ export const adaptiveLayoutMetrics = {
 } as const;
 
 export function classifyAdaptiveLayout(width: number): AdaptiveLayoutClass {
-  if (width < 360) return 'compact';
+  if (width <= adaptiveLayoutBreakpoints.compactMax) return 'compact';
   if (width >= adaptiveLayoutBreakpoints.wideMin) return 'wide';
   return 'regular';
 }
