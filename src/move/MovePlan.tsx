@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from 'react-native';
-import { MOVE_FOCUS_OPTIONS } from '@/src/move/adaptation';
+import { MOVE_AVOID_AREA_OPTIONS, MOVE_FOCUS_OPTIONS } from '@/src/move/adaptation';
 import { moveStyles as styles } from '@/src/move/styles';
 import { MOVE_DURATIONS, moveRecordDuration, type MoveController } from '@/src/move/useMoveController';
 
@@ -14,6 +14,7 @@ export function MovePlan({ move }: { move: MoveController }) {
     setFocus,
     toggleFloorAllowed,
     toggleChairAvailable,
+    toggleAvoidArea,
     recommended,
     recommendationCopy,
     useRecommendation,
@@ -87,6 +88,23 @@ export function MovePlan({ move }: { move: MoveController }) {
               </Pressable>
             </View>
 
+            <Text style={styles.smallLabel}>¿Hay zonas que prefieres no cargar hoy?</Text>
+            <View style={styles.preferenceRow}>
+              {MOVE_AVOID_AREA_OPTIONS.map((item) => {
+                const active = preferences.avoidAreas.includes(item.value);
+                return (
+                  <Pressable key={item.value} style={[styles.preferenceButton, active && styles.preferenceButtonActive]} onPress={() => toggleAvoidArea(item.value)}>
+                    <Text style={styles.preferenceIcon}>{item.icon}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.preferenceTitle, active && styles.preferenceTitleActive]}>{item.label}</Text>
+                      <Text style={styles.preferenceCopy}>{active ? 'Move evitará ejercicios etiquetados con esta zona.' : 'Toca si hoy prefieres no cargar esta zona.'}</Text>
+                    </View>
+                    <Text style={styles.preferenceCheck}>{active ? '✓' : '○'}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
             <Text style={styles.smallLabel}>¿Cuánto tiempo tienes?</Text>
             <View style={styles.durationRow}>
               {MOVE_DURATIONS.map((item) => (
@@ -111,7 +129,7 @@ export function MovePlan({ move }: { move: MoveController }) {
                 </View>
               </View>
             ))}
-            <Text style={styles.libraryNote}>La vista previa cambia con el enfoque, el tiempo y las opciones de silla/suelo. Puedes cambiar un ejercicio durante la sesión sin perder el progreso.</Text>
+            <Text style={styles.libraryNote}>La vista previa cambia con el enfoque, el tiempo, silla/suelo y las zonas que prefieres no cargar. Puedes cambiar un ejercicio durante la sesión sin perder el progreso.</Text>
           </View>
         </>
       ) : null}
