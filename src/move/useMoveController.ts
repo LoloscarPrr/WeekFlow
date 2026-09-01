@@ -18,6 +18,7 @@ import {
 import {
   moveRecommendationCopy,
   recommendMoveMinutes,
+  type MoveAvoidArea,
   type MoveFocus,
   type MovePreferences,
 } from '@/src/move/adaptation';
@@ -169,6 +170,14 @@ export function useMoveController() {
 
   function toggleChairAvailable() {
     updatePreferences({ ...preferences, chairAvailable: !preferences.chairAvailable });
+  }
+
+  function toggleAvoidArea(area: MoveAvoidArea) {
+    const active = preferences.avoidAreas.includes(area);
+    updatePreferences({
+      ...preferences,
+      avoidAreas: active ? preferences.avoidAreas.filter((item) => item !== area) : [...preferences.avoidAreas, area],
+    });
   }
 
   function useRecommendation() {
@@ -325,6 +334,7 @@ export function useMoveController() {
     setFocus,
     toggleFloorAllowed,
     toggleChairAvailable,
+    toggleAvoidArea,
     recommended,
     recommendationCopy,
     useRecommendation,
