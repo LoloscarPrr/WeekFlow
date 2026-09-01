@@ -1,4 +1,8 @@
-import crashlytics from '@react-native-firebase/crashlytics';
+import {
+  getCrashlytics,
+  log,
+  recordError,
+} from '@react-native-firebase/crashlytics';
 
 function asError(value: unknown): Error {
   if (value instanceof Error) return value;
@@ -12,7 +16,7 @@ function asError(value: unknown): Error {
 
 export function logDiagnostic(message: string) {
   try {
-    crashlytics().log(message);
+    log(getCrashlytics(), message);
   } catch {
     // Observability must never break WeekFlow.
   }
@@ -20,8 +24,9 @@ export function logDiagnostic(message: string) {
 
 export function recordNonFatalError(error: unknown, context?: string) {
   try {
-    if (context) crashlytics().log(context);
-    crashlytics().recordError(asError(error));
+    const instance = getCrashlytics();
+    if (context) log(instance, context);
+    recordError(instance, asError(error));
   } catch {
     // Crash reporting is best-effort and must not affect product behavior.
   }
