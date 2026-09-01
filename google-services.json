@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "801560516406",
+    "project_id": "rune-nexus-1fedc",
+    "storage_bucket": "rune-nexus-1fedc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:801560516406:android:b48d0e64f77537eda44597",
+        "android_client_info": {
+          "package_name": "com.weekflow.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCSHCcrHolYoWVyDtsAoyz2DDGPmhbBX5A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
