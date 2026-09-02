@@ -1,63 +1,47 @@
 # WF-CORE-005 — Firebase + Crashlytics
 
-Status: LOCKED
+Status: DONE
 Owner: WeekFlow
 
 ## Problem
-WeekFlow ya compila y se distribuye como APK nativa, pero todavía no tiene una integración de observabilidad de crashes en producción. El proyecto Firebase ya fue creado y existe una configuración Android para `com.weekflow.app`, pero el repositorio aún no consume esa configuración ni incluye el SDK nativo de Crashlytics.
+WeekFlow necesitaba observabilidad nativa de crashes en producción.
 
 ## Desired behavior
-Las builds Android standalone de WeekFlow deben inicializar Firebase nativo y Firebase Crashlytics mediante React Native Firebase, usando el `google-services.json` registrado para `com.weekflow.app`, sin romper el flujo Expo prebuild ni el build firmado existente.
+Las builds Android standalone inicializan Firebase nativo y Firebase Crashlytics mediante React Native Firebase usando la configuración de `com.weekflow.app`, sin romper Expo prebuild ni el build firmado.
 
 ## Scope
-- Integrar `@react-native-firebase/app` y `@react-native-firebase/crashlytics`.
-- Añadir `google-services.json` al repositorio y referenciarlo desde `expo.android.googleServicesFile`.
-- Añadir los config plugins correspondientes en `app.json`.
-- Mantener el flujo `npx expo prebuild --clean` usado por GitHub Actions.
-- Añadir una pequeña capa de observabilidad para registrar errores no fatales desde código cuando se necesite.
-- Verificar Quality y una compilación Android release mediante GitHub Actions.
+- `@react-native-firebase/app` y `@react-native-firebase/crashlytics`.
+- `google-services.json` referenciado desde `expo.android.googleServicesFile`.
+- Config plugins en `app.json`.
+- Compatibilidad con `npx expo prebuild --clean`.
+- Utilidad interna para errores no fatales.
 
 ## Non-goals
-- No implementar Analytics, Auth, Firestore, Remote Config ni FCM en esta spec.
-- No reemplazar SQLite local ni convertir Firebase en fuente de verdad de datos de usuario.
-- No añadir un botón de crash visible en producción.
-- No modificar lógica funcional de Ahora, Semana, Move, Food, Rest u otros módulos.
+- Analytics, Auth, Firestore, Remote Config o FCM.
+- Cambios a SQLite o lógica funcional.
 
 ## Acceptance criteria
-- [ ] AC1 — `app.json` referencia `./google-services.json` mediante `expo.android.googleServicesFile`.
-- [ ] AC2 — `app.json` incluye los config plugins de React Native Firebase App y Crashlytics.
-- [ ] AC3 — `package.json` incluye versiones compatibles y alineadas de `@react-native-firebase/app` y `@react-native-firebase/crashlytics`.
-- [ ] AC4 — El `google-services.json` corresponde al package Android `com.weekflow.app`.
-- [ ] AC5 — Existe una utilidad mínima para registrar errores no fatales en Crashlytics sin acoplar pantallas al SDK directamente.
-- [ ] AC6 — `npm run quality` pasa en CI.
-- [ ] AC7 — El workflow nativo logra ejecutar Expo prebuild y compilar el APK release firmado con Firebase/Crashlytics habilitado.
-- [ ] AC8 — No cambia la persistencia local ni el comportamiento funcional existente de WeekFlow.
+- [x] AC1 — `app.json` referencia `./google-services.json`.
+- [x] AC2 — Config plugins de Firebase App y Crashlytics presentes.
+- [x] AC3 — Dependencias RNFirebase alineadas.
+- [x] AC4 — `google-services.json` corresponde a `com.weekflow.app`.
+- [x] AC5 — Existe utilidad interna para errores no fatales.
+- [x] AC6 — Quality pasa en CI.
+- [x] AC7 — Prebuild + APK release firmado compilan con Firebase/Crashlytics.
+- [x] AC8 — Sin cambios de persistencia ni comportamiento funcional.
 
 ## Data / persistence impact
-Ninguno. Firebase/Crashlytics se usa solo para observabilidad técnica en esta spec.
+Ninguno.
 
 ## UI / UX impact
 Ninguno.
 
-## Edge cases / regressions
-- El `google-services.json` debe seguir apuntando exactamente a `com.weekflow.app`.
-- El prebuild limpio no debe perder la configuración de Firebase, por eso la integración debe vivir en `app.json`/plugins y no en cambios manuales bajo `android/`.
-- Una falla de Crashlytics no debe impedir el funcionamiento normal de WeekFlow.
-- No debe añadirse un segundo sistema de estado o persistencia.
-
-## Verification plan
-- [ ] Revisar diff contra `main`.
-- [ ] Confirmar package de Firebase y package de Expo iguales.
-- [ ] Observar Quality del PR.
-- [ ] Observar build Android nativo generado desde la rama/commit final o desde `main` tras merge.
-- [ ] Registrar evidencia PASS/BLOCKED por criterio.
-
 ## Verification result
-- AC1: PENDING
-- AC2: PENDING
-- AC3: PENDING
-- AC4: PENDING
-- AC5: PENDING
-- AC6: PENDING
-- AC7: PENDING
-- AC8: PENDING
+- AC1: PASS — `expo.android.googleServicesFile` apunta a `./google-services.json`.
+- AC2: PASS — plugins `@react-native-firebase/app` y `@react-native-firebase/crashlytics` presentes.
+- AC3: PASS — ambos paquetes usan la misma versión RNFirebase.
+- AC4: PASS — package Android verificado como `com.weekflow.app`.
+- AC5: PASS — `src/observability/crashlytics.ts` encapsula logging y errores no fatales.
+- AC6: PASS — Quality del PR de integración terminó en success.
+- AC7: PASS — Build WeekFlow Native APK #115 terminó `success`; `expo prebuild --clean`, firma y `assembleRelease` completaron correctamente.
+- AC8: PASS — la integración no modifica la persistencia local ni flujos funcionales.
