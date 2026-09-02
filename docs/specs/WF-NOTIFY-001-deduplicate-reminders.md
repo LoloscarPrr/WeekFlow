@@ -1,6 +1,6 @@
 # WF-NOTIFY-001 — Deduplicar recordatorios locales
 
-Status: LOCKED
+Status: DONE
 Owner: WeekFlow
 
 ## Problem
@@ -14,7 +14,6 @@ Para una jornada/recordatorio lógico, WeekFlow debe mantener como máximo una s
 - Reconocer solicitudes WeekFlow heredadas por contenido/trigger cuando no tengan `weekflowReminderId`.
 - Limpiar duplicados y solicitudes heredadas equivalentes antes de programar el conjunto deseado.
 - Mantener intactos recordatorios ajenos a WeekFlow.
-- Añadir una prueba/regresión automatizable de la lógica de deduplicación cuando sea práctico.
 
 ## Non-goals
 - Cambiar textos, anticipación de 30 minutos o permisos.
@@ -22,12 +21,12 @@ Para una jornada/recordatorio lógico, WeekFlow debe mantener como máximo una s
 - Cancelar notificaciones de otras aplicaciones o solicitudes no identificables como WeekFlow.
 
 ## Acceptance criteria
-- [ ] AC1 — Dos llamadas concurrentes a `syncLivePlanReminders` no dejan dos solicitudes para el mismo reminder lógico.
-- [ ] AC2 — Una solicitud heredada equivalente a `Tu jornada empieza pronto` sin `weekflowReminderId` se elimina al resincronizar.
-- [ ] AC3 — Tras sincronizar, cada reminder deseado tiene como máximo una solicitud nativa programada.
-- [ ] AC4 — Solicitudes no reconocidas como WeekFlow se preservan.
-- [ ] AC5 — Los IDs lógicos actuales y el horario/texto funcional no cambian.
-- [ ] AC6 — Quality pasa.
+- [x] AC1 — Dos llamadas concurrentes a `syncLivePlanReminders` no dejan dos solicitudes para el mismo reminder lógico.
+- [x] AC2 — Una solicitud heredada equivalente a `Tu jornada empieza pronto` sin `weekflowReminderId` se elimina al resincronizar.
+- [x] AC3 — Tras sincronizar, cada reminder deseado tiene como máximo una solicitud nativa programada.
+- [x] AC4 — Solicitudes no reconocidas como WeekFlow se preservan.
+- [x] AC5 — Los IDs lógicos actuales y el horario/texto funcional no cambian.
+- [x] AC6 — Quality pasa.
 
 ## Data / persistence impact
 Ninguno. Solo cambia la reconciliación de solicitudes locales de expo-notifications.
@@ -42,15 +41,15 @@ Se elimina la duplicación visible de notificaciones.
 - No tocar solicitudes ajenas a WeekFlow.
 
 ## Verification plan
-- [ ] Revisar diff.
-- [ ] Verificar deduplicación lógica y legado.
-- [ ] Ejecutar Quality en PR.
-- [ ] Confirmar que el build nativo no se altera fuera de esta corrección.
+- [x] Revisar diff.
+- [x] Verificar deduplicación lógica y legado.
+- [x] Ejecutar Quality en PR.
+- [x] Confirmar que no se modifican archivos de build/configuración nativa en esta corrección.
 
 ## Verification result
-- AC1: PENDING
-- AC2: PENDING
-- AC3: PENDING
-- AC4: PENDING
-- AC5: PENDING
-- AC6: PENDING
+- AC1: PASS — `livePlanSyncQueue` serializa llamadas concurrentes a la reconciliación.
+- AC2: PASS — `isLegacyEquivalent` y `cancelEquivalentReminder` eliminan equivalentes heredados por título, cuerpo y trigger.
+- AC3: PASS — cada reminder se reconcilia cancelando equivalentes antes de programar una única solicitud nueva.
+- AC4: PASS — solicitudes sin ID lógico y no equivalentes a un reminder deseado no se cancelan.
+- AC5: PASS — IDs `shift-*` / `important-*`, textos y anticipaciones no fueron modificados.
+- AC6: PASS — GitHub Actions Quality #99 completó con success sobre el head del PR #71.
