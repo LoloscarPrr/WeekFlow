@@ -43,18 +43,34 @@ function logicalReminderId(notification: Notifications.NotificationRequest) {
   return typeof value === 'string' ? value : null;
 }
 
-async function cancelLogicalReminder(reminderId: string): Promise<void> {
+function notificationDate(notification: Notifications.NotificationRequest): number | null {
+  const trigger = notification.trigger as { date?: number | string | Date } | null;
+  if (!trigger?.date) return null;
+  const value = new Date(trigger.date).getTime();
+  return Number.isFinite(value) ? value : null;
+}
+
+function isLegacyEquivalent(notification: Notifications.NotificationRequest, reminder: WeekFlowReminder) {
+  if (logicalReminderId(notification) !== null) return false;
+  if (notification.content.title !== reminder.title || notification.content.body !== reminder.body) return false;
+  const scheduledAt = notificationDate(notification);
+  return scheduledAt !== null && Math.abs(scheduledAt - reminder.at.getTime()) < 1000;
+}
+
+async function cancelEquivalentReminder(reminder: WeekFlowReminder): Promise<void> {
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
-  const matches = scheduled.filter((notification) => logicalReminderId(notification) === reminderId);
+  const matches = scheduled.filter((notification) => {
+    const logicalId = logicalReminderId(notification);
+    return logicalId === reminder.id || isLegacyEquivalent(notification, reminder);
+  });
   await Promise.all(matches.map((notification) => Notifications.cancelScheduledNotificationAsync(notification.identifier)));
 }
 
 async function scheduleAllowedReminder(reminder: WeekFlowReminder): Promise<string | null> {
   if (reminder.at.getTime() <= Date.now()) return null;
 
-  // A logical WeekFlow reminder may be synchronized more than once while the app
-  // starts/resumes. Replace any prior native request instead of stacking duplicates.
-  await cancelLogicalReminder(reminder.id);
+  // Replace current and legacy equivalents instead of stacking duplicates.
+  await cancelEquivalentReminder(reminder);
 
   return Notifications.scheduleNotificationAsync({
     content: {
@@ -109,7 +125,7 @@ function reminderTime(eventAt: Date, leadMinutes: number) {
   return eventAt;
 }
 
-export async function syncLivePlanReminders(now = new Date()): Promise<number> {
+async function performLivePlanReminderSync(now: Date): Promise<number> {
   const allowed = await initializeNotifications();
   if (!allowed) return 0;
 
@@ -150,15 +166,14 @@ export async function syncLivePlanReminders(now = new Date()): Promise<number> {
     });
   }
 
-  // Remove stale WeekFlow requests (deleted/moved events), but preserve exactly one
-  // request per current logical reminder. scheduleAllowedReminder replaces that one.
   const desiredIds = new Set(reminders.map((reminder) => reminder.id));
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
   await Promise.all(
     scheduled
       .filter((notification) => {
         const id = logicalReminderId(notification);
-        return id !== null && !desiredIds.has(id);
+        if (id !== null) return !desiredIds.has(id);
+        return reminders.some((reminder) => isLegacyEquivalent(notification, reminder));
       })
       .map((notification) => Notifications.cancelScheduledNotificationAsync(notification.identifier)),
   );
@@ -169,4 +184,12 @@ export async function syncLivePlanReminders(now = new Date()): Promise<number> {
     if (id) scheduledCount += 1;
   }
   return scheduledCount;
+}
+
+let livePlanSyncQueue: Promise<unknown> = Promise.resolve();
+
+export function syncLivePlanReminders(now = new Date()): Promise<number> {
+  const sync = livePlanSyncQueue.then(() => performLivePlanReminderSync(now));
+  livePlanSyncQueue = sync.catch(() => undefined);
+  return sync;
 }
