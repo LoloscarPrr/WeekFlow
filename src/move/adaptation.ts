@@ -19,10 +19,10 @@ export const DEFAULT_MOVE_PREFERENCES: MovePreferences = {
 };
 
 export const MOVE_FOCUS_OPTIONS: { value: MoveFocus; label: string; icon: string; copy: string }[] = [
-  { value: 'equilibrado', label: 'Equilibrado', icon: '⚖️', copy: 'Un poco de movilidad, activación y fuerza suave.' },
-  { value: 'activar', label: 'Activarme', icon: '⚡', copy: 'Más movimiento continuo, siempre a ritmo cómodo.' },
-  { value: 'fuerza', label: 'Fuerza suave', icon: '💪', copy: 'Movimientos controlados con tu propio cuerpo o una silla.' },
-  { value: 'movilidad', label: 'Movilidad', icon: '🌿', copy: 'Mover articulaciones y bajar rigidez sin buscar intensidad.' },
+  { value: 'equilibrado', label: 'Equilibrado', icon: '⚖️', copy: 'Combina movilidad, activación y fuerza general sin ir a un extremo.' },
+  { value: 'activar', label: 'Activarme', icon: '⚡', copy: 'Movimiento continuo y dinámico para subir el ritmo de forma progresiva.' },
+  { value: 'fuerza', label: 'Fuerza', icon: '💪', copy: 'Fuerza general controlada con tu propio cuerpo, silla o suelo si los habilitas.' },
+  { value: 'movilidad', label: 'Movilidad', icon: '🌿', copy: 'Mover articulaciones y soltar rigidez con rango cómodo y baja intensidad.' },
 ];
 
 export const MOVE_AVOID_AREA_OPTIONS: { value: MoveAvoidArea; label: string; icon: string }[] = [
