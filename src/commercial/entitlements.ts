@@ -30,9 +30,24 @@ export type UserEntitlement = {
   expiresAt?: string | null;
 };
 
+export type FeatureAccessReason =
+  | 'free-feature'
+  | 'premium-active'
+  | 'premium-required'
+  | 'premium-inactive'
+  | 'premium-expired'
+  | 'premium-invalid-expiry';
+
+export type FeatureAccessDecision = {
+  allowed: boolean;
+  requiredTier: AccessTier;
+  reason: FeatureAccessReason;
+};
+
 export const COMMERCIAL_CONFIG = {
   billingEnabled: false,
   publicPreview: true,
+  distributionModel: 'single-app',
 } as const;
 
 export const DEFAULT_ENTITLEMENT: UserEntitlement = {
@@ -63,10 +78,71 @@ export const FEATURE_TIER: Readonly<Record<CommercialFeature, AccessTier>> = {
   assistant_brain: 'premium',
 };
 
-function isExpired(entitlement: UserEntitlement, now: Date): boolean {
-  if (!entitlement.expiresAt) return false;
+function premiumExpiryState(
+  entitlement: UserEntitlement,
+  now: Date,
+): 'valid' | 'expired' | 'invalid' {
+  if (!entitlement.expiresAt) return 'valid';
+
   const expiresAt = Date.parse(entitlement.expiresAt);
-  return Number.isFinite(expiresAt) && expiresAt <= now.getTime();
+  if (!Number.isFinite(expiresAt)) return 'invalid';
+  if (expiresAt <= now.getTime()) return 'expired';
+  return 'valid';
+}
+
+export function featureAccessDecision(
+  feature: CommercialFeature,
+  entitlement: UserEntitlement = DEFAULT_ENTITLEMENT,
+  now: Date = new Date(),
+): FeatureAccessDecision {
+  const tier = FEATURE_TIER[feature];
+
+  if (tier === 'free') {
+    return {
+      allowed: true,
+      requiredTier: 'free',
+      reason: 'free-feature',
+    };
+  }
+
+  if (entitlement.tier !== 'premium') {
+    return {
+      allowed: false,
+      requiredTier: 'premium',
+      reason: 'premium-required',
+    };
+  }
+
+  if (!entitlement.active) {
+    return {
+      allowed: false,
+      requiredTier: 'premium',
+      reason: 'premium-inactive',
+    };
+  }
+
+  const expiryState = premiumExpiryState(entitlement, now);
+  if (expiryState === 'invalid') {
+    return {
+      allowed: false,
+      requiredTier: 'premium',
+      reason: 'premium-invalid-expiry',
+    };
+  }
+
+  if (expiryState === 'expired') {
+    return {
+      allowed: false,
+      requiredTier: 'premium',
+      reason: 'premium-expired',
+    };
+  }
+
+  return {
+    allowed: true,
+    requiredTier: 'premium',
+    reason: 'premium-active',
+  };
 }
 
 export function hasFeatureAccess(
@@ -74,8 +150,7 @@ export function hasFeatureAccess(
   entitlement: UserEntitlement = DEFAULT_ENTITLEMENT,
   now: Date = new Date(),
 ): boolean {
-  if (FEATURE_TIER[feature] === 'free') return true;
-  return entitlement.active && entitlement.tier === 'premium' && !isExpired(entitlement, now);
+  return featureAccessDecision(feature, entitlement, now).allowed;
 }
 
 export function requiredTier(feature: CommercialFeature): AccessTier {
