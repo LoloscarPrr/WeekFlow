@@ -1,4 +1,4 @@
-name: Build WeekFlow Native APK
+name: Build WeekFlow Native Android
 
 on:
   workflow_dispatch:
@@ -171,7 +171,7 @@ jobs:
           fs.writeFileSync(path, lines.join('\n'));
           NODE
 
-      - name: Build standalone release APK
+      - name: Build signed release APK and AAB
         working-directory: android
         env:
           NODE_ENV: production
@@ -181,16 +181,20 @@ jobs:
           WEEKFLOW_KEY_PASSWORD: ${{ secrets.WEEKFLOW_KEY_PASSWORD }}
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew assembleRelease bundleRelease --no-daemon
 
-      - name: Prepare artifact
+      - name: Prepare Android outputs
         shell: bash
         run: |
+          set -euo pipefail
           VERSION="${{ steps.version.outputs.version }}"
           mkdir -p output
           APK="$(find android/app/build/outputs/apk/release -name '*.apk' | head -n 1)"
+          AAB="$(find android/app/build/outputs/bundle/release -name '*.aab' | head -n 1)"
           if [ -z "$APK" ]; then echo "No release APK found"; exit 1; fi
+          if [ -z "$AAB" ]; then echo "No release AAB found"; exit 1; fi
           cp "$APK" "output/WeekFlow-Alpha-v${VERSION}-Standalone.apk"
+          cp "$AAB" "output/WeekFlow-Alpha-v${VERSION}-Play.aab"
           ls -lh output/
 
       - name: Upload APK artifact
@@ -200,20 +204,29 @@ jobs:
           path: output/WeekFlow-Alpha-v${{ steps.version.outputs.version }}-Standalone.apk
           if-no-files-found: error
 
-      - name: Publish APK to GitHub Releases
+      - name: Upload Play AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WeekFlow-Alpha-v${{ steps.version.outputs.version }}-Play-AAB
+          path: output/WeekFlow-Alpha-v${{ steps.version.outputs.version }}-Play.aab
+          if-no-files-found: error
+
+      - name: Publish Android outputs to GitHub Releases
         if: github.event_name != 'pull_request'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
           VERSION="${{ steps.version.outputs.version }}"
           TAG="weekflow-v${VERSION}"
           APK="output/WeekFlow-Alpha-v${VERSION}-Standalone.apk"
+          AAB="output/WeekFlow-Alpha-v${VERSION}-Play.aab"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$APK" --clobber
+            gh release upload "$TAG" "$APK" "$AAB" --clobber
           else
-            gh release create "$TAG" "$APK" \
+            gh release create "$TAG" "$APK" "$AAB" \
               --target "$GITHUB_SHA" \
               --title "WeekFlow Alpha v${VERSION}" \
-              --notes "APK automático de WeekFlow Alpha v${VERSION}. Compilado y validado por GitHub Actions."
+              --notes "Build Android automático de WeekFlow Alpha v${VERSION}: APK independiente + AAB para Google Play. Compilado y validado por GitHub Actions."
           fi
