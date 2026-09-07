@@ -1,6 +1,7 @@
 import { correctActualExitTime, registerActualExit } from '../src/application/useCases/registerActualExit';
 import {
   completeWeekRitual,
+  removeImportantMoment,
   upsertImportantMoment,
   updateWeekShift,
 } from '../src/application/useCases/updateWeekSchedule';
@@ -234,6 +235,33 @@ run('los momentos importantes se validan, ordenan y permiten cerrar la semana', 
   equal(monday.importantMoments[1].title, 'Cena familiar', 'título normalizado');
   const completed = completeWeekRitual(monday, '2026-08-16T21:00:00.000Z');
   equal(completed.organizedAt, '2026-08-16T21:00:00.000Z', 'cierre persistido');
+});
+
+run('editar un momento importante reemplaza el registro sin duplicarlo', () => {
+  const created = upsertImportantMoment(defaultWeekState, {
+    id: 'dentista',
+    date: '2026-09-07',
+    day: 6,
+    time: '15:15',
+    title: 'Dentista',
+  });
+  const edited = upsertImportantMoment(created, {
+    id: 'dentista',
+    date: '2026-09-08',
+    day: 6,
+    time: '16:30',
+    title: 'Control dental',
+  });
+  equal(edited.importantMoments.length, 1, 'sin duplicado al editar');
+  equal(edited.importantMoments[0].id, 'dentista', 'identidad conservada');
+  equal(edited.importantMoments[0].title, 'Control dental', 'nombre corregido');
+  equal(edited.importantMoments[0].date, '2026-09-08', 'fecha corregida');
+  equal(edited.importantMoments[0].day, 1, 'día recalculado desde la nueva fecha');
+  equal(edited.importantMoments[0].time, '16:30', 'hora corregida');
+
+  const completed = completeWeekRitual(edited, '2026-09-07T18:00:00.000Z');
+  equal(completed.importantMoments[0].title, 'Control dental', 'edición conservada al cerrar el Ritual');
+  equal(removeImportantMoment(completed, 'dentista').importantMoments.length, 0, 'eliminación existente preservada');
 });
 
 run('Ahora recibe únicamente los momentos importantes del día calendario', () => {
