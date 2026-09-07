@@ -25,15 +25,15 @@ Cada momento guardado debe ofrecer `Editar`. Al elegirlo, el formulario se relle
 - Añadir recurrencia, notas, categorías o nuevas propiedades a los momentos.
 
 ## Acceptance criteria
-- [ ] AC1 — Cada momento listado ofrece una acción visible `Editar` además de `Eliminar`.
-- [ ] AC2 — `Editar` carga en el formulario el nombre, la fecha y la hora actuales del registro.
-- [ ] AC3 — Guardar una edición conserva el ID, reemplaza los valores y no duplica el momento.
-- [ ] AC4 — La edición conserva validaciones actuales y vuelve a ordenar por fecha/hora cuando corresponde.
-- [ ] AC5 — `Cancelar edición` abandona el borrador sin modificar el momento persistido.
-- [ ] AC6 — Eliminar el momento que se está editando limpia el modo de edición de forma segura.
-- [ ] AC7 — Crear y eliminar momentos nuevos sigue funcionando como antes.
-- [ ] AC8 — Cerrar el Ritual conserva el momento editado para los consumidores de la semana.
-- [ ] AC9 — Typecheck y regresiones automatizadas pasan.
+- [x] AC1 — Cada momento listado ofrece una acción visible `Editar` además de `Eliminar`.
+- [x] AC2 — `Editar` carga en el formulario el nombre, la fecha y la hora actuales del registro.
+- [x] AC3 — Guardar una edición conserva el ID, reemplaza los valores y no duplica el momento.
+- [x] AC4 — La edición conserva validaciones actuales y vuelve a ordenar por fecha/hora cuando corresponde.
+- [x] AC5 — `Cancelar edición` abandona el borrador sin modificar el momento persistido.
+- [x] AC6 — Eliminar el momento que se está editando limpia el modo de edición de forma segura.
+- [x] AC7 — Crear y eliminar momentos nuevos sigue funcionando como antes.
+- [x] AC8 — Cerrar el Ritual conserva el momento editado para los consumidores de la semana.
+- [x] AC9 — Typecheck y regresiones automatizadas pasan.
 - [ ] AC10 — Versión y changelog quedan actualizados a 0.3.15 y el build Android firmado pasa.
 
 ## Data / persistence impact
@@ -63,7 +63,7 @@ Los registros muestran `Editar` y `Eliminar`. Durante la edición, el formulario
 - AC3–AC4: IMPLEMENTED — el guardado reutiliza `editingMomentId`; la regresión comprueba reemplazo, identidad, fecha, hora, día derivado y ausencia de duplicado.
 - AC5–AC6: IMPLEMENTED — cancelar limpia solo el borrador local; eliminar el registro activo también abandona el modo de edición.
 - AC7–AC8: IMPLEMENTED — creación/eliminación mantienen los caminos existentes y la regresión comprueba conservación tras `completeWeekRitual`.
-- AC9: PENDING CI — el entorno local no pudo instalar dependencias porque el registro npm no está disponible ni cacheado.
+- AC9: PASS — GitHub Actions Quality #115 ejecutó typecheck y la suite completa con resultado `success` sobre `d6bbd70`.
 - AC10: PENDING CI/BUILD — metadatos y changelog 0.3.15 implementados; falta verificar Quality y el build Android firmado.
 - Persistence/migration: PASS BY INSPECTION — no cambian entidades, repositorios, SQLite ni migraciones.
 - Device interaction: BLOCKED hasta instalar y probar el APK resultante en Android.
