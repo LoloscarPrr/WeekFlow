@@ -1,4 +1,4 @@
-# WeekFlow 0.3.16 · ficha de Google Play (es-CL)
+# WeekFlow 0.3.17 · ficha de Google Play (es-CL)
 
 Contenido preparado para la candidata de prueba. La publicación y los recursos gráficos se completan en Play Console.
 
@@ -37,13 +37,13 @@ WeekFlow no contiene anuncios ni compras dentro de la app en esta versión. Tu p
 | Categoría | Productividad |
 | Audiencia | 18 años o más |
 | Anuncios | No |
-| Compras integradas | No en 0.3.16 |
+| Compras integradas | No en 0.3.17 |
 | Cuenta obligatoria | No |
 | Política de privacidad | <https://github.com/LoloscarPrr/WeekFlow/blob/main/PRIVACY_POLICY.md> |
 
 ## Recursos gráficos pendientes
 
-Usar solamente capturas reales de la candidata 0.3.16 y la identidad visual canónica.
+Usar solamente capturas reales de la candidata 0.3.17 y la identidad visual canónica.
 
 - [ ] Ícono de alta resolución derivado del recurso oficial de la app.
 - [ ] Gráfico de funciones con la identidad de WeekFlow.
