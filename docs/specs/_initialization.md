@@ -2,53 +2,45 @@
 
 ## Repository
 - Repository: `LoloscarPrr/WeekFlow`
-- Base ref: `main`
-- Working ref/branch: `main`
-- Latest relevant commit: `d349d42ac30343741e34b5ba5dc2e2615542815b` — WF-WEEK-001 / Semana canónica y compacta
+- Base ref: `origin/main`
+- Working ref/branch: `codex/wf-comm-003-play-candidate`
+- Latest relevant commit: `8a09261aa0177a576257c02baf5c5ddc91a0d090` — verified WeekFlow 0.3.15 Android release.
 
 ## App / build state
-- App version: `0.3.15`
-- Android versionCode/build metadata in source: `70` (release workflow used monotonic CI metadata for the published binary)
-- Package/application id: `com.weekflow.app`
-- Published release: `weekflow-v0.3.15` with standalone APK and Play AAB.
+- Source version: `0.3.15`; Android source `versionCode`: `70`.
+- Published AAB: package `com.weekflow.app`, version `0.3.15`, CI `versionCode` `100120`.
+- The published AAB validates successfully, is release-signed, targets API 36 and includes 16 KB-aligned 64-bit native libraries.
 
 ## Product context
-- Current Blueprint Maestro: `WeekFlow_Blueprint_Maestro_v3.2.docx`.
-- Latest product result: Semana is the concise canonical editor for the real work schedule.
-- Relevant decisions preserved: D-001 reduce user burden; D-013 Semana is the only canonical shift editor; manual ImportantMoment controls remain hidden for the future Assistant; screenshot/camera remains the primary reviewed import path.
-- The commercial Google Play track remains parallel and unchanged.
+- Current Blueprint Maestro: v3.2, Part VII / C1 Public Preview.
+- Current product focus: prepare one Free/Premium-capable app for Google Play testing without enabling billing or weakening the offline-first core.
+- Relevant decisions: D-001 reduce user burden; D-017 one app and codebase; D-018 useful Free tier; D-019 parallel Google Play track; D-020 validate distribution before monetization.
 
 ## Specs
-- Active/relevant specs:
-  - `WF-CORE-001 — Adopt spec-driven development — DONE`
-  - `WF-CORE-002 — TLC initialization — DONE`
-  - `WF-CORE-003 — Adaptive multiple-layout shell — DONE`
-  - `WF-CORE-005 — Firebase Crashlytics — DONE`
-  - `WF-COMM-001 — Free/Premium entitlement foundation — DONE`
-  - `WF-COMM-002 — Google Play AAB public preview foundation — DONE`
-  - `WF-WEEK-001 — Semana canónica y compacta — DONE`
+- `WF-CORE-005 — Firebase + Crashlytics`: DONE; automatic Crashlytics collection is disabled in the release manifest.
+- `WF-COMM-001 — Free/Premium entitlement foundation`: implementation/tests pass, but the status header remains stale at VERIFYING.
+- `WF-COMM-002 — Google Play public-preview build foundation`: release evidence passes, but the status header remains stale at IMPLEMENTING.
+- Proposed next spec: `WF-COMM-003 — Google Play privacy and release candidate`.
 
 ## Relevant implementation surface
-- Semana: `app/week.tsx`.
-- Week presentation state: `src/presentation/week/useWeekController.ts`.
-- Import completion copy: `src/components/ScheduleImportCard.tsx` and `src/components/SchedulePdfImportCard.tsx`.
-- Version/release notes: `app.json`, `package.json`, `CHANGELOG-0.3.15.md`.
-- Persistence/migration surface: unchanged; shifts, `importantMoments` and `organizedAt` remain compatible.
+- Privacy entry point: `app/assistant.tsx`; new policy screen under `app/`.
+- Crash reporting: `src/observability/crashlytics.ts`, app startup in `app/_layout.tsx`, SQLite key-value persistence.
+- Android manifest inputs: `app.json` and Expo prebuild.
+- Commercial/release docs: `docs/commercial/`, `PRIVACY_POLICY.md`, version metadata and changelog.
 
 ## Baseline
-- Local TypeScript + tests: `PASS` — 19 regressions plus OCR, Excel, Move and commercial suites.
-- Pull request Quality: `PASS` — run #117 on PR #76.
-- Main Type/static checks and tests: `PASS` — Quality run #118 for `d349d42`.
-- Build/CI: `PASS` — Build WeekFlow Native Android run #120 for `d349d42`.
-- Release outputs: `PASS` — signed standalone APK and Play AAB published for `0.3.15`.
-- Known pre-existing failures: `NONE OBSERVED` on the completed release pipeline.
+- Local TypeScript + tests: `PASS` — `npm run quality` on `origin/main` content.
+- Published 0.3.15 AAB validation/signature/API level: `PASS`.
+- Previous main Quality and Android release workflows: `PASS` for 0.3.15.
+- Play Console setup, Play App Signing selection and Play-delivered update test: `NOT RUN` / external.
 
 ## Constraints / uncertainties
-- Physical-device visual confirmation of the new Week layout is `UNAVAILABLE` in this session and should be checked when the 0.3.15 APK is installed.
-- Existing ImportantMoment data remains active for Ahora and notifications even though manual Week controls are hidden.
-- Future Week changes must preserve day editing, native time pickers, break editing and reviewed import.
+- No authenticated Play Console capability is available in this session; external declarations and track rollout cannot be completed from the repository.
+- The current app has no in-app privacy-policy access and no canonical public privacy-policy document.
+- The current release manifest contains unused `SYSTEM_ALERT_WINDOW`; it must be blocked before the Play candidate build.
+- Store screenshots must depict the final candidate on a real device and remain an external capture gate.
 
 ## Next TLC action
-- Reinitialize against the latest `main` before the next approved product change and create/resume its spec.
+- Lock `WF-COMM-003`, implement the smallest privacy/manifest/release slice, verify every repository criterion, then build the signed 0.3.16 APK and AAB through CI.
 
-> Rule: do not convert `NOT RUN`, `UNAVAILABLE`, or uncertainty into an assumed PASS. Initialization establishes context; the feature/bug spec still defines what must be built.
+> Rule: do not convert `NOT RUN`, `UNAVAILABLE`, or uncertainty into an assumed PASS. Initialization establishes context; the feature spec still defines what must be built.

@@ -3,6 +3,7 @@ import {
   log,
   recordError,
 } from '@react-native-firebase/crashlytics';
+import { crashReportingConsentEnabled } from '@/src/privacy/crashReporting';
 
 function asError(value: unknown): Error {
   if (value instanceof Error) return value;
@@ -15,6 +16,7 @@ function asError(value: unknown): Error {
 }
 
 export function logDiagnostic(message: string) {
+  if (!crashReportingConsentEnabled()) return;
   try {
     log(getCrashlytics(), message);
   } catch {
@@ -23,6 +25,7 @@ export function logDiagnostic(message: string) {
 }
 
 export function recordNonFatalError(error: unknown, context?: string) {
+  if (!crashReportingConsentEnabled()) return;
   try {
     const instance = getCrashlytics();
     if (context) log(instance, context);

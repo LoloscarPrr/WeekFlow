@@ -5,12 +5,15 @@ import { AppState, StyleSheet, View } from 'react-native';
 import { BottomNav } from '@/src/components/BottomNav';
 import { useAdaptiveLayout } from '@/src/presentation/layout/useAdaptiveLayout';
 import { syncLivePlanReminders } from '@/src/services/notifications';
+import { syncCrashReportingConsent } from '@/src/privacy/crashReporting';
 import { colors } from '@/src/theme/colors';
 
 export default function RootLayout() {
   const { isWide, stageMaxWidth } = useAdaptiveLayout();
 
   useEffect(() => {
+    void syncCrashReportingConsent();
+
     void syncLivePlanReminders().catch((error) => {
       console.warn('Could not sync WeekFlow reminders', error);
     });
