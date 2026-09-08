@@ -1,0 +1,11 @@
+{
+  "$schema": "./node_modules/@react-native-firebase/app/firebase-schema.json",
+  "react-native": {
+    "app_data_collection_default_enabled": false,
+    "analytics_auto_collection_enabled": false,
+    "google_analytics_adid_collection_enabled": false,
+    "messaging_auto_init_enabled": false,
+    "crashlytics_auto_collection_enabled": false,
+    "perf_auto_collection_enabled": false
+  }
+}

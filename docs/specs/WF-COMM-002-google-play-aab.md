@@ -1,6 +1,6 @@
 # WF-COMM-002 · Google Play public-preview build foundation
 
-Status: IMPLEMENTING
+Status: DONE
 
 ## Source of truth
 
@@ -55,3 +55,12 @@ None. No SQLite schema or user-data changes.
 ## UI impact
 
 None. This slice prepares distribution only; it does not add a paywall or visually lock Premium features.
+
+## Verification record
+
+- AC1–AC5: PASS — merged `main` produces the signed standalone APK and signed Play AAB under one package and release tag.
+- AC6: PASS — `COMMERCIAL_CONFIG.billingEnabled` remains `false`.
+- AC7: PASS — `docs/commercial/google-play-public-preview-checklist.md` tracks every external C1 gate.
+- AC8: PASS — local and merged `main` Quality workflows passed.
+- AC9: PASS — the verified 0.3.15 Android release published both downloadable artifacts; its AAB validates as `com.weekflow.app`, target API 36, versionCode `100120`.
+- Manual Play installation/update: BLOCKED — requires Play Console and a real Android device; it remains a C1 external gate.

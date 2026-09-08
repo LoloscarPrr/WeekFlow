@@ -1,6 +1,6 @@
 # WF-COMM-001 — Free/Premium entitlement foundation
 
-Status: VERIFYING
+Status: DONE
 
 ## Problem statement
 WeekFlow Blueprint Maestro v3.2 approves a Free/Premium commercial architecture inside one app and one codebase. The repository already has an initial entitlement map, but the commercial contract needs to be explicit and fail-safe before any Google Play Billing activation.
@@ -63,7 +63,7 @@ NONE in this spec. No current screen is locked or visually changed. This intenti
 ## Verification record
 - AC1: PASS by code review — `billingEnabled` remains `false`.
 - AC2: PASS by config/workflow review — `app.json` retains `com.weekflow.app`; the release workflow still generates one standalone release APK and introduces no product flavors.
-- AC3–AC9: IMPLEMENTED and covered by `tests/commercial-entitlements.test.ts`; CI result pending.
-- AC10: IMPLEMENTED; CI result pending.
+- AC3–AC9: PASS — `tests/commercial-entitlements.test.ts` verifies the complete Free catalog, active/inactive/expired/malformed Premium states and stable access decisions.
+- AC10: PASS — local quality and the merged `main` Quality workflow passed with the commercial regression suite.
 - Persistence/migration: PASS — no persistence files or schemas changed.
 - UI/runtime regression: NOT APPLICABLE to this foundation spec; no screen code changed.
