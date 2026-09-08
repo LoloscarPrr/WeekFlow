@@ -17,6 +17,7 @@ Canonical source: Blueprint Maestro v3.2 · Parte VII · C1 Public Preview.
 - [x] Play Data safety answers drafted from observed 0.3.17 behavior.
 - [x] Spanish (Chile) store-listing copy drafted without future-feature claims.
 - [x] Unused Android overlay permission blocked in Expo configuration.
+- [x] Signed 0.3.17 APK/AAB published and independently validated from the final release outputs.
 
 ## Play Console / external gates
 
