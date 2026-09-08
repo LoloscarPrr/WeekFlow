@@ -1,6 +1,6 @@
 # WF-WEEK-001 — Semana canónica y compacta
 
-Status: VERIFYING
+Status: DONE
 Owner: WeekFlow
 
 ## Problem
@@ -34,7 +34,7 @@ Semana debe mostrar únicamente la información y acciones útiles hoy: un encab
 - [x] AC5 — Semana no renderiza Ritual, Origen, Resumen humano, formulario/lista de momentos importantes ni confirmación final.
 - [x] AC6 — Los mensajes posteriores a importar no indican terminar un ritual ni confirmar por segunda vez; explican que el horario quedó guardado y puede corregirse en Semana.
 - [x] AC7 — Los modelos, datos persistidos y consumidores existentes de `importantMoments`/`organizedAt` se mantienen sin migración ni pérdida.
-- [ ] AC8 — Quality completo pasa; versión y changelog quedan en `0.3.15`; el build Android de `main` pasa antes de cerrar la spec.
+- [x] AC8 — Quality completo pasa; versión y changelog quedan en `0.3.15`; el build Android de `main` pasa antes de cerrar la spec.
 
 ## Data / persistence impact
 Ningún cambio de esquema ni migración. Se conserva la lectura/escritura existente de jornadas y la compatibilidad de `importantMoments` y `organizedAt`. La pantalla simplemente deja de exponer sus controles manuales.
@@ -60,8 +60,8 @@ Ningún cambio de esquema ni migración. Se conserva la lectura/escritura existe
 - [x] Buscar referencias residuales a `WeekRitualCard` y copy de ritual.
 - [x] Ejecutar `npm run quality`.
 - [x] Revisar diff y confirmar que no hay cambios de persistencia/migración.
-- [ ] Abrir PR con `Spec: WF-WEEK-001` y checklist PASS/BLOCKED.
-- [ ] Fusionar tras Quality y comprobar Quality + Android en `main`.
+- [x] Abrir PR con `Spec: WF-WEEK-001` y checklist PASS/BLOCKED.
+- [x] Fusionar tras Quality y comprobar Quality + Android en `main`.
 
 ## Implementation notes
 La eliminación se limita a la capa de presentación. Los casos de uso de ImportantMoment se conservan porque Ahora y notificaciones aún consumen datos existentes y el futuro Asistente reutilizará el mismo estado canónico.
@@ -74,4 +74,4 @@ La eliminación se limita a la capa de presentación. Los casos de uso de Import
 - AC5: PASS — se retiró el render/import y se eliminó `src/components/WeekRitualCard.tsx`.
 - AC6: PASS — cámara/galería/Excel y PDF terminan con `Horario guardado` y permiten corregir desde Semana.
 - AC7: PASS — el diff no toca dominio, datos, migraciones ni persistencia; las 19 regresiones existentes y suites OCR/Excel/Move/comercial pasan.
-- AC8: PENDING — versión y changelog `0.3.15` listos; `npm run quality` local PASS; falta Quality del PR y build Android tras merge a `main`.
+- AC8: PASS — `npm run quality` local, Quality del PR #117, Quality de `main` #118 y Build WeekFlow Native Android #120 aprobaron; release `weekflow-v0.3.15` publicó APK y AAB.
