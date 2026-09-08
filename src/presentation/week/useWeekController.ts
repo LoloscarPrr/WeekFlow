@@ -1,14 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
 import { getWeekSummary } from '@/src/application/useCases/getWeekView';
 import {
-  completeWeekRitual,
-  removeImportantMoment,
   setWeekWorkDay,
-  upsertImportantMoment,
   updateWeekShift,
   type WeekShiftPatch,
 } from '@/src/application/useCases/updateWeekSchedule';
-import type { ImportantMoment, WeekSchedule } from '@/src/domain/entities/Shift';
+import type { WeekSchedule } from '@/src/domain/entities/Shift';
 import { loadWeekState, saveWeekState } from '@/src/state/persistence';
 
 export type TimePickerTarget = {
@@ -70,30 +67,6 @@ export function useWeekController() {
     patchShift(day, { breakMinutes });
   }, [patchShift]);
 
-  const saveImportantMoment = useCallback((moment: ImportantMoment) => {
-    setWeek((current) => {
-      const next = upsertImportantMoment(current, moment);
-      saveWeekState(next);
-      return next;
-    });
-  }, []);
-
-  const deleteImportantMoment = useCallback((id: string) => {
-    setWeek((current) => {
-      const next = removeImportantMoment(current, id);
-      saveWeekState(next);
-      return next;
-    });
-  }, []);
-
-  const finishWeekRitual = useCallback(() => {
-    setWeek((current) => {
-      const next = completeWeekRitual(current, new Date().toISOString());
-      saveWeekState(next);
-      return next;
-    });
-  }, []);
-
   const openTimePicker = useCallback((day: number, field: 'start' | 'end', value: string) => {
     setTimePicker({
       day,
@@ -130,9 +103,6 @@ export function useWeekController() {
     setWorkDay,
     setFreeDay,
     setBreakMinutes,
-    saveImportantMoment,
-    deleteImportantMoment,
-    finishWeekRitual,
     openTimePicker,
     applyPickedTime,
     closeTimePicker,

@@ -4,7 +4,6 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import DateTimePicker from '@expo/ui/community/datetime-picker';
 import { Brand } from '@/src/components/Brand';
 import { RefreshableScrollView } from '@/src/components/AppRefresh';
-import { WeekRitualCard } from '@/src/components/WeekRitualCard';
 import { useWeekController } from '@/src/presentation/week/useWeekController';
 import { shiftSummaryLabel } from '@/src/domain/services/weekPresentation';
 import { colors } from '@/src/theme/colors';
@@ -22,9 +21,6 @@ export default function WeekScreen() {
     setWorkDay,
     setFreeDay,
     setBreakMinutes,
-    saveImportantMoment,
-    deleteImportantMoment,
-    finishWeekRitual,
     openTimePicker,
     applyPickedTime,
     closeTimePicker,
@@ -40,8 +36,7 @@ export default function WeekScreen() {
         <Brand />
 
         <View style={styles.hero}>
-          <Text style={styles.eyebrow}>SEMANA</Text>
-          <Text style={styles.title}>Tu semana<Text style={styles.blue}>.</Text></Text>
+          <Text style={styles.title}>Semana</Text>
         </View>
 
         <View style={styles.summaryCard}>
@@ -124,21 +119,9 @@ export default function WeekScreen() {
         </View>
 
         <Pressable style={styles.importLink} onPress={() => router.push('/import')}>
-          <View>
-            <Text style={styles.importText}>Importar o reemplazar horario</Text>
-            <Text style={styles.importSub}>Cámara o imagen · siempre con revisión</Text>
-          </View>
+          <Text style={styles.importText}>Importar horario</Text>
           <Text style={styles.importArrow}>→</Text>
         </Pressable>
-
-        <WeekRitualCard
-          week={week}
-          workDays={summary.workDays}
-          freeDays={summary.freeDays}
-          onSaveMoment={saveImportantMoment}
-          onDeleteMoment={deleteImportantMoment}
-          onFinish={finishWeekRitual}
-        />
       </RefreshableScrollView>
 
       {timePicker ? (
@@ -159,22 +142,20 @@ export default function WeekScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 22, paddingBottom: 96 },
-  hero: { marginTop: 24, marginBottom: 12 },
-  eyebrow: { color: '#76AFFF', fontWeight: '800', letterSpacing: 4, fontSize: 14 },
-  title: { color: colors.text, fontWeight: '900', fontSize: 30, lineHeight: 36, marginTop: 6 },
-  blue: { color: colors.blue },
-  summaryCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 22, paddingVertical: 16, paddingHorizontal: 8, marginBottom: 18 },
+  content: { paddingHorizontal: 18, paddingTop: 18, paddingBottom: 96 },
+  hero: { marginTop: 14, marginBottom: 10 },
+  title: { color: colors.text, fontWeight: '900', fontSize: 24, lineHeight: 29 },
+  summaryCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 18, paddingVertical: 11, paddingHorizontal: 6, marginBottom: 12 },
   summaryItem: { flex: 1, alignItems: 'center' },
-  summaryValue: { color: colors.text, fontWeight: '900', fontSize: 18 },
-  summaryLabel: { color: colors.muted, fontSize: 11, marginTop: 4 },
-  summaryDivider: { width: 1, height: 34, backgroundColor: colors.line },
-  daysCard: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 24, overflow: 'hidden' },
+  summaryValue: { color: colors.text, fontWeight: '900', fontSize: 16 },
+  summaryLabel: { color: colors.muted, fontSize: 10, marginTop: 2 },
+  summaryDivider: { width: 1, height: 30, backgroundColor: colors.line },
+  daysCard: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 20, overflow: 'hidden' },
   dayBlock: { borderBottomWidth: 1, borderBottomColor: colors.line },
   dayBlockLast: { borderBottomWidth: 0 },
-  dayRow: { minHeight: 72, paddingHorizontal: 18, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  day: { color: colors.text, fontSize: 16, fontWeight: '900' },
-  dayShift: { color: '#71BFFF', fontSize: 14, fontWeight: '800', marginTop: 4 },
+  dayRow: { minHeight: 62, paddingHorizontal: 16, paddingVertical: 11, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  day: { color: colors.text, fontSize: 15, fontWeight: '900' },
+  dayShift: { color: '#71BFFF', fontSize: 13, fontWeight: '800', marginTop: 3 },
   dayOff: { color: '#7EDAA3' },
   chevron: { color: colors.muted, fontSize: 24, transform: [{ rotate: '0deg' }] },
   chevronOpen: { transform: [{ rotate: '180deg' }], color: colors.blue },
@@ -197,8 +178,7 @@ const styles = StyleSheet.create({
   breakInput: { minWidth: 44, color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'right', paddingVertical: 6 },
   breakUnit: { color: colors.muted, fontSize: 10, fontWeight: '800' },
   freeCopy: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 12 },
-  importLink: { marginTop: 18, minHeight: 66, paddingHorizontal: 15, paddingVertical: 12, borderRadius: 18, backgroundColor: '#0D203A', borderWidth: 1, borderColor: '#234A76', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  importLink: { marginTop: 12, minHeight: 52, paddingHorizontal: 15, paddingVertical: 10, borderRadius: 16, backgroundColor: '#0D203A', borderWidth: 1, borderColor: '#234A76', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   importText: { color: colors.text, fontSize: 13, fontWeight: '900' },
-  importSub: { color: colors.muted, fontSize: 10, marginTop: 4 },
   importArrow: { color: '#78B7FF', fontSize: 20, fontWeight: '900' },
 });
