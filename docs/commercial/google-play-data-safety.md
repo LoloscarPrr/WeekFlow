@@ -1,4 +1,4 @@
-# WeekFlow 0.3.16 · borrador de Seguridad de los datos
+# WeekFlow 0.3.17 · borrador de Seguridad de los datos
 
 Este documento es la respuesta de trabajo para el formulario **Seguridad de los datos** de Google Play. Debe contrastarse con la versión exacta que se suba y completarse en Play Console; no acredita una publicación externa.
 
@@ -6,7 +6,7 @@ Este documento es la respuesta de trabajo para el formulario **Seguridad de los 
 
 - La app funciona sin cuenta y guarda su contenido principal localmente.
 - No contiene anuncios, Analytics, compras ni sincronización en la nube.
-- Firebase Cloud Messaging no se auto-inicializa.
+- Firebase Cloud Messaging y Firebase Analytics no se auto-inicializan.
 - Firebase Crashlytics está desactivado por defecto y sólo se activa mediante consentimiento explícito dentro de la app.
 - Política pública canónica: <https://github.com/LoloscarPrr/WeekFlow/blob/main/PRIVACY_POLICY.md>
 
@@ -22,7 +22,7 @@ En el formulario, “no se comparte” depende de clasificar correctamente a Goo
 
 ## Datos usados sólo en el dispositivo
 
-No se declaran como recopilados porque la versión 0.3.16 no los transmite fuera del dispositivo:
+No se declaran como recopilados porque la versión 0.3.17 no los transmite fuera del dispositivo:
 
 - horarios, jornadas, momentos importantes y planificación;
 - registros de comida, movimiento y descanso;
@@ -40,7 +40,7 @@ Los archivos de importación se eligen por acción directa de la persona y se pr
 
 ## Revisión obligatoria antes de enviar
 
-- [ ] Responder el formulario desde el AAB exacto de 0.3.16.
+- [ ] Responder el formulario desde el AAB exacto de 0.3.17.
 - [ ] Confirmar que Play Console muestra únicamente los SDK presentes en ese AAB.
 - [ ] Mantener las tres filas anteriores como opcionales y no usadas para publicidad.
 - [ ] Verificar que la URL pública carga sin autenticación.

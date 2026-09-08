@@ -2,7 +2,7 @@
   "expo": {
     "name": "WeekFlow",
     "slug": "weekflow",
-    "version": "0.3.16",
+    "version": "0.3.17",
     "orientation": "portrait",
     "scheme": "weekflow",
     "userInterfaceStyle": "dark",
@@ -10,7 +10,7 @@
     "icon": "./assets/icon.png",
     "android": {
       "package": "com.weekflow.app",
-      "versionCode": 71,
+      "versionCode": 72,
       "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "resize",
       "blockedPermissions": [
@@ -27,6 +27,7 @@
       "expo-notifications",
       "@react-native-firebase/app",
       "@react-native-firebase/crashlytics",
+      "./plugins/withPrivacyManifest",
       [
         "expo-image-picker",
         {

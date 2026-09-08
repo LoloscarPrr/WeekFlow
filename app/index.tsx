@@ -66,7 +66,7 @@ export default function NowScreen() {
       <RefreshableScrollView contentContainerStyle={styles.content} onRefreshData={refreshNow}>
         <View style={styles.top}>
           <Brand />
-          <View style={styles.build}><Text style={styles.buildText}>Alpha 0.3.16</Text></View>
+          <View style={styles.build}><Text style={styles.buildText}>Alpha 0.3.17</Text></View>
         </View>
 
         <View style={styles.hero}>

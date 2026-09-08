@@ -20,7 +20,7 @@ WeekFlow 0.3.15 already produces a valid signed Android App Bundle, but it is no
 - Non-fatal diagnostic recording is a no-op while consent is absent.
 - The release manifest no longer declares `SYSTEM_ALERT_WINDOW`.
 - The repository contains a public privacy-policy source plus accurate Play Console data-safety and store-listing drafts.
-- The candidate is released as 0.3.16 without enabling billing.
+- The corrected candidate is released as 0.3.17 without enabling billing.
 
 ## Scope
 
@@ -32,7 +32,7 @@ WeekFlow 0.3.15 already produces a valid signed Android App Bundle, but it is no
 - Add Play Console data-safety and Spanish (Chile) store-listing drafts.
 - Block `android.permission.SYSTEM_ALERT_WINDOW` through Expo Android configuration.
 - Reconcile completed C1 repository gates/spec statuses.
-- Bump public version to 0.3.16 and add release notes.
+- Bump public version to 0.3.17 and add release notes.
 - Produce and validate the signed APK/AAB through the existing GitHub Actions release workflow.
 
 ## Non-goals
@@ -54,9 +54,9 @@ WeekFlow 0.3.15 already produces a valid signed Android App Bundle, but it is no
 6. `PRIVACY_POLICY.md` identifies WeekFlow, explains accessed/collected data, purpose, sharing/service providers, security, retention/deletion and a contact mechanism.
 7. Repository drafts give Play Console-ready guidance for Data safety and the Spanish (Chile) store listing without claiming external steps are complete.
 8. Expo prebuild produces a manifest without `android.permission.SYSTEM_ALERT_WINDOW`.
-9. Package remains `com.weekflow.app`, target API remains 36 in the release AAB, billing remains disabled, and source version becomes 0.3.16 / versionCode 71.
+9. Package remains `com.weekflow.app`, target API remains 36 in the release AAB, billing remains disabled, and source version becomes 0.3.17 / versionCode 72.
 10. Local `npm run quality` passes and includes regression coverage for default-off/persisted consent.
-11. Main CI produces downloadable signed 0.3.16 APK and AAB; the AAB validates successfully.
+11. Main CI produces downloadable signed 0.3.17 APK and AAB; the AAB validates successfully.
 12. Play App Signing setup, Play-delivered update/persistence test and real-device store screenshots remain explicitly BLOCKED until completed externally.
 
 ## Data / persistence impact
@@ -93,9 +93,10 @@ WeekFlow 0.3.15 already produces a valid signed Android App Bundle, but it is no
 
 ## Verification record
 
+- Release note: inspection of the first 0.3.16 AAB found Expo's bundled Firebase Messaging components without the two explicit auto-init manifest flags. That build was superseded before delivery; 0.3.17 adds both flags through a deterministic Expo config plugin.
 - AC1–AC7: PASS locally — the compact action, privacy route, explicit opt-in, persisted startup behavior, guarded diagnostics, policy and Play drafts are implemented and reviewed.
-- AC8: PASS at prebuild source level — Expo emits `SYSTEM_ALERT_WINDOW` with `tools:node="remove"`; the final merged AAB manifest remains pending CI inspection.
-- AC9: PARTIAL — source is 0.3.16 / versionCode 71, package remains `com.weekflow.app` and billing remains disabled; target API must be reconfirmed in the candidate AAB.
+- AC8: PASS at prebuild source level — Expo emits `SYSTEM_ALERT_WINDOW` with `tools:node="remove"` plus explicit `false` metadata for Firebase Messaging/Analytics auto-init; the final merged AAB manifest remains pending CI inspection.
+- AC9: PARTIAL — source is 0.3.17 / versionCode 72, package remains `com.weekflow.app` and billing remains disabled; target API must be reconfirmed in the candidate AAB.
 - AC10: PASS — local `npm run quality` includes and passes the consent regressions.
 - AC11: NOT RUN — requires merge and the signed `main` Android workflow.
 - AC12: BLOCKED as designed — Play Console setup, Play App Signing, Play-delivered update/persistence and real-device screenshots require external access and a physical device.

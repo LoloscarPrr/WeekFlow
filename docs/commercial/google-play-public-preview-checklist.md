@@ -13,8 +13,8 @@ Canonical source: Blueprint Maestro v3.2 · Parte VII · C1 Public Preview.
 - [x] `main` build verified green after WF-COMM-002 merge.
 - [x] APK and AAB artifacts verified downloadable from the same successful 0.3.15 build.
 - [x] Public privacy-policy source added and linked from the app.
-- [x] Crashlytics is optional and off by default; unused FCM auto-init is disabled.
-- [x] Play Data safety answers drafted from observed 0.3.16 behavior.
+- [x] Crashlytics is optional and off by default; unused FCM/Analytics auto-init is explicitly disabled in the Android manifest.
+- [x] Play Data safety answers drafted from observed 0.3.17 behavior.
 - [x] Spanish (Chile) store-listing copy drafted without future-feature claims.
 - [x] Unused Android overlay permission blocked in Expo configuration.
 
@@ -26,7 +26,7 @@ These require the Google Play Console or real-device validation and are not cons
 - [ ] Configure Play App Signing without replacing the established WeekFlow update identity unexpectedly.
 - [ ] Upload the signed AAB to a closed-testing track.
 - [ ] Paste and review the prepared name, descriptions and category in Play Console.
-- [ ] Upload canonical iconography and real 0.3.16 screenshots from the locked WeekFlow visual identity.
+- [ ] Upload canonical iconography and real 0.3.17 screenshots from the locked WeekFlow visual identity.
 - [ ] Attach the public privacy-policy URL and confirm it opens without authentication.
 - [ ] Submit the prepared data-safety declarations against the exact uploaded AAB.
 - [ ] Confirm the optional Crashlytics declaration matches Play's detected SDK list.
