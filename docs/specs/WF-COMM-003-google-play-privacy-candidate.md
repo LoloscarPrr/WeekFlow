@@ -1,6 +1,6 @@
 # WF-COMM-003 — Google Play privacy and release candidate
 
-Status: VERIFYING
+Status: DONE
 Owner: WeekFlow
 
 ## Source of truth
@@ -94,9 +94,16 @@ WeekFlow 0.3.15 already produces a valid signed Android App Bundle, but it is no
 ## Verification record
 
 - Release note: inspection of the first 0.3.16 AAB found Expo's bundled Firebase Messaging components without the two explicit auto-init manifest flags. That build was superseded before delivery; 0.3.17 adds both flags through a deterministic Expo config plugin.
-- AC1–AC7: PASS locally — the compact action, privacy route, explicit opt-in, persisted startup behavior, guarded diagnostics, policy and Play drafts are implemented and reviewed.
-- AC8: PASS at prebuild source level — Expo emits `SYSTEM_ALERT_WINDOW` with `tools:node="remove"` plus explicit `false` metadata for Firebase Messaging/Analytics auto-init; the final merged AAB manifest remains pending CI inspection.
-- AC9: PARTIAL — source is 0.3.17 / versionCode 72, package remains `com.weekflow.app` and billing remains disabled; target API must be reconfirmed in the candidate AAB.
-- AC10: PASS — local `npm run quality` includes and passes the consent regressions.
-- AC11: NOT RUN — requires merge and the signed `main` Android workflow.
+- AC1–AC7: PASS — the compact action, privacy route, explicit opt-in, persisted startup behavior, guarded diagnostics, policy and Play drafts are implemented and reviewed.
+- AC8: PASS — the final 0.3.17 AAB manifest contains explicit `false` metadata for Firebase Messaging, Analytics, Crashlytics and the global Firebase data-collection default; `SYSTEM_ALERT_WINDOW` is absent.
+- AC9: PASS — the signed candidate is `com.weekflow.app`, version 0.3.17 / CI versionCode `100122`, min API 24, target API 36; billing remains disabled.
+- AC10: PASS — local quality, PR Quality and merged `main` Quality passed, including the consent regressions.
+- AC11: PASS — Android workflow run 122 produced and published both signed files; Bundletool validates the AAB and the APK v2 signature matches the established WeekFlow certificate.
 - AC12: BLOCKED as designed — Play Console setup, Play App Signing, Play-delivered update/persistence and real-device screenshots require external access and a physical device.
+
+Release digests:
+
+- APK SHA-256: `f9ef475c202ce2285ba094dbccf02ce9e4f0d5cbe11621e675399da79ec6d869`
+- AAB SHA-256: `328517582ef8ce0d6e9bd8c047c420ade7cce4c0cc936793abc344b604d209e4`
+- Signing certificate SHA-256: `C9:C6:00:0D:41:66:DF:64:C5:14:00:D9:3C:0D:86:71:64:00:64:68:0E:AD:1D:B4:C5:2B:4A:65:44:8D:97:BA`
+- 64-bit native LOAD alignment: `0x4000` (16 KB).
