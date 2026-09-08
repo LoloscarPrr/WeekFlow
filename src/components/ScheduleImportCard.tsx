@@ -255,7 +255,7 @@ export function ScheduleImportCard() {
       source: pending?.source ?? 'library',
     });
 
-    Alert.alert('Horario revisado', 'Tu jornada ya quedó lista. Revisa la semana y confirma cuando todo coincida.', [
+    Alert.alert('Horario guardado', 'Tu horario quedó listo. Puedes corregir cualquier día desde Semana.', [
       { text: 'Continuar', onPress: () => router.replace('/week') },
     ]);
   }

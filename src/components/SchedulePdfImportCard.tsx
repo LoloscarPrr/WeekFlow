@@ -123,7 +123,7 @@ export function SchedulePdfImportCard() {
       organizedAt: null,
       source: 'pdf',
     });
-    Alert.alert('PDF revisado', 'Tu jornada quedó preparada. Revisa Semana y termina el Ritual de la Semana.', [
+    Alert.alert('Horario guardado', 'Tu horario quedó listo. Puedes corregir cualquier día desde Semana.', [
       { text: 'Continuar', onPress: () => router.replace('/week') },
     ]);
   }

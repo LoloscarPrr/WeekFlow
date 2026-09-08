@@ -1,6 +1,6 @@
 # WF-WEEK-001 — Semana canónica y compacta
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 
 ## Problem
@@ -27,13 +27,13 @@ Semana debe mostrar únicamente la información y acciones útiles hoy: un encab
 - No cambiar la navegación inferior ni el esquema SQLite.
 
 ## Acceptance criteria
-- [ ] AC1 — Semana muestra un único título compacto, sin el eyebrow `SEMANA` ni la frase duplicada `Tu semana.`.
-- [ ] AC2 — El resumen sigue mostrando jornadas, libres y tiempo programado, con menor altura y sin explicación narrativa adicional.
-- [ ] AC3 — Las siete filas siguen siendo tocables y cada editor conserva Trabajo/Libre, Entrada, Salida y Colación.
-- [ ] AC4 — Existe una acción tocable `Importar horario` que abre `/import`, sin subtítulo redundante.
-- [ ] AC5 — Semana no renderiza Ritual, Origen, Resumen humano, formulario/lista de momentos importantes ni confirmación final.
-- [ ] AC6 — Los mensajes posteriores a importar no indican terminar un ritual ni confirmar por segunda vez; explican que el horario quedó guardado y puede corregirse en Semana.
-- [ ] AC7 — Los modelos, datos persistidos y consumidores existentes de `importantMoments`/`organizedAt` se mantienen sin migración ni pérdida.
+- [x] AC1 — Semana muestra un único título compacto, sin el eyebrow `SEMANA` ni la frase duplicada `Tu semana.`.
+- [x] AC2 — El resumen sigue mostrando jornadas, libres y tiempo programado, con menor altura y sin explicación narrativa adicional.
+- [x] AC3 — Las siete filas siguen siendo tocables y cada editor conserva Trabajo/Libre, Entrada, Salida y Colación.
+- [x] AC4 — Existe una acción tocable `Importar horario` que abre `/import`, sin subtítulo redundante.
+- [x] AC5 — Semana no renderiza Ritual, Origen, Resumen humano, formulario/lista de momentos importantes ni confirmación final.
+- [x] AC6 — Los mensajes posteriores a importar no indican terminar un ritual ni confirmar por segunda vez; explican que el horario quedó guardado y puede corregirse en Semana.
+- [x] AC7 — Los modelos, datos persistidos y consumidores existentes de `importantMoments`/`organizedAt` se mantienen sin migración ni pérdida.
 - [ ] AC8 — Quality completo pasa; versión y changelog quedan en `0.3.15`; el build Android de `main` pasa antes de cerrar la spec.
 
 ## Data / persistence impact
@@ -56,10 +56,10 @@ Ningún cambio de esquema ni migración. Se conserva la lectura/escritura existe
 - Sibling screens checked: importación, Ahora y notificaciones; sin cambios visuales fuera de Semana/import copy.
 
 ## Verification plan
-- [ ] Revisar el árbol renderizado y estilos de `app/week.tsx` contra AC1–AC5.
-- [ ] Buscar referencias residuales a `WeekRitualCard` y copy de ritual.
-- [ ] Ejecutar `npm run quality`.
-- [ ] Revisar diff y confirmar que no hay cambios de persistencia/migración.
+- [x] Revisar el árbol renderizado y estilos de `app/week.tsx` contra AC1–AC5.
+- [x] Buscar referencias residuales a `WeekRitualCard` y copy de ritual.
+- [x] Ejecutar `npm run quality`.
+- [x] Revisar diff y confirmar que no hay cambios de persistencia/migración.
 - [ ] Abrir PR con `Spec: WF-WEEK-001` y checklist PASS/BLOCKED.
 - [ ] Fusionar tras Quality y comprobar Quality + Android en `main`.
 
@@ -67,11 +67,11 @@ Ningún cambio de esquema ni migración. Se conserva la lectura/escritura existe
 La eliminación se limita a la capa de presentación. Los casos de uso de ImportantMoment se conservan porque Ahora y notificaciones aún consumen datos existentes y el futuro Asistente reutilizará el mismo estado canónico.
 
 ## Verification result
-- AC1: PENDING
-- AC2: PENDING
-- AC3: PENDING
-- AC4: PENDING
-- AC5: PENDING
-- AC6: PENDING
-- AC7: PENDING
-- AC8: PENDING
+- AC1: PASS — `app/week.tsx` renderiza un solo `Text` de título: `Semana`, a 24 px.
+- AC2: PASS — se conservan `workDays`, `freeDays` y `total`; la tarjeta reduce padding, tipografía, radios y margen.
+- AC3: PASS — las siete jornadas siguen naciendo de `week.shifts.map`; se preservaron Pressable, Trabajo/Libre, pickers Entrada/Salida y TextInput de Colación.
+- AC4: PASS — `Importar horario` conserva `router.push('/import')` y 52 dp de altura mínima.
+- AC5: PASS — se retiró el render/import y se eliminó `src/components/WeekRitualCard.tsx`.
+- AC6: PASS — cámara/galería/Excel y PDF terminan con `Horario guardado` y permiten corregir desde Semana.
+- AC7: PASS — el diff no toca dominio, datos, migraciones ni persistencia; las 19 regresiones existentes y suites OCR/Excel/Move/comercial pasan.
+- AC8: PENDING — versión y changelog `0.3.15` listos; `npm run quality` local PASS; falta Quality del PR y build Android tras merge a `main`.
