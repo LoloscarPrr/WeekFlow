@@ -1,6 +1,6 @@
 # WF-WEEK-003 — Evento importante visible sobre el teclado
 
-Status: VERIFYING
+Status: DONE
 Owner: WeekFlow
 
 ## Problem
@@ -28,7 +28,7 @@ Cuando el campo recibe foco, Semana reduce el área visible para el teclado y de
 - [x] AC5 — La edición de jornadas y los selectores de fecha/hora mantienen su comportamiento.
 - [x] AC6 — Food, Move y los modales con teclado no cambian.
 - [x] AC7 — TypeScript y todas las regresiones existentes pasan; no hay cambios de esquema ni migraciones.
-- [ ] AC8 — La fuente queda en `0.3.19` / `74` y el build Android firmado se verifica antes de cerrar la spec.
+- [x] AC8 — La fuente queda en `0.3.19` / `74` y el build Android firmado se verifica antes de cerrar la spec.
 
 ## Data / persistence impact
 Ninguno. No cambian entidades, casos de uso, repositorios, SQLite ni migraciones.
@@ -58,4 +58,4 @@ Semana gana solamente comportamiento de evitación y desplazamiento frente al te
 - AC5: PASS — el controlador y ambos `DateTimePicker` no cambiaron.
 - AC6: PASS — no hay diff en Food, Move ni TimeEditModal.
 - AC7: PASS — TypeScript, 20 regresiones core y las suites OCR, Excel, Move, commercial, consent y estructura de teclado pasan.
-- AC8: PENDING — fuente 0.3.19 / 74 lista; falta verificar el workflow Android firmado.
+- AC8: PASS — PR Quality y main Quality pasan; Android 124 publicó APK/AAB firmados `0.3.19` desde `db77f2f8b443c57e746a83be95014492551d418e`.
