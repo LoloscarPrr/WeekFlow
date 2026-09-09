@@ -1,6 +1,6 @@
 # WF-WEEK-002 — Registro mínimo de evento importante
 
-Status: VERIFYING
+Status: DONE
 Owner: WeekFlow
 
 ## Problem
@@ -32,7 +32,7 @@ Semana permite registrar un evento importante mediante un control pequeño y dir
 - [x] AC5 — Cada evento mostrado puede eliminarse y la eliminación se persiste inmediatamente.
 - [x] AC6 — El modelo y esquema no cambian; Ahora y notificaciones conservan sus consumidores actuales de `importantMoments`.
 - [x] AC7 — La pantalla mantiene áreas táctiles de al menos 44 dp y el teclado no bloquea Guardar ni la lista inferior.
-- [ ] AC8 — `npm run quality` pasa, la versión fuente queda en `0.3.18` / `73` y el build Android firmado se verifica antes de cerrar la spec.
+- [x] AC8 — `npm run quality` pasa, la versión fuente queda en `0.3.18` / `73` y el build Android firmado se verifica antes de cerrar la spec.
 
 ## Data / persistence impact
 No hay migración ni cambio de esquema. La UI reutiliza `upsertImportantMoment` y `removeImportantMoment`; cada cambio se guarda mediante `saveWeekState`. Los eventos históricos se conservan.
@@ -56,8 +56,8 @@ No hay migración ni cambio de esquema. La UI reutiliza `upsertImportantMoment` 
 - [x] Revisar el árbol de Semana contra AC1–AC2 y las áreas táctiles contra AC7.
 - [x] Ejecutar `npm run quality`.
 - [x] Revisar el diff y confirmar ausencia de migraciones y cambios en consumidores.
-- [ ] Ejecutar el workflow Android, validar APK/AAB y registrar evidencia.
-- [ ] Abrir PR con `Spec: WF-WEEK-002` y checklist PASS/BLOCKED.
+- [x] Ejecutar el workflow Android, validar APK/AAB y registrar evidencia.
+- [x] Abrir PR con `Spec: WF-WEEK-002` y checklist PASS/BLOCKED.
 
 ## Implementation notes
 La instrucción explícita del usuario reemplaza la decisión histórica de 0.2.5 que reservaba la captura para el Asistente. El cambio conserva el objetivo de `WF-WEEK-001`: Semana sigue compacta y no recupera el Ritual.
@@ -70,4 +70,4 @@ La instrucción explícita del usuario reemplaza la decisión histórica de 0.2.
 - AC5: PASS — cada fila tiene una acción táctil de 44 dp que llama a `removeImportantMoment` y persiste el resultado.
 - AC6: PASS — no hay cambios de entidad, migración, Ahora ni notificaciones; ambos consumidores existentes permanecen intactos.
 - AC7: PASS — entrada y botones tienen 44 dp mínimos; Semana conserva `keyboardShouldPersistTaps="handled"`, `adjustResize` y padding inferior.
-- AC8: PENDING — Quality local pasa con 20 regresiones; versión fuente 0.3.18 / 73 y prebuild Android pasan. Falta el build firmado de `main`.
+- AC8: PASS — Quality local, PR Quality 126 y main Quality 127 pasan. Android 123 publicó APK/AAB firmados `0.3.18` con `versionCode 100123`; el AAB valida con Bundletool y el APK verifica con esquema v2 y certificado SHA-256 `C9:C6:00:0D:41:66:DF:64:C5:14:00:D9:3C:0D:86:71:64:00:64:68:0E:AD:1D:B4:C5:2B:4A:65:44:8D:97:BA`.
