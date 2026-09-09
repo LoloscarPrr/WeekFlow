@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import DateTimePicker from '@expo/ui/community/datetime-picker';
 import { Brand } from '@/src/components/Brand';
 import { RefreshableScrollView } from '@/src/components/AppRefresh';
+import { ImportantEventCard } from '@/src/components/ImportantEventCard';
 import { useWeekController } from '@/src/presentation/week/useWeekController';
 import { shiftSummaryLabel } from '@/src/domain/services/weekPresentation';
 import { colors } from '@/src/theme/colors';
@@ -21,6 +22,8 @@ export default function WeekScreen() {
     setWorkDay,
     setFreeDay,
     setBreakMinutes,
+    saveImportantMoment,
+    deleteImportantMoment,
     openTimePicker,
     applyPickedTime,
     closeTimePicker,
@@ -122,6 +125,12 @@ export default function WeekScreen() {
           <Text style={styles.importText}>Importar horario</Text>
           <Text style={styles.importArrow}>→</Text>
         </Pressable>
+
+        <ImportantEventCard
+          moments={week.importantMoments}
+          onSave={saveImportantMoment}
+          onDelete={deleteImportantMoment}
+        />
       </RefreshableScrollView>
 
       {timePicker ? (

@@ -3,44 +3,41 @@
 ## Repository
 - Repository: `LoloscarPrr/WeekFlow`
 - Base ref: `origin/main`
-- Working ref/branch: `codex/wf-comm-003-play-candidate`
-- Latest relevant commit: `8a09261aa0177a576257c02baf5c5ddc91a0d090` — verified WeekFlow 0.3.15 Android release.
+- Working ref/branch: `codex/wf-week-002-minimal-important-event`
+- Latest relevant commit: `f935dd3932575cebfe685cea11c9cb513eda4c97` — verified WeekFlow 0.3.17 Google Play candidate.
 
 ## App / build state
-- Source version: `0.3.15`; Android source `versionCode`: `70`.
-- Published AAB: package `com.weekflow.app`, version `0.3.15`, CI `versionCode` `100120`.
-- The published AAB validates successfully, is release-signed, targets API 36 and includes 16 KB-aligned 64-bit native libraries.
+- Source version: `0.3.17`; Android source `versionCode`: `72`.
+- Published candidate: package `com.weekflow.app`, version `0.3.17`, CI `versionCode` `100122`.
+- The published APK/AAB passed signature, bundle, target API 36, privacy-manifest and 16 KB alignment checks.
 
 ## Product context
-- Current Blueprint Maestro: v3.2, Part VII / C1 Public Preview.
-- Current product focus: prepare one Free/Premium-capable app for Google Play testing without enabling billing or weakening the offline-first core.
-- Relevant decisions: D-001 reduce user burden; D-017 one app and codebase; D-018 useful Free tier; D-019 parallel Google Play track; D-020 validate distribution before monetization.
+- Current Blueprint Maestro: v3.2; `SCH-15` keeps important moments in the canonical WeekFlow model and the Free scope includes important moments with a concrete date.
+- Current product focus: preserve the compact Week screen while restoring the smallest useful manual path for an important event.
+- The user's current instruction explicitly supersedes the earlier 0.2.5 decision that hid manual important-moment controls pending an Assistant flow.
 
 ## Specs
-- `WF-CORE-005 — Firebase + Crashlytics`: DONE; automatic Crashlytics collection is disabled in the release manifest.
-- `WF-COMM-001 — Free/Premium entitlement foundation`: implementation/tests pass, but the status header remains stale at VERIFYING.
-- `WF-COMM-002 — Google Play public-preview build foundation`: release evidence passes, but the status header remains stale at IMPLEMENTING.
-- Proposed next spec: `WF-COMM-003 — Google Play privacy and release candidate`.
+- `WF-WEEK-001 — Semana canónica y compacta`: DONE; removed the verbose ritual while preserving important-moment data.
+- `WF-COMM-003 — Google Play privacy and release candidate`: DONE; 0.3.17 signed candidate verified.
+- Proposed next spec: `WF-WEEK-002 — Registro mínimo de evento importante`.
 
 ## Relevant implementation surface
-- Privacy entry point: `app/assistant.tsx`; new policy screen under `app/`.
-- Crash reporting: `src/observability/crashlytics.ts`, app startup in `app/_layout.tsx`, SQLite key-value persistence.
-- Android manifest inputs: `app.json` and Expo prebuild.
-- Commercial/release docs: `docs/commercial/`, `PRIVACY_POLICY.md`, version metadata and changelog.
+- Week UI: `app/week.tsx` and a new focused event component under `src/components/`.
+- Week state controller: `src/presentation/week/useWeekController.ts`.
+- Existing behavior/persistence: `upsertImportantMoment`, `removeImportantMoment`, `loadWeekState` and `saveWeekState`.
+- Downstream consumers: Ahora and local notifications already read `importantMoments`.
 
 ## Baseline
-- Local TypeScript + tests: `PASS` — `npm run quality` on `origin/main` content.
-- Published 0.3.15 AAB validation/signature/API level: `PASS`.
-- Previous main Quality and Android release workflows: `PASS` for 0.3.15.
-- Play Console setup, Play App Signing selection and Play-delivered update test: `NOT RUN` / external.
+- Local TypeScript + tests: `PASS` — `npm run quality` on current `origin/main`; 19 core regressions plus OCR, Excel, Move, commercial and consent suites passed.
+- Current 0.3.17 release validation: `PASS`, recorded in `WF-COMM-003`.
+- Play Console state for the older build uploaded from another chat: `UNAVAILABLE`; no Play Console write capability is available in this session.
 
 ## Constraints / uncertainties
-- No authenticated Play Console capability is available in this session; external declarations and track rollout cannot be completed from the repository.
-- The current app has no in-app privacy-policy access and no canonical public privacy-policy document.
-- The current release manifest contains unused `SYSTEM_ALERT_WINDOW`; it must be blocked before the Play candidate build.
-- Store screenshots must depict the final candidate on a real device and remain an external capture gate.
+- The supplied video shows the verbose pre-0.3.15 Week ritual; it is reference evidence, not the code base for this change.
+- The new control must not restore ritual, origin, human summary, second confirmation or explanatory paragraphs.
+- A signed 0.3.18 APK/AAB requires the repository release workflow after merge.
 
 ## Next TLC action
-- Lock `WF-COMM-003`, implement the smallest privacy/manifest/release slice, verify every repository criterion, then build the signed 0.3.16 APK and AAB through CI.
+- Lock `WF-WEEK-002`, implement only the compact event flow, verify persistence and sibling consumers, then prepare the 0.3.18 release.
 
 > Rule: do not convert `NOT RUN`, `UNAVAILABLE`, or uncertainty into an assumed PASS. Initialization establishes context; the feature spec still defines what must be built.
