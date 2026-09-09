@@ -1,6 +1,7 @@
+import { useRef } from 'react';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import DateTimePicker from '@expo/ui/community/datetime-picker';
 import { Brand } from '@/src/components/Brand';
 import { RefreshableScrollView } from '@/src/components/AppRefresh';
@@ -12,6 +13,7 @@ import { colors } from '@/src/theme/colors';
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
 export default function WeekScreen() {
+  const scrollRef = useRef<ScrollView>(null);
   const {
     week,
     summary,
@@ -29,13 +31,24 @@ export default function WeekScreen() {
     closeTimePicker,
   } = useWeekController();
 
+  function keepImportantEventVisible() {
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 180);
+  }
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <RefreshableScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        onRefreshData={refreshWeek}
+      <KeyboardAvoidingView
+        style={styles.keyboardShell}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
       >
+        <RefreshableScrollView
+          ref={scrollRef}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          onRefreshData={refreshWeek}
+        >
         <Brand />
 
         <View style={styles.hero}>
@@ -126,12 +139,14 @@ export default function WeekScreen() {
           <Text style={styles.importArrow}>→</Text>
         </Pressable>
 
-        <ImportantEventCard
-          moments={week.importantMoments}
-          onSave={saveImportantMoment}
-          onDelete={deleteImportantMoment}
-        />
-      </RefreshableScrollView>
+          <ImportantEventCard
+            moments={week.importantMoments}
+            onSave={saveImportantMoment}
+            onDelete={deleteImportantMoment}
+            onTitleFocus={keepImportantEventVisible}
+          />
+        </RefreshableScrollView>
+      </KeyboardAvoidingView>
 
       {timePicker ? (
         <DateTimePicker
@@ -151,6 +166,7 @@ export default function WeekScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
+  keyboardShell: { flex: 1 },
   content: { paddingHorizontal: 18, paddingTop: 18, paddingBottom: 96 },
   hero: { marginTop: 14, marginBottom: 10 },
   title: { color: colors.text, fontWeight: '900', fontSize: 24, lineHeight: 29 },
