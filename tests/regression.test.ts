@@ -12,6 +12,13 @@ import type { BrainMoment, BrainSnapshot } from '../src/domain/entities/Planning
 import type { WeekSchedule } from '../src/domain/entities/Shift';
 import { longLocalDateLabel, shortLocalDateLabel } from '../src/domain/services/calendarDate';
 import { importantMomentsForDate } from '../src/domain/services/importantMoments';
+import {
+  defaultImportantEventWhen,
+  localDateKey,
+  localTimeValue,
+  replaceLocalDate,
+  replaceLocalTime,
+} from '../src/domain/services/importantEventDraft';
 import { IMPORTANT_MOMENT_ICON, timelineAfterFeaturedMoment } from '../src/domain/services/nowTimeline';
 import { shiftContextForDate, shiftDurationMinutes } from '../src/domain/services/shiftSchedule';
 import { shiftSummaryLabel } from '../src/domain/services/weekPresentation';
@@ -234,6 +241,21 @@ run('los momentos importantes se validan, ordenan y permiten cerrar la semana', 
   equal(monday.importantMoments[1].title, 'Cena familiar', 'título normalizado');
   const completed = completeWeekRitual(monday, '2026-08-16T21:00:00.000Z');
   equal(completed.organizedAt, '2026-08-16T21:00:00.000Z', 'cierre persistido');
+});
+
+run('el borrador de evento importante conserva fecha y hora locales', () => {
+  const afterMidnight = defaultImportantEventWhen(new Date(2026, 8, 8, 23, 30));
+  equal(localDateKey(afterMidnight), '2026-09-09', 'fecha siguiente local');
+  equal(localTimeValue(afterMidnight), '00:30', 'hora siguiente local');
+
+  const original = new Date(2026, 8, 8, 18, 45);
+  const withDate = replaceLocalDate(original, new Date(2026, 9, 12, 9, 10));
+  equal(localDateKey(withDate), '2026-10-12', 'fecha elegida');
+  equal(localTimeValue(withDate), '18:45', 'hora conservada al elegir fecha');
+
+  const withTime = replaceLocalTime(withDate, new Date(2026, 0, 1, 7, 5));
+  equal(localDateKey(withTime), '2026-10-12', 'fecha conservada al elegir hora');
+  equal(localTimeValue(withTime), '07:05', 'hora elegida');
 });
 
 run('Ahora recibe únicamente los momentos importantes del día calendario', () => {
