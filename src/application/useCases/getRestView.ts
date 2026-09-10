@@ -83,18 +83,12 @@ export function getRestView(dayState: DayState, weekState: WeekSchedule, now = n
     ? { ...recentCandidate, endAtDate: candidateEndAt }
     : null;
 
-  const snapshot: BrainSnapshot = {
-    ...dayState.settings,
-    shift: context.shift,
-    energy: dayState.energy,
-  };
-  const activePlan = buildBrainPlan(snapshot);
-  const activeRecovery = activeNight
+  const activeRecovery = activeNight && activeEnd
     ? (() => {
-      const commute = activePlan.moments.find((item) => item.type === 'commute-back');
-      const recovery = activePlan.moments.find((item) => item.type === 'recovery');
-      const rest = activePlan.moments.find((item) => item.type === 'rest');
-      return commute && recovery && rest ? { commute, recovery, rest } : null;
+      const homeAt = addDateMinutes(activeEnd, dayState.settings.commuteBackMin);
+      const recoveryAt = addDateMinutes(homeAt, dayState.settings.recoveryMin);
+      const restAt = addDateMinutes(recoveryAt, 30);
+      return { homeAt, recoveryAt, restAt };
     })()
     : null;
 
@@ -139,7 +133,7 @@ export function getRestView(dayState: DayState, weekState: WeekSchedule, now = n
     heroTitle = 'Después de la noche, recuperar va primero.';
     contextTitle = 'Turno nocturno en curso';
     contextCopy = 'No voy a poner productividad detrás de la salida. El orden es regreso, bajar revoluciones y descanso.';
-    contextMeta = `Salida ${formatHm(activeEnd)} · regreso aprox. ${activeRecovery.commute.time} · descanso ${activeRecovery.rest.time}`;
+    contextMeta = `Salida ${formatHm(activeEnd)} · regreso aprox. ${formatHm(activeRecovery.homeAt)} · descanso ${formatHm(activeRecovery.restAt)}`;
   } else if (shiftActive && activeEnd) {
     contextTitle = 'Jornada en curso';
     contextCopy = 'Rest ya reserva el regreso y la descompresión antes de pensar en extras para después del trabajo.';
@@ -169,9 +163,9 @@ export function getRestView(dayState: DayState, weekState: WeekSchedule, now = n
         sectionTitle: 'DESPUÉS DEL TURNO',
         rows: [
           { time: formatHm(activeEnd), icon: '✓', title: 'Salir', copy: 'La salida real puede corregir esta hora con “Ya salí”.' },
-          { time: activeRecovery.commute.time, icon: '🚇', title: 'Llegar a casa', copy: `${dayState.settings.commuteBackMin} min de regreso estimado.` },
-          { time: activeRecovery.recovery.time, icon: '🌿', title: 'Bajar revoluciones', copy: `${dayState.settings.recoveryMin} min protegidos antes de sumar otra cosa.` },
-          { time: activeRecovery.rest.time, icon: '😴', title: 'Dormir / recuperar', copy: 'Después de una noche, Rest gana prioridad sobre lo flexible.' },
+          { time: formatHm(activeRecovery.homeAt), icon: '🚇', title: 'Llegar a casa', copy: `${dayState.settings.commuteBackMin} min de regreso estimado.` },
+          { time: formatHm(activeRecovery.recoveryAt), icon: '🌿', title: 'Bajar revoluciones', copy: `${dayState.settings.recoveryMin} min protegidos antes de sumar otra cosa.` },
+          { time: formatHm(activeRecovery.restAt), icon: '😴', title: 'Dormir / recuperar', copy: 'Después de una noche, Rest gana prioridad sobre lo flexible.' },
         ],
       },
     };
