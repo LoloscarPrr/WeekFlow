@@ -203,6 +203,7 @@ jobs:
           name: WeekFlow-Alpha-v${{ steps.version.outputs.version }}-Standalone-APK
           path: output/WeekFlow-Alpha-v${{ steps.version.outputs.version }}-Standalone.apk
           if-no-files-found: error
+          retention-days: 3
 
       - name: Upload Play AAB artifact
         uses: actions/upload-artifact@v4
@@ -210,6 +211,7 @@ jobs:
           name: WeekFlow-Alpha-v${{ steps.version.outputs.version }}-Play-AAB
           path: output/WeekFlow-Alpha-v${{ steps.version.outputs.version }}-Play.aab
           if-no-files-found: error
+          retention-days: 3
 
       - name: Publish Android outputs to GitHub Releases
         if: github.event_name != 'pull_request'
