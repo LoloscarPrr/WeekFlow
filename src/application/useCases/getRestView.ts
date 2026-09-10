@@ -1,12 +1,12 @@
-import { buildBrainPlan } from '@/src/brain/engine';
-import type { DayState } from '@/src/domain/entities/DailyState';
-import type { BrainSnapshot } from '@/src/domain/entities/Planning';
-import type { WeekSchedule } from '@/src/domain/entities/Shift';
+import { buildBrainPlan } from '../../brain/engine';
+import type { DayState } from '../../domain/entities/DailyState';
+import type { BrainSnapshot } from '../../domain/entities/Planning';
+import type { WeekSchedule } from '../../domain/entities/Shift';
 import {
   isNightShift,
   nextWorkingShift,
   shiftContextForDate,
-} from '@/src/domain/services/shiftSchedule';
+} from '../../domain/services/shiftSchedule';
 
 export type RestTimelineRow = {
   time: string;
