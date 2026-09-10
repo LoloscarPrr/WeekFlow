@@ -21,6 +21,7 @@
     "src/brain/engine.ts",
     "src/brain/exitImpact.ts",
     "src/brain/types.ts",
+    "src/application/useCases/getRestView.ts",
     "src/application/useCases/registerActualExit.ts",
     "src/application/useCases/updateWeekSchedule.ts",
     "src/import/scheduleOcr.ts",
