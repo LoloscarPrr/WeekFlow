@@ -94,17 +94,21 @@ function shiftWindowForDate(week: WeekSchedule, date: Date) {
   return { shift, day: stored.day, startAt, endAt };
 }
 
-export function shiftContextForDate(week: WeekSchedule, date = new Date()): ShiftContext {
+export function shiftContextForDate(week: WeekSchedule, date = new Date(), postShiftCarryMin = 0): ShiftContext {
   const previousDate = new Date(date);
   previousDate.setDate(previousDate.getDate() - 1);
   const previous = shiftWindowForDate(week, previousDate);
+  const previousCarryEnd = previous.endAt
+    ? new Date(previous.endAt.getTime() + Math.max(0, postShiftCarryMin) * 60_000)
+    : null;
 
   if (
     previous.startAt
     && previous.endAt
+    && previousCarryEnd
     && crossesMidnight(previous.shift)
     && date >= previous.startAt
-    && date < previous.endAt
+    && date < previousCarryEnd
   ) {
     return {
       shift: previous.shift,
