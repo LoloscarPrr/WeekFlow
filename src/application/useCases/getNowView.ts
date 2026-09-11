@@ -6,7 +6,7 @@ import type { Shift, WeekSchedule } from '@/src/domain/entities/Shift';
 import { longLocalDateLabel, shortLocalDateLabel } from '@/src/domain/services/calendarDate';
 import { importantMomentsForDate } from '@/src/domain/services/importantMoments';
 import { IMPORTANT_MOMENT_ICON, timelineAfterFeaturedMoment } from '@/src/domain/services/nowTimeline';
-import { shiftContextForDate, type ShiftContext } from '@/src/domain/services/shiftSchedule';
+import { nextWorkingShift, shiftContextForDate, type ShiftContext } from '@/src/domain/services/shiftSchedule';
 
 export type DayPhase = 'off' | 'before' | 'commuting' | 'working' | 'after';
 
@@ -51,6 +51,10 @@ function dateAtHm(base: Date, value: string) {
   const result = new Date(base);
   result.setHours(hours, minutes, 0, 0);
   return result;
+}
+
+function hm(date: Date) {
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
 function phaseForShift(
@@ -165,10 +169,10 @@ function liveCard(
 
   if (phase === 'after') {
     return {
-      title: 'Jornada finalizada',
-      blue: `${todayShift.end} · Salida programada`,
-      copy: 'Si saliste a otra hora, registra la salida real para ajustar solo lo que viene después.',
-      icon: '✓',
+      title: 'Recuperación post-turno',
+      blue: upcomingMoments[0] ? `${upcomingMoments[0].time} · ${upcomingMoments[0].title}` : `${todayShift.end} · Turno terminado`,
+      copy: 'La jornada terminó. WeekFlow mantiene regreso y descanso antes de pasar al siguiente turno.',
+      icon: '🌙',
     };
   }
 
@@ -201,7 +205,8 @@ function liveCard(
 }
 
 export function getNowView({ dayState, weekState, moveDoneToday, now }: GetNowViewInput): NowView {
-  const shiftContext = shiftContextForDate(weekState, now);
+  const postShiftCarryMin = dayState.settings.commuteBackMin + dayState.settings.recoveryMin + 30;
+  const shiftContext = shiftContextForDate(weekState, now, postShiftCarryMin);
   const todayShift = shiftContext.shift;
   const snapshot: BrainSnapshot = {
     ...dayState.settings,
@@ -247,8 +252,46 @@ export function getNowView({ dayState, weekState, moveDoneToday, now }: GetNowVi
     },
   }));
 
+  const extraRealityMoments: { item: BrainMoment; at: Date }[] = [];
+  const endAt = shiftContext.endAt ? new Date(shiftContext.endAt) : null;
+  const inPostNightRecovery = Boolean(
+    shiftContext.overnightCarry
+    && endAt
+    && now >= endAt
+    && todayShift.type === 'night',
+  );
+
+  if (inPostNightRecovery && endAt) {
+    const homeAt = new Date(endAt.getTime() + dayState.settings.commuteBackMin * 60_000);
+    if (homeAt >= now) {
+      extraRealityMoments.push({
+        at: homeAt,
+        item: {
+          time: hm(homeAt),
+          icon: '🚇',
+          title: 'Llegar a casa',
+          detail: `${dayState.settings.commuteBackMin} min estimados desde la salida.`,
+          type: 'commute-back',
+          flexible: false,
+        },
+      });
+    }
+
+    const nextShift = nextWorkingShift(weekState, now);
+    if (nextShift) {
+      const nextSnapshot: BrainSnapshot = {
+        ...dayState.settings,
+        shift: nextShift.shift,
+        energy: dayState.energy,
+      };
+      const nextPlan = buildBrainPlan(nextSnapshot);
+      extraRealityMoments.push(...datedPlanMoments(nextPlan.moments, nextShift.startAt, now));
+    }
+  }
+
   const upcomingMoments = [
     ...datedPlanMoments(plan.moments, shiftContext.startAt, now),
+    ...extraRealityMoments,
     ...datedImportantMoments,
   ]
     .filter(({ item, at }) => {
@@ -257,6 +300,10 @@ export function getNowView({ dayState, weekState, moveDoneToday, now }: GetNowVi
       return at.getTime() >= now.getTime();
     })
     .sort((a, b) => a.at.getTime() - b.at.getTime())
+    .filter((entry, index, array) => {
+      const previous = array[index - 1];
+      return !previous || previous.at.getTime() !== entry.at.getTime() || previous.item.type !== entry.item.type;
+    })
     .map(({ item }) => item)
     .slice(0, 7);
 
