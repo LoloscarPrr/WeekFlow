@@ -225,7 +225,9 @@ export function sanitizeMovePreferences(value: unknown): MovePreferences {
   const goal = MOVE_GOALS.has(candidate.goal as MoveGoal)
     ? candidate.goal as MoveGoal
     : 'bienestar';
-  const equipment = candidate.equipment && typeof candidate.equipment === 'object' ? candidate.equipment : {};
+  const equipment: Partial<MoveEquipment> = candidate.equipment && typeof candidate.equipment === 'object'
+    ? candidate.equipment as Partial<MoveEquipment>
+    : {};
 
   return {
     focus,
