@@ -26,6 +26,7 @@ import {
 import {
   DEFAULT_MOVE_PREFERENCES,
   sanitizeMovePreferences,
+  type MoveIntensity,
   type MovePreferences,
 } from '@/src/move/adaptation';
 import {
@@ -64,6 +65,7 @@ export type MoveSessionRecord = {
   endedEarly: boolean;
   feedback: string | null;
   feedbackSkipped?: boolean;
+  intensity?: MoveIntensity;
 };
 
 export type ActiveMoveSession = {
@@ -75,9 +77,14 @@ export type ActiveMoveSession = {
   paused: boolean;
   pausedAt: string | null;
   pausedTotalMs: number;
+  intensity?: MoveIntensity;
 };
 
 export type { FoodDayRecord, FoodEntry } from '@/src/food/history';
+
+function isMoveIntensity(value: unknown): value is MoveIntensity {
+  return value === 'recuperacion' || value === 'suave' || value === 'moderada' || value === 'alta';
+}
 
 export function loadDayState(): PersistedDayState {
   return loadDayStateUseCase(sqliteDayStateRepository);
@@ -134,6 +141,7 @@ export function loadActiveMoveSession(): ActiveMoveSession | null {
     paused: Boolean(parsed.paused),
     pausedAt: typeof parsed.pausedAt === 'string' ? parsed.pausedAt : null,
     pausedTotalMs: typeof parsed.pausedTotalMs === 'number' ? parsed.pausedTotalMs : 0,
+    intensity: isMoveIntensity(parsed.intensity) ? parsed.intensity : undefined,
   };
 }
 

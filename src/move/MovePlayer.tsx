@@ -1,15 +1,36 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Brand } from '@/src/components/Brand';
+import { MOVE_INTENSITY_LABELS } from '@/src/move/adaptation';
+import { exerciseCueForPreferences, moveExerciseEquipmentLabel } from '@/src/move/library';
 import { moveStyles as styles } from '@/src/move/styles';
 import { formatMoveTime, type MoveController } from '@/src/move/useMoveController';
 
 export function MovePlayer({ move }: { move: MoveController }) {
-  const { activeSession, runtime, routine, currentStepIndex, currentExercise, phaseRemainingSeconds, phasePercent, sessionElapsedSeconds, overallPercent, sessionDuration, advanceToNextExercise, completeCurrentExercise, togglePause, switchExercise, finishSession } = move;
+  const {
+    activeSession,
+    runtime,
+    routine,
+    preferences,
+    sessionIntensity,
+    currentStepIndex,
+    currentExercise,
+    phaseRemainingSeconds,
+    phasePercent,
+    sessionElapsedSeconds,
+    overallPercent,
+    sessionDuration,
+    advanceToNextExercise,
+    completeCurrentExercise,
+    togglePause,
+    switchExercise,
+    finishSession,
+  } = move;
   if (!activeSession || !runtime) return null;
 
   const resting = runtime.phase === 'rest';
   const nextStep = routine.steps[Math.min(currentStepIndex + 1, routine.steps.length - 1)];
+  const equipment = resting ? null : moveExerciseEquipmentLabel(currentExercise, preferences);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -22,7 +43,7 @@ export function MovePlayer({ move }: { move: MoveController }) {
         <Brand />
         <View style={styles.sessionHeader}>
           <View style={styles.sessionHeaderCopy}>
-            <Text style={styles.sessionEyebrow}>MOVE · SESIÓN</Text>
+            <Text style={styles.sessionEyebrow}>MOVE · {MOVE_INTENSITY_LABELS[sessionIntensity].toUpperCase()}</Text>
             <Text style={styles.sessionCounter}>{resting ? 'Descanso' : `Ejercicio ${currentStepIndex + 1} de ${routine.steps.length}`}</Text>
           </View>
           <Text style={styles.sessionElapsed}>{formatMoveTime(sessionElapsedSeconds)}</Text>
@@ -34,8 +55,9 @@ export function MovePlayer({ move }: { move: MoveController }) {
             <Text style={styles.playerTitle} numberOfLines={3} adjustsFontSizeToFit minimumFontScale={0.72}>
               {resting ? 'Descanso breve' : currentExercise.title}
             </Text>
+            {equipment ? <Text style={styles.equipmentBadge}>{equipment}</Text> : null}
           </View>
-          <Text style={styles.playerCopy}>{resting ? `Respira y baja un poco el ritmo. Después: ${nextStep.exercise.title}.` : currentExercise.cue}</Text>
+          <Text style={styles.playerCopy}>{resting ? `Respira y baja un poco el ritmo. Después: ${nextStep.exercise.title}.` : exerciseCueForPreferences(currentExercise, preferences)}</Text>
 
           {!resting ? (
             <View style={styles.easyBox}>
@@ -68,7 +90,7 @@ export function MovePlayer({ move }: { move: MoveController }) {
           </View>
 
           {activeSession.paused ? <Text style={styles.pauseCopy}>En pausa. Ni el ejercicio ni el tiempo de sesión avanzan.</Text> : null}
-          <Text style={styles.safetyCopy}>Muévete a un ritmo cómodo. Si algo duele o te marea, detén la sesión.</Text>
+          <Text style={styles.safetyCopy}>Muévete a un ritmo cómodo. Si algo duele, te marea o la carga no se siente controlable, cambia el ejercicio o detén la sesión.</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
