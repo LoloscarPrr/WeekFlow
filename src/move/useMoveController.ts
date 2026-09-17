@@ -17,9 +17,13 @@ import {
 } from '@/src/state/persistence';
 import {
   moveRecommendationCopy,
+  recommendMoveIntensity,
   recommendMoveMinutes,
+  sanitizeMovePreferences,
   type MoveAvoidArea,
+  type MoveExperience,
   type MoveFocus,
+  type MoveGoal,
   type MovePreferences,
 } from '@/src/move/adaptation';
 import { alternateExercise, exerciseById, previewForDuration, routineForDuration } from '@/src/move/library';
@@ -98,13 +102,24 @@ export function useMoveController() {
     () => recommendMoveMinutes(dayState.energy, lastRecord?.feedback, todayShift, Boolean(lastRecord?.endedEarly)),
     [dayState.energy, lastRecord?.endedEarly, lastRecord?.feedback, todayShift],
   );
+  const adaptiveIntensity = useMemo(
+    () => recommendMoveIntensity(dayState.energy, preferences.experience, lastRecord?.feedback, Boolean(lastRecord?.endedEarly)),
+    [dayState.energy, lastRecord?.endedEarly, lastRecord?.feedback, preferences.experience],
+  );
+  const sessionIntensity = activeSession?.intensity ?? adaptiveIntensity;
   const recommendationCopy = useMemo(
     () => moveRecommendationCopy(dayState.energy, lastRecord?.feedback, todayShift, preferences, Boolean(lastRecord?.endedEarly)),
     [dayState.energy, lastRecord?.endedEarly, lastRecord?.feedback, preferences, todayShift],
   );
   const sessionDuration = activeSession?.plannedMinutes ?? duration;
-  const routine = useMemo(() => routineForDuration(sessionDuration, preferences), [preferences, sessionDuration]);
-  const preview = useMemo(() => previewForDuration(duration, preferences), [duration, preferences]);
+  const routine = useMemo(
+    () => routineForDuration(sessionDuration, preferences, sessionIntensity),
+    [preferences, sessionDuration, sessionIntensity],
+  );
+  const preview = useMemo(
+    () => previewForDuration(duration, preferences, adaptiveIntensity),
+    [adaptiveIntensity, duration, preferences],
+  );
   const doneToday = useMemo(() => Boolean(lastRecord && localDateKey(new Date(lastRecord.finishedAt)) === localDateKey(now)), [lastRecord, now]);
   const currentStepIndex = Math.min(activeSession?.step ?? 0, routine.steps.length - 1);
   const stepDefinition = routine.steps[currentStepIndex];
@@ -156,12 +171,44 @@ export function useMoveController() {
   const overallPercent = routine.totalSeconds > 0 ? Math.min(100, Math.round((sessionElapsedSeconds / routine.totalSeconds) * 100)) : 0;
 
   function updatePreferences(next: MovePreferences) {
-    saveMovePreferences(next);
-    setPreferences(next);
+    const sanitized = sanitizeMovePreferences(next);
+    saveMovePreferences(sanitized);
+    setPreferences(sanitized);
   }
 
   function setFocus(focus: MoveFocus) {
     updatePreferences({ ...preferences, focus });
+  }
+
+  function setExperience(experience: MoveExperience) {
+    updatePreferences({ ...preferences, experience });
+  }
+
+  function setGoal(goal: MoveGoal) {
+    updatePreferences({ ...preferences, goal });
+  }
+
+  function setWeightKg(weightKg: number | null) {
+    updatePreferences({ ...preferences, weightKg });
+  }
+
+  function setHeightCm(heightCm: number | null) {
+    updatePreferences({ ...preferences, heightCm });
+  }
+
+  function setDumbbellsKg(dumbbellsKg: number | null) {
+    updatePreferences({ ...preferences, equipment: { ...preferences.equipment, dumbbellsKg } });
+  }
+
+  function setKettlebellKg(kettlebellKg: number | null) {
+    updatePreferences({ ...preferences, equipment: { ...preferences.equipment, kettlebellKg } });
+  }
+
+  function toggleResistanceBand() {
+    updatePreferences({
+      ...preferences,
+      equipment: { ...preferences.equipment, resistanceBand: !preferences.equipment.resistanceBand },
+    });
   }
 
   function toggleFloorAllowed() {
@@ -187,8 +234,18 @@ export function useMoveController() {
   function startSession() {
     const nowMs = Date.now();
     const id = `${nowMs}`;
-    const selectedRoutine = routineForDuration(duration, preferences);
-    const next: ActiveMoveSession = { id, startedAt: new Date(nowMs).toISOString(), plannedMinutes: duration, step: 0, totalSteps: selectedRoutine.steps.length, paused: false, pausedAt: null, pausedTotalMs: 0 };
+    const selectedRoutine = routineForDuration(duration, preferences, adaptiveIntensity);
+    const next: ActiveMoveSession = {
+      id,
+      startedAt: new Date(nowMs).toISOString(),
+      plannedMinutes: duration,
+      step: 0,
+      totalSteps: selectedRoutine.steps.length,
+      paused: false,
+      pausedAt: null,
+      pausedTotalMs: 0,
+      intensity: adaptiveIntensity,
+    };
     const nextRuntime = createMoveRuntime(id, selectedRoutine.id, new Date(nowMs));
     saveActiveMoveSession(next);
     saveMoveRuntime(nextRuntime);
@@ -207,7 +264,19 @@ export function useMoveController() {
     const nowMs = Date.now();
     const actualSeconds = Math.max(0, Math.round(elapsedMs(activeSession, nowMs) / 1000));
     const completedSteps = forceComplete ? routine.steps.length : runtime?.phase === 'rest' ? currentStepIndex + 1 : currentStepIndex;
-    const record: MoveSessionRecord = { id: activeSession.id, startedAt: activeSession.startedAt, finishedAt: new Date(nowMs).toISOString(), plannedMinutes: activeSession.plannedMinutes, actualSeconds, completedSteps, totalSteps: routine.steps.length, endedEarly: completedSteps < routine.steps.length, feedback: null, feedbackSkipped: false };
+    const record: MoveSessionRecord = {
+      id: activeSession.id,
+      startedAt: activeSession.startedAt,
+      finishedAt: new Date(nowMs).toISOString(),
+      plannedMinutes: activeSession.plannedMinutes,
+      actualSeconds,
+      completedSteps,
+      totalSteps: routine.steps.length,
+      endedEarly: completedSteps < routine.steps.length,
+      feedback: null,
+      feedbackSkipped: false,
+      intensity: activeSession.intensity ?? adaptiveIntensity,
+    };
     saveMoveSession(record);
     clearActiveMoveSession();
     clearMoveRuntime();
@@ -278,7 +347,7 @@ export function useMoveController() {
   function switchExercise() {
     if (!runtime || runtime.phase !== 'exercise') return;
     const nowMs = Date.now();
-    const alternative = alternateExercise(currentExercise, preferences);
+    const alternative = alternateExercise(currentExercise, preferences, sessionIntensity);
     const nextRuntime = resetPhase({ ...runtime, exerciseOverrides: { ...runtime.exerciseOverrides, [String(currentStepIndex)]: alternative.id } }, 'exercise', nowMs);
     saveMoveRuntime(nextRuntime);
     setRuntime(nextRuntime);
@@ -332,10 +401,19 @@ export function useMoveController() {
     setExtraOpen,
     preferences,
     setFocus,
+    setExperience,
+    setGoal,
+    setWeightKg,
+    setHeightCm,
+    setDumbbellsKg,
+    setKettlebellKg,
+    toggleResistanceBand,
     toggleFloorAllowed,
     toggleChairAvailable,
     toggleAvoidArea,
     recommended,
+    adaptiveIntensity,
+    sessionIntensity,
     recommendationCopy,
     useRecommendation,
     todayShift,
