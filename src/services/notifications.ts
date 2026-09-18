@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { loadWeekState, shiftForDate } from '@/src/state/persistence';
 
-export const WEEKFLOW_NOTIFICATION_CHANNEL = 'weekflow-reminders';
+export const WEEKFLOW_NOTIFICATION_CHANNEL = 'weekflow-reminders-v2';
 
 export type WeekFlowReminder = {
   id: string;
@@ -18,6 +18,7 @@ Notifications.setNotificationHandler({
     shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
+    priority: Notifications.AndroidNotificationPriority.MAX,
   }),
 });
 
@@ -25,8 +26,8 @@ export async function initializeNotifications(): Promise<boolean> {
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync(WEEKFLOW_NOTIFICATION_CHANNEL, {
       name: 'Recordatorios WeekFlow',
-      importance: Notifications.AndroidImportance.HIGH,
-      vibrationPattern: [0, 250, 180, 250],
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 300, 180, 300],
       sound: 'default',
     });
   }
@@ -52,9 +53,13 @@ function notificationDate(notification: Notifications.NotificationRequest): numb
 
 function isLegacyEquivalent(notification: Notifications.NotificationRequest, reminder: WeekFlowReminder) {
   if (logicalReminderId(notification) !== null) return false;
-  if (notification.content.title !== reminder.title || notification.content.body !== reminder.body) return false;
   const scheduledAt = notificationDate(notification);
-  return scheduledAt !== null && Math.abs(scheduledAt - reminder.at.getTime()) < 1000;
+  if (scheduledAt === null || Math.abs(scheduledAt - reminder.at.getTime()) >= 1000) return false;
+
+  if (notification.content.title === reminder.title && notification.content.body === reminder.body) return true;
+  if (reminder.kind === 'departure' && notification.content.title === 'Tu jornada empieza pronto') return true;
+  if (reminder.kind === 'important' && notification.content.title === 'Momento importante') return true;
+  return false;
 }
 
 async function cancelEquivalentReminder(reminder: WeekFlowReminder): Promise<void> {
@@ -69,7 +74,6 @@ async function cancelEquivalentReminder(reminder: WeekFlowReminder): Promise<voi
 async function scheduleAllowedReminder(reminder: WeekFlowReminder): Promise<string | null> {
   if (reminder.at.getTime() <= Date.now()) return null;
 
-  // Replace current and legacy equivalents instead of stacking duplicates.
   await cancelEquivalentReminder(reminder);
 
   return Notifications.scheduleNotificationAsync({
@@ -77,6 +81,7 @@ async function scheduleAllowedReminder(reminder: WeekFlowReminder): Promise<stri
       title: reminder.title,
       body: reminder.body,
       sound: 'default',
+      priority: Notifications.AndroidNotificationPriority.MAX,
       data: { weekflowReminderId: reminder.id, kind: reminder.kind ?? 'general' },
     },
     trigger: {
@@ -131,10 +136,10 @@ async function performLivePlanReminderSync(now: Date): Promise<number> {
 
   const week = loadWeekState();
   const reminders: WeekFlowReminder[] = [];
-  const horizon = new Date(now);
-  horizon.setDate(horizon.getDate() + 7);
+  const shiftHorizon = new Date(now);
+  shiftHorizon.setDate(shiftHorizon.getDate() + 14);
 
-  for (let offset = 0; offset <= 7; offset += 1) {
+  for (let offset = 0; offset <= 14; offset += 1) {
     const date = new Date(now);
     date.setHours(0, 0, 0, 0);
     date.setDate(date.getDate() + offset);
@@ -142,12 +147,12 @@ async function performLivePlanReminderSync(now: Date): Promise<number> {
     if (shift.type === 'off' || !shift.start) continue;
 
     const startsAt = localDateTime(localDateKey(date), shift.start);
-    if (startsAt <= now || startsAt > horizon) continue;
+    if (startsAt <= now || startsAt > shiftHorizon) continue;
 
     reminders.push({
       id: `shift-${localDateKey(date)}-${shift.start}`,
       title: 'Tu jornada empieza pronto',
-      body: `Hoy entras a las ${shift.start}. WeekFlow te lo recuerda 30 minutos antes.`,
+      body: `Entrada ${shift.start} · WeekFlow te avisa con anticipación.`,
       at: reminderTime(startsAt, 30),
       kind: 'departure',
     });
@@ -155,12 +160,12 @@ async function performLivePlanReminderSync(now: Date): Promise<number> {
 
   for (const moment of week.importantMoments) {
     const eventAt = localDateTime(moment.date, moment.time);
-    if (eventAt <= now || eventAt > horizon) continue;
+    if (eventAt <= now) continue;
 
     reminders.push({
       id: `important-${moment.id}`,
-      title: 'Momento importante',
-      body: `${moment.title} · ${moment.time}`,
+      title: `⏰ ${moment.title}`,
+      body: `Hoy a las ${moment.time} · Recordatorio WeekFlow`,
       at: reminderTime(eventAt, 15),
       kind: 'important',
     });
