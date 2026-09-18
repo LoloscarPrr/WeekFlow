@@ -146,6 +146,9 @@ export function migrateWeekSchedule(value: unknown, referenceDate = new Date()):
 export function migrateUserProfile(value: unknown): UserProfile {
   const parsed = isRecord(value) ? value : {};
   return {
+    name: typeof parsed.name === 'string'
+      ? parsed.name
+      : defaultUserProfile.name,
     scheduleName: typeof parsed.scheduleName === 'string'
       ? parsed.scheduleName
       : defaultUserProfile.scheduleName,

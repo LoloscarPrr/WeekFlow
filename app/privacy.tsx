@@ -67,14 +67,19 @@ export default function PrivacyScreen() {
           <Text style={styles.eyebrow}>PRIVACIDAD</Text>
           <Text style={styles.title}>Tus datos siguen siendo tuyos<Text style={styles.blue}>.</Text></Text>
           <Text style={styles.intro}>
-            WeekFlow funciona principalmente en tu teléfono. Tus horarios y registros no se suben
-            a una cuenta ni se usan para publicidad.
+            WeekFlow funciona principalmente en tu teléfono. La cuenta es opcional: tu identidad
+            puede gestionarse con Firebase Authentication, mientras tu planificación sigue local en esta versión.
           </Text>
         </View>
 
         <PrivacyCard
           title="Guardado local"
           body="Jornadas, comidas, movimiento, descanso y preferencias se guardan en la base local de la app. Las imágenes y archivos que eliges se procesan para importar tu horario; WeekFlow no los envía a sus servidores."
+        />
+
+        <PrivacyCard
+          title="Cuenta opcional"
+          body="Si creas una cuenta, Firebase Authentication procesa tu correo, un identificador de usuario y el nombre que elijas. La contraseña la gestiona Firebase y WeekFlow no la guarda en su base local. Esta versión todavía no sincroniza horarios ni registros con la cuenta."
         />
 
         <PrivacyCard
@@ -109,7 +114,7 @@ export default function PrivacyScreen() {
 
         <PrivacyCard
           title="Sin venta ni publicidad"
-          body="WeekFlow no vende tus datos, no contiene anuncios y no crea una cuenta. Si activas los informes de fallos, Google Firebase actúa como proveedor técnico para ayudarnos a corregir errores."
+          body="WeekFlow no vende tus datos ni contiene anuncios. Si usas una cuenta, Firebase Authentication actúa como proveedor técnico de identidad; si activas los informes de fallos, Firebase Crashlytics ayuda a diagnosticar errores."
         />
 
         <Pressable style={styles.policyButton} onPress={openFullPolicy}>
