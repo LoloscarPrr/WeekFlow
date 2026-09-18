@@ -8,6 +8,7 @@ import {
   type WeekShiftPatch,
 } from '@/src/application/useCases/updateWeekSchedule';
 import type { ImportantMoment, WeekSchedule } from '@/src/domain/entities/Shift';
+import { syncLivePlanReminders } from '@/src/services/notifications';
 import { loadWeekState, saveWeekState } from '@/src/state/persistence';
 
 export type TimePickerTarget = {
@@ -28,6 +29,12 @@ function timeFromDate(date: Date) {
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
+function refreshScheduledReminders() {
+  void syncLivePlanReminders().catch((error) => {
+    console.warn('Could not refresh WeekFlow reminders after schedule change', error);
+  });
+}
+
 export function useWeekController() {
   const [week, setWeek] = useState<WeekSchedule>(() => loadWeekState());
   const [editingDay, setEditingDay] = useState<number | null>(null);
@@ -45,10 +52,11 @@ export function useWeekController() {
     setEditingDay((current) => current === day ? null : day);
   }, []);
 
-  const patchShift = useCallback((day: number, patch: WeekShiftPatch) => {
+  const patchShift = useCallback((day: number, patch: WeekShiftPatch, syncReminders = true) => {
     setWeek((current) => {
       const next = updateWeekShift(current, day, patch);
       saveWeekState(next);
+      if (syncReminders) refreshScheduledReminders();
       return next;
     });
   }, []);
@@ -57,6 +65,7 @@ export function useWeekController() {
     setWeek((current) => {
       const next = setWeekWorkDay(current, day);
       saveWeekState(next);
+      refreshScheduledReminders();
       return next;
     });
   }, []);
@@ -66,13 +75,14 @@ export function useWeekController() {
   }, [patchShift]);
 
   const setBreakMinutes = useCallback((day: number, breakMinutes: number) => {
-    patchShift(day, { breakMinutes });
+    patchShift(day, { breakMinutes }, false);
   }, [patchShift]);
 
   const saveImportantMoment = useCallback((moment: ImportantMoment) => {
     setWeek((current) => {
       const next = upsertImportantMoment(current, moment);
       saveWeekState(next);
+      refreshScheduledReminders();
       return next;
     });
   }, []);
@@ -81,6 +91,7 @@ export function useWeekController() {
     setWeek((current) => {
       const next = removeImportantMoment(current, id);
       saveWeekState(next);
+      refreshScheduledReminders();
       return next;
     });
   }, []);
@@ -101,6 +112,7 @@ export function useWeekController() {
         const patch = current.field === 'start' ? { start: value } : { end: value };
         const next = updateWeekShift(weekCurrent, current.day, patch);
         saveWeekState(next);
+        refreshScheduledReminders();
         return next;
       });
       return null;
