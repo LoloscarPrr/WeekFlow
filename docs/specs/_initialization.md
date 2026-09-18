@@ -2,51 +2,53 @@
 
 ## Repository
 - Repository: `LoloscarPrr/WeekFlow`.
-- Base ref: remote `main` at `19c6b8579ce216b5163923cbb24f76015069f19f`.
-- Working ref/branch: `codex/wf-move-003-adaptive-profile-equipment`.
-- Latest relevant commit: `19c6b8579ce216b5163923cbb24f76015069f19f` — Android SDK workflow repair; current main builds successfully again.
+- Base ref: remote `main` at `d6d1d37526b460bd4a2d99f63eb9911c2958d7f2`.
+- Working ref/branch: `codex/wf-account-001-email-auth`.
+- Latest relevant implementation commit: `9aac648896b3efc0ded92e99d8bf5ad52ea6826a` — adaptive Move; `d6d1d37526b460bd4a2d99f63eb9911c2958d7f2` only closes its spec.
 
 ## App / build state
 - Source version: `0.3.19`; Android source `versionCode`: `74`.
 - Package: `com.weekflow.app`.
-- Latest main Quality run: `PASS` — run #152 at `19c6b8579ce216b5163923cbb24f76015069f19f`.
-- Latest main native Android build: `PASS` — Build WeekFlow Native Android run #138 at the same commit.
+- Latest main Quality: PASS — run #156 at `d6d1d37526b460bd4a2d99f63eb9911c2958d7f2`.
+- Latest native Android release build: PASS — run #139 at `9aac648896b3efc0ded92e99d8bf5ad52ea6826a`.
 
 ## Product context
 - Current Blueprint Maestro supplied for this session: v3.3, cut 17-09-2026.
-- Canonical Move intent: guided sessions adaptable to energy, available time and equipment; Move remains wellbeing guidance, not diagnosis or rehabilitation.
-- `MOV-08 Adaptación completa` is partial and calls for adaptation by workday, energy, time, experience and preferences.
-- `MOV-09 Equipamiento` calls for alternatives without equipment and with user-informed equipment.
-- The user explicitly requested that routines also account for body weight / physical context, goals, actual available loads and tools, while avoiding simplistic somatotype labels.
-- Current implementation already adapts recommended duration from energy, work shift and previous feedback, and already supports focus, chair/floor availability, avoided areas and exercise swapping.
+- v3.3 keeps Core offline-first and says backend is only justified when synchronization/scale requires it.
+- v3.3 defines `UserProfile` as name, schedule name, personality and preferences.
+- v3.3 reserves Premium backup/synchronization for the point where an account exists.
+- The user explicitly approved opening the WeekFlow account layer now.
+- Current repository privacy copy explicitly says WeekFlow does not create accounts, so it must change together with account support.
 
 ## Specs
-- `WF-MOVE-001 — Zonas a evitar en Move`: DONE.
-- `WF-MOVE-002 — Intensidad y calidad real de Move`: repository status remains LOCKED although much of its intended library/focus behavior is present on main; do not silently rewrite its historical scope.
-- Proposed next spec: `WF-MOVE-003 — Perfil adaptativo y equipamiento real`.
+- `WF-MOVE-003`: DONE.
+- `WF-COMM-001`: DONE; Free/Premium remains one app and billing stays disabled.
+- `WF-COMM-003`: DONE historically; its “no Auth/account” limitation is superseded only by the new account spec.
+- Proposed active spec: `WF-ACCOUNT-001 — Cuenta WeekFlow con Firebase Auth`.
 
 ## Relevant implementation surface
-- Adaptation model and preference migration: `src/move/adaptation.ts`.
-- Exercise compatibility and routine generation: `src/move/library.ts`.
-- Runtime/controller integration: `src/move/useMoveController.ts`.
-- Move planning UI: `src/move/MovePlan.tsx`, `src/move/MoveHome.tsx`, `src/move/styles.ts`.
-- Persistence facade: `src/state/persistence.ts`; Move preferences are stored as JSON through `sqliteStateStore`, so backward-compatible sanitization can extend the format without a SQLite schema migration.
-- Regression coverage: `tests/move-adaptation.test.ts`.
+- Navigation / entry point: `app/assistant.tsx`, Expo Router.
+- New account UI: `app/account.tsx`.
+- Local profile: `src/domain/entities/UserProfile.ts`, defaults, migration and SQLite repository.
+- Firebase foundation already present: `@react-native-firebase/app`, Crashlytics, `google-services.json`.
+- Privacy: `app/privacy.tsx`, `PRIVACY_POLICY.md`.
+- Build/install: `package.json`, `app.json`, Android GitHub Actions workflow.
 
 ## Baseline
-- TypeScript + regression suite on current main: `PASS` via Quality run #152.
-- Native Android release build on current main: `PASS` via Build WeekFlow Native Android run #138.
-- Physical-device verification of the new Move UI: `UNAVAILABLE` until an APK containing this spec is installed and exercised.
+- TypeScript + regression suite: PASS via Quality #156.
+- Native Android release build: PASS via Android #139.
+- Firebase Email/Password provider state in Firebase Console: UNAVAILABLE from repository access.
+- Physical account-flow verification on Android: UNAVAILABLE until a new APK is installed and the Firebase provider is enabled.
 
 ## Constraints / uncertainties
-- Blueprint v3.3 contains an older snapshot of public version/build state than repository main. For implementation mechanics and release metadata, current `main` is authoritative; for product intent, the current Blueprint remains authoritative.
-- Daily energy currently has four canonical levels: `vigoroso`, `bien`, `cansado`, `agotado`; this spec must not invent a parallel energy model.
-- Weight and height are context, not diagnostic data. Do not derive BMI categories, somatotypes (`ectomorfo/mesomorfo/endomorfo`) or medical conclusions.
-- Equipment/load adaptation must never choose an exercise that conflicts with avoided areas, floor/chair restrictions or the user-declared equipment inventory.
-- Legacy Move preferences must keep loading with safe defaults.
-- Existing active-session, pause/progress, feedback and history behavior must remain intact.
+- Account must be optional; Core flows remain usable offline and signed-out.
+- Signing out or deleting the cloud identity must not silently erase local WeekFlow data.
+- No Firestore/cloud schedule sync in this spec; that becomes a separate sync spec.
+- No Google/Apple/social login, billing activation or entitlement-server validation in this spec.
+- Firebase Email/Password authentication must be enabled in the Firebase project for create/sign-in/reset to work at runtime; code/build cannot prove that console setting.
+- Privacy copy must distinguish local planning data from account identity data handled by Firebase Authentication.
 
 ## Next TLC action
-- Lock `WF-MOVE-003`, then extend the existing preference/compatibility engine with a Move profile, goals, experience, equipment with declared loads, and an energy/feedback-derived intensity profile. Verify migration, routine selection, swaps and regressions before considering release metadata.
+- Lock `WF-ACCOUNT-001`, then implement optional email/password account flows, local profile name, privacy updates and regression coverage. Verify CI and Android release before DONE.
 
-> Rule: do not convert `NOT RUN`, `UNAVAILABLE`, or uncertainty into an assumed PASS. Initialization establishes context; the feature spec still defines what must be built.
+> Rule: do not turn UNAVAILABLE console/device checks into PASS.
