@@ -1,4 +1,16 @@
-import auth, { type FirebaseAuthTypes } from '@react-native-firebase/auth';
+import {
+  createUserWithEmailAndPassword,
+  deleteUser,
+  getAuth,
+  onAuthStateChanged,
+  reload,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  signOut,
+  updateProfile,
+  type User,
+} from '@react-native-firebase/auth';
 import { normalizeDisplayName, normalizeEmail } from './model';
 
 export type WeekFlowAccount = {
@@ -8,7 +20,7 @@ export type WeekFlowAccount = {
   emailVerified: boolean;
 };
 
-function toAccount(user: FirebaseAuthTypes.User | null): WeekFlowAccount | null {
+function toAccount(user: User | null): WeekFlowAccount | null {
   if (!user) return null;
   return {
     uid: user.uid,
@@ -19,7 +31,7 @@ function toAccount(user: FirebaseAuthTypes.User | null): WeekFlowAccount | null 
 }
 
 function currentUserOrThrow() {
-  const user = auth().currentUser;
+  const user = getAuth().currentUser;
   if (user) return user;
   const error = new Error('No current WeekFlow account') as Error & { code?: string };
   error.code = 'auth/no-current-user';
@@ -27,51 +39,51 @@ function currentUserOrThrow() {
 }
 
 export function currentWeekFlowAccount() {
-  return toAccount(auth().currentUser);
+  return toAccount(getAuth().currentUser);
 }
 
 export function subscribeToWeekFlowAccount(listener: (account: WeekFlowAccount | null) => void) {
-  return auth().onAuthStateChanged((user) => listener(toAccount(user)));
+  return onAuthStateChanged(getAuth(), (user) => listener(toAccount(user)));
 }
 
 export async function createWeekFlowAccount(name: string, email: string, password: string) {
   const cleanName = normalizeDisplayName(name);
-  const credential = await auth().createUserWithEmailAndPassword(normalizeEmail(email), password);
-  await credential.user.updateProfile({ displayName: cleanName });
+  const credential = await createUserWithEmailAndPassword(getAuth(), normalizeEmail(email), password);
+  await updateProfile(credential.user, { displayName: cleanName });
   return { ...toAccount(credential.user)!, displayName: cleanName };
 }
 
 export async function signInWeekFlowAccount(email: string, password: string) {
-  const credential = await auth().signInWithEmailAndPassword(normalizeEmail(email), password);
+  const credential = await signInWithEmailAndPassword(getAuth(), normalizeEmail(email), password);
   return toAccount(credential.user)!;
 }
 
 export async function signOutWeekFlowAccount() {
-  await auth().signOut();
+  await signOut(getAuth());
 }
 
 export async function sendWeekFlowPasswordReset(email: string) {
-  await auth().sendPasswordResetEmail(normalizeEmail(email));
+  await sendPasswordResetEmail(getAuth(), normalizeEmail(email));
 }
 
 export async function sendWeekFlowVerification() {
   const user = currentUserOrThrow();
-  if (!user.emailVerified) await user.sendEmailVerification();
+  if (!user.emailVerified) await sendEmailVerification(user);
 }
 
 export async function reloadWeekFlowAccount() {
   const user = currentUserOrThrow();
-  await user.reload();
-  return toAccount(auth().currentUser)!;
+  await reload(user);
+  return toAccount(getAuth().currentUser)!;
 }
 
 export async function updateWeekFlowAccountName(name: string) {
   const cleanName = normalizeDisplayName(name);
   const user = currentUserOrThrow();
-  await user.updateProfile({ displayName: cleanName });
-  return { ...toAccount(user)!, displayName: cleanName };
+  await updateProfile(user, { displayName: cleanName });
+  return { ...toAccount(getAuth().currentUser)!, displayName: cleanName };
 }
 
 export async function deleteWeekFlowAccount() {
-  await currentUserOrThrow().delete();
+  await deleteUser(currentUserOrThrow());
 }
