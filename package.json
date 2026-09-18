@@ -1,6 +1,6 @@
 {
   "name": "weekflow",
-  "version": "0.3.19",
+  "version": "0.3.20",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
@@ -9,7 +9,7 @@
     "doctor": "expo-doctor",
     "prebuild": "expo prebuild",
     "typecheck": "tsc --noEmit",
-    "test": "tsc -p tsconfig.tests.json && node .test-build/tests/regression.test.js && node .test-build/tests/rest-view.test.js && node .test-build/tests/ocr-confidence.test.js && node .test-build/tests/excel-import.test.js && node .test-build/tests/move-adaptation.test.js && node .test-build/tests/commercial-entitlements.test.js && node .test-build/tests/crash-reporting-consent.test.js && node tests/week-keyboard-structure.test.cjs",
+    "test": "tsc -p tsconfig.tests.json && node .test-build/tests/regression.test.js && node .test-build/tests/rest-view.test.js && node .test-build/tests/ocr-confidence.test.js && node .test-build/tests/excel-import.test.js && node .test-build/tests/move-adaptation.test.js && node .test-build/tests/account-auth.test.js && node .test-build/tests/commercial-entitlements.test.js && node .test-build/tests/crash-reporting-consent.test.js && node tests/week-keyboard-structure.test.cjs",
     "quality": "npm run typecheck && npm test"
   },
   "dependencies": {
@@ -33,7 +33,8 @@
     "react-native-screens": "~4.26.0",
     "react-native-worklets": "0.10.1",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
-    "zustand": "^5.0.8"
+    "zustand": "^5.0.8",
+    "@react-native-firebase/auth": "26.3.2"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
