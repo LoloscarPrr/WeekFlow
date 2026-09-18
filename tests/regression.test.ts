@@ -306,8 +306,11 @@ run('Semana oculta la colación cero sin perder una colación real', () => {
   );
 });
 
-run('la migración de perfil conserva el nombre de planilla', () => {
-  equal(migrateUserProfile({ scheduleName: 'OSCAR URRUTIA' }).scheduleName, 'OSCAR URRUTIA', 'nombre');
+run('la migración de perfil conserva planilla y agrega nombre de cuenta seguro', () => {
+  const migrated = migrateUserProfile({ scheduleName: 'OSCAR URRUTIA' });
+  equal(migrated.scheduleName, 'OSCAR URRUTIA', 'nombre de planilla');
+  equal(migrated.name, '', 'nombre de cuenta legacy');
+  equal(migrateUserProfile({ name: 'Oscar', scheduleName: 'OSCAR URRUTIA' }).name, 'Oscar', 'nombre nuevo');
 });
 
 run('la migración SQLite inicial es aditiva e idempotente', () => {

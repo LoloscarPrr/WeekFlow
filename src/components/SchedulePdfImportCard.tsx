@@ -110,7 +110,7 @@ export function SchedulePdfImportCard() {
       return;
     }
     const currentWeek = loadWeekState();
-    saveUserProfile({ scheduleName: scheduleName.trim() });
+    saveUserProfile({ ...loadUserProfile(), scheduleName: scheduleName.trim() });
     saveWeekState({
       shifts: review.map((shift) => ({
         day: shift.day,

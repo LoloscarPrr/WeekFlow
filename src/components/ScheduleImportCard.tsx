@@ -241,7 +241,7 @@ export function ScheduleImportCard() {
 
     const cleanName = scheduleName.trim();
     const currentWeek = loadWeekState();
-    saveUserProfile({ scheduleName: cleanName });
+    saveUserProfile({ ...loadUserProfile(), scheduleName: cleanName });
     saveWeekState({
       shifts: review.map((shift) => ({
         day: shift.day,
