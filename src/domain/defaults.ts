@@ -32,5 +32,6 @@ export const defaultWeekState: WeekSchedule = {
 };
 
 export const defaultUserProfile: UserProfile = {
+  name: '',
   scheduleName: '',
 };
