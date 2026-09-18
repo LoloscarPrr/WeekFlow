@@ -1,6 +1,6 @@
 # WF-MOVE-003 — Perfil adaptativo y equipamiento real
 
-Status: LOCKED
+Status: DONE
 Owner: WeekFlow
 Blueprint mapping: MOV-08, MOV-09
 
@@ -53,18 +53,18 @@ La energía no solo cambia minutos: también cambia la densidad de trabajo/desca
 - No cambiar navegación, Food, Semana, Sueño ni el modelo canónico de energía.
 
 ## Acceptance criteria
-- [ ] AC1 — El plan Move permite declarar experiencia, objetivo, peso/altura opcionales y equipo disponible: mancuernas con kg por unidad, kettlebell con kg y bandas.
-- [ ] AC2 — El perfil se persiste dentro de las preferencias existentes; datos legacy sin los nuevos campos cargan con defaults seguros y siguen funcionando sin migración SQLite.
-- [ ] AC3 — La intensidad se deriva de los cuatro niveles canónicos de energía y se reduce ante feedback `Difícil`, `Demasiado` o una sesión terminada antes; `vigoroso` solo llega a intensidad alta cuando la experiencia declarada lo permite.
-- [ ] AC4 — A igual duración, intensidad recuperación/suave dedica más tiempo relativo al descanso que moderada/alta, manteniendo exactamente 5/10/20/30 minutos totales.
-- [ ] AC5 — Un equipo no declarado nunca aparece en rutina, preview ni swap. Si se declaran mancuernas, kettlebell o banda, Move puede incorporar ejercicios compatibles con ese equipo.
-- [ ] AC6 — Objetivo y experiencia cambian la selección: fuerza/músculo pueden priorizar variantes con carga compatibles; condición favorece movimiento continuo; movilidad favorece rango cómodo. Un enfoque explícito del día sigue teniendo prioridad sobre el objetivo base.
-- [ ] AC7 — Cuando peso corporal y carga externa están disponibles, la relación entre ambas solo modera la prioridad/frecuencia de variantes cargadas. No se muestra ni persiste ninguna clasificación corporal o conclusión médica.
-- [ ] AC8 — Los ejercicios con carga muestran qué equipo/carga registrada usar; si la carga no se siente controlable, el copy orienta a cambiar ejercicio en vez de obligar a usarla.
-- [ ] AC9 — Suelo/silla, zonas a evitar y experiencia siguen siendo filtros de compatibilidad compartidos por generación, preview y “Cambiar ejercicio”; los fallbacks nunca reintroducen una restricción bloqueada.
-- [ ] AC10 — La intensidad queda guardada en la sesión activa de forma backward-compatible y se conserva al terminar en el historial cuando está disponible.
-- [ ] AC11 — Pausa, progreso, terminar antes, feedback, historial y duración recomendada mantienen su comportamiento previo salvo la adaptación explícita definida aquí.
-- [ ] AC12 — TypeScript y regresiones completas pasan; `move-adaptation.test.ts` cubre migración legacy, intensidad, densidad, objetivo, experiencia, equipo, carga relativa, restricciones y swap. El build Android release debe pasar antes de marcar DONE.
+- [x] AC1 — El plan Move permite declarar experiencia, objetivo, peso/altura opcionales y equipo disponible: mancuernas con kg por unidad, kettlebell con kg y bandas.
+- [x] AC2 — El perfil se persiste dentro de las preferencias existentes; datos legacy sin los nuevos campos cargan con defaults seguros y siguen funcionando sin migración SQLite.
+- [x] AC3 — La intensidad se deriva de los cuatro niveles canónicos de energía y se reduce ante feedback `Difícil`, `Demasiado` o una sesión terminada antes; `vigoroso` solo llega a intensidad alta cuando la experiencia declarada lo permite.
+- [x] AC4 — A igual duración, intensidad recuperación/suave dedica más tiempo relativo al descanso que moderada/alta, manteniendo exactamente 5/10/20/30 minutos totales.
+- [x] AC5 — Un equipo no declarado nunca aparece en rutina, preview ni swap. Si se declaran mancuernas, kettlebell o banda, Move puede incorporar ejercicios compatibles con ese equipo.
+- [x] AC6 — Objetivo y experiencia cambian la selección: fuerza/músculo pueden priorizar variantes con carga compatibles; condición favorece movimiento continuo; movilidad favorece rango cómodo. Un enfoque explícito del día sigue teniendo prioridad sobre el objetivo base.
+- [x] AC7 — Cuando peso corporal y carga externa están disponibles, la relación entre ambas solo modera la prioridad/frecuencia de variantes cargadas. No se muestra ni persiste ninguna clasificación corporal o conclusión médica.
+- [x] AC8 — Los ejercicios con carga muestran qué equipo/carga registrada usar; si la carga no se siente controlable, el copy orienta a cambiar ejercicio en vez de obligar a usarla.
+- [x] AC9 — Suelo/silla, zonas a evitar y experiencia siguen siendo filtros de compatibilidad compartidos por generación, preview y “Cambiar ejercicio”; los fallbacks nunca reintroducen una restricción bloqueada.
+- [x] AC10 — La intensidad queda guardada en la sesión activa de forma backward-compatible y se conserva al terminar en el historial cuando está disponible.
+- [x] AC11 — Pausa, progreso, terminar antes, feedback, historial y duración recomendada mantienen su comportamiento previo salvo la adaptación explícita definida aquí.
+- [x] AC12 — TypeScript y regresiones completas pasan; `move-adaptation.test.ts` cubre migración legacy, intensidad, densidad, objetivo, experiencia, equipo, carga relativa, restricciones y swap. El build Android release debe pasar antes de marcar DONE.
 
 ## Data / persistence impact
 `MovePreferences` continúa guardándose como JSON en `move-preferences`; se amplía y `sanitizeMovePreferences` rellena los campos nuevos cuando faltan. No hay migración de tablas SQLite.
@@ -91,25 +91,32 @@ La energía no solo cambia minutos: también cambia la densidad de trabajo/desca
 - Una sesión nueva conserva la intensidad con la que se inició.
 
 ## Verification plan
-- [ ] Revisar diff de `adaptation.ts`, `library.ts`, controlador, UI, persistence y tests.
-- [ ] Ejecutar `npm run typecheck`.
-- [ ] Ejecutar `npm test` / Quality completo.
-- [ ] Verificar en tests las cuatro densidades con duración exacta.
-- [ ] Verificar que previews y swaps no usen equipo ausente ni zonas bloqueadas.
-- [ ] Verificar sanitización de preferencias legacy y de campos numéricos inválidos.
-- [ ] Generar build Android release y confirmar resultado antes de `DONE`.
+- [x] Revisar diff de `adaptation.ts`, `library.ts`, controlador, UI, persistence y tests.
+- [x] Ejecutar `npm run typecheck`.
+- [x] Ejecutar `npm test` / Quality completo.
+- [x] Verificar en tests las cuatro densidades con duración exacta.
+- [x] Verificar que previews y swaps no usen equipo ausente ni zonas bloqueadas.
+- [x] Verificar sanitización de preferencias legacy y de campos numéricos inválidos.
+- [x] Generar build Android release y confirmar resultado antes de `DONE`.
 - [ ] La ergonomía final de inputs/teclado queda pendiente de confirmación física en Android si no existe automatización de UI.
 
 ## Verification result
-- AC1: PENDING
-- AC2: PENDING
-- AC3: PENDING
-- AC4: PENDING
-- AC5: PENDING
-- AC6: PENDING
-- AC7: PENDING
-- AC8: PENDING
-- AC9: PENDING
-- AC10: PENDING
-- AC11: PENDING
-- AC12: PENDING
+- AC1: PASS — perfil editable con objetivo, experiencia, peso/altura y equipo/cargas.
+- AC2: PASS — persistencia backward-compatible mediante sanitización de preferencias.
+- AC3: PASS — intensidad adaptada por energía, experiencia y feedback/finalización previa.
+- AC4: PASS — densidad trabajo/descanso cambia manteniendo duración exacta.
+- AC5: PASS — equipo ausente queda excluido de rutina, preview y swap.
+- AC6: PASS — objetivo, experiencia e intensidad alteran selección/prioridad.
+- AC7: PASS — peso corporal se usa solo como contexto relativo de carga.
+- AC8: PASS — guía de ejercicios cargados muestra equipo/carga registrada.
+- AC9: PASS — restricciones de suelo/silla/zonas se mantienen en generación y swap.
+- AC10: PASS — intensidad persiste en sesión activa/historial de forma compatible.
+- AC11: PASS — regresiones conservan pausa, progreso, feedback e historial.
+- AC12: PASS — Quality PR #154, Quality main #155 y Android release #139 completados con éxito.
+
+### Evidence
+- Main commit: `9aac648896b3efc0ded92e99d8bf5ad52ea6826a`.
+- Android workflow #139: PASS, incluyendo signed release APK + AAB, upload de artifacts y publicación en GitHub Releases.
+- Artifact: `WeekFlow-Alpha-v0.3.19-Standalone-APK`.
+- Artifact: `WeekFlow-Alpha-v0.3.19-Play-AAB`.
+- La ergonomía física final de inputs/teclado queda para validación manual en Android; no bloquea el cierre funcional de esta spec.
