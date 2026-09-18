@@ -6,6 +6,12 @@ import { colors } from '@/src/theme/colors';
 
 const controls = [
   {
+    icon: '◉',
+    title: 'Cuenta WeekFlow',
+    body: 'Identidad, acceso y recuperación.',
+    path: '/account',
+  },
+  {
     icon: '🔒',
     title: 'Privacidad y datos',
     body: 'Datos locales e informes de fallos.',
