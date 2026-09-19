@@ -55,6 +55,7 @@ export function MovePlayer({ move }: { move: MoveController }) {
             <Text style={styles.playerTitle} numberOfLines={3} adjustsFontSizeToFit minimumFontScale={0.72}>
               {resting ? 'Descanso breve' : currentExercise.title}
             </Text>
+            {!resting ? <Text style={styles.equipmentBadge}>Dificultad {currentExercise.difficulty}/5</Text> : null}
             {equipment ? <Text style={styles.equipmentBadge}>{equipment}</Text> : null}
           </View>
           <Text style={styles.playerCopy}>{resting ? `Respira y baja un poco el ritmo. Después: ${nextStep.exercise.title}.` : exerciseCueForPreferences(currentExercise, preferences)}</Text>
