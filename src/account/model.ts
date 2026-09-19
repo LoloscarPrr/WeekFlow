@@ -56,6 +56,10 @@ export function firebaseAuthErrorMessage(error: unknown): string {
       return 'No hay conexión suficiente para completar esta acción.';
     case 'auth/operation-not-allowed':
       return 'El acceso por correo todavía no está habilitado en el servicio de WeekFlow.';
+    case 'auth/configuration-not-found':
+    case 'auth/app-not-authorized':
+    case 'auth/invalid-api-key':
+      return 'Esta versión de WeekFlow no está conectada al proyecto Firebase correcto. Actualiza la app e inténtalo nuevamente.';
     case 'auth/requires-recent-login':
       return 'Por seguridad, vuelve a iniciar sesión antes de eliminar la cuenta.';
     case 'auth/no-current-user':
