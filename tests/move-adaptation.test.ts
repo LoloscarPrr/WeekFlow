@@ -111,6 +111,19 @@ const equippedPreview = previewForDuration(20, equipped, 'alta');
 ok(equippedPreview.some((exercise) => Boolean(exercise.equipment?.length)), 'equipo registrado habilita ejercicios con equipo');
 const loadedPreviewExercise = equippedPreview.find((exercise) => Boolean(exercise.equipment?.length));
 ok(loadedPreviewExercise && moveExerciseEquipmentLabel(loadedPreviewExercise, equipped)?.includes('kg'), 'la preview puede mostrar la carga registrada');
+const softEquipped = preferences({
+  focus: 'fuerza',
+  goal: 'fuerza',
+  experience: 'intermedio',
+  weightKg: 80,
+  equipment: { dumbbellsKg: 5, kettlebellKg: 8, resistanceBand: false },
+});
+const softStrengthRoutine = routineForDuration(10, softEquipped, 'suave');
+const softLoadedSteps = softStrengthRoutine.steps.filter((step) => Boolean(step.exercise.equipment?.length));
+ok(softLoadedSteps.length >= 1, 'fuerza suave conserva al menos una variante con carga declarada');
+equal(softLoadedSteps.length, 1, 'fuerza suave limita la carga priorizada a un bloque en 10 minutos');
+ok(['dumbbells', 'kettlebell'].some((type) => softLoadedSteps[0]?.exercise.equipment?.includes(type as any)), 'la carga suave usa equipo realmente declarado');
+
 const recoveryWithEquipment = routineForDuration(20, equipped, 'recuperacion');
 ok(recoveryWithEquipment.steps.every((step) => !(step.exercise.equipment?.length)), 'recuperación no prioriza ni incluye cargas externas');
 

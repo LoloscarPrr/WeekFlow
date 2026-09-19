@@ -10,6 +10,7 @@ on:
       - "assets/brand/**"
       - "app.json"
       - "package.json"
+      - "google-services.json"
       - ".github/workflows/build-weekflow-native.yml"
 
 permissions:
@@ -78,6 +79,35 @@ jobs:
           if (config.android?.package !== 'com.weekflow.app') throw new Error(`Unexpected Android package: ${config.android?.package}`);
           if (config.android?.versionCode !== expectedVersionCode) throw new Error(`Unexpected versionCode: ${config.android?.versionCode}`);
           console.log(`Update config OK: ${config.android.package} / versionCode ${config.android.versionCode}`);
+          NODE
+
+      - name: Restore and verify WeekFlow Firebase configuration
+        shell: bash
+        env:
+          FIREBASE_GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          set -euo pipefail
+          test -n "$FIREBASE_GOOGLE_SERVICES_JSON_BASE64"
+          printf '%s' "$FIREBASE_GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > google-services.json
+          node <<'NODE'
+          const fs = require('fs');
+          const firebase = JSON.parse(fs.readFileSync('google-services.json', 'utf8'));
+          const expected = {
+            projectId: 'weekflow-84a82',
+            projectNumber: '515245749240',
+            packageName: 'com.weekflow.app',
+          };
+          if (firebase.project_info?.project_id !== expected.projectId) {
+            throw new Error(`Wrong Firebase project_id: ${firebase.project_info?.project_id}`);
+          }
+          if (String(firebase.project_info?.project_number) !== expected.projectNumber) {
+            throw new Error(`Wrong Firebase project_number: ${firebase.project_info?.project_number}`);
+          }
+          const client = firebase.client?.find(
+            (item) => item.client_info?.android_client_info?.package_name === expected.packageName,
+          );
+          if (!client) throw new Error(`Firebase config does not contain package ${expected.packageName}`);
+          console.log(`Firebase config OK: ${expected.projectId} / ${expected.packageName}`);
           NODE
 
       - name: Install dependencies

@@ -52,10 +52,10 @@ const EXERCISES: Record<string, MoveExercise> = {
   'bird-dog': { id: 'bird-dog', icon: '🧭', title: 'Extensión en cuatro apoyos', cue: 'En cuatro apoyos, alarga brazo y pierna contrarios, vuelve y cambia de lado con control.', easier: 'Mueve solo un brazo o una pierna cada vez.', swapWith: 'bridge', needs: 'floor', focus: ['fuerza', 'movilidad'], areas: ['shoulders', 'wrists', 'lowerBack'], minExperience: 'intermedio' },
   breathing: { id: 'breathing', icon: '😌', title: 'Respiración de cierre', cue: 'Baja el ritmo y respira cómodo, sin aguantar el aire.', easier: 'Respira a tu ritmo natural; no necesitas contar.', swapWith: 'calf-release', needs: 'none', focus: ['movilidad', 'equilibrado'], areas: [] },
 
-  'db-goblet-squat': { id: 'db-goblet-squat', icon: '🏋️', title: 'Sentadilla goblet con mancuerna', cue: 'Sujeta una mancuerna cerca del pecho, lleva la cadera atrás y vuelve a subir con control.', easier: 'Haz menos profundidad; si la carga no se siente controlable, cambia a sentadilla sin peso.', swapWith: 'squat', needs: 'none', focus: ['fuerza', 'equilibrado'], areas: ['knees', 'lowerBack'], equipment: ['dumbbells'], minIntensity: 'moderada' },
+  'db-goblet-squat': { id: 'db-goblet-squat', icon: '🏋️', title: 'Sentadilla goblet con mancuerna', cue: 'Sujeta una mancuerna cerca del pecho, lleva la cadera atrás y vuelve a subir con control.', easier: 'Haz menos profundidad; si la carga no se siente controlable, cambia a sentadilla sin peso.', swapWith: 'squat', needs: 'none', focus: ['fuerza', 'equilibrado'], areas: ['knees', 'lowerBack'], equipment: ['dumbbells'], minIntensity: 'suave' },
   'db-rdl': { id: 'db-rdl', icon: '🏋️', title: 'Peso muerto rumano con mancuernas', cue: 'Lleva la cadera atrás con las mancuernas cerca de las piernas y vuelve apretando glúteos, sin redondear la espalda.', easier: 'Reduce el recorrido o cambia a bisagra de cadera sin carga.', swapWith: 'hip-hinge', needs: 'none', focus: ['fuerza'], areas: ['lowerBack'], equipment: ['dumbbells'], minExperience: 'intermedio', minIntensity: 'moderada' },
   'db-row': { id: 'db-row', icon: '💪', title: 'Remo con mancuernas', cue: 'Inclina el tronco desde la cadera con espalda larga y lleva las mancuernas hacia los costados sin encoger los hombros.', easier: 'Usa menos recorrido o cambia a un movimiento sin carga.', swapWith: 'wall-press', needs: 'none', focus: ['fuerza'], areas: ['shoulders', 'lowerBack'], equipment: ['dumbbells'], minExperience: 'intermedio', minIntensity: 'moderada' },
-  'kb-deadlift': { id: 'kb-deadlift', icon: '🔔', title: 'Peso muerto con kettlebell', cue: 'Deja la kettlebell entre los pies, lleva la cadera atrás y ponte de pie empujando el suelo con control.', easier: 'Reduce el recorrido o cambia a bisagra de cadera sin carga.', swapWith: 'hip-hinge', needs: 'none', focus: ['fuerza', 'equilibrado'], areas: ['knees', 'lowerBack'], equipment: ['kettlebell'], minIntensity: 'moderada' },
+  'kb-deadlift': { id: 'kb-deadlift', icon: '🔔', title: 'Peso muerto con kettlebell', cue: 'Deja la kettlebell entre los pies, lleva la cadera atrás y ponte de pie empujando el suelo con control.', easier: 'Reduce el recorrido o cambia a bisagra de cadera sin carga.', swapWith: 'hip-hinge', needs: 'none', focus: ['fuerza', 'equilibrado'], areas: ['knees', 'lowerBack'], equipment: ['kettlebell'], minIntensity: 'suave' },
   'kb-goblet-squat': { id: 'kb-goblet-squat', icon: '🔔', title: 'Sentadilla goblet con kettlebell', cue: 'Sujeta la kettlebell cerca del pecho, baja hasta un rango cómodo y vuelve a subir con control.', easier: 'Baja menos o cambia a sentadilla sin carga.', swapWith: 'squat', needs: 'none', focus: ['fuerza'], areas: ['knees', 'lowerBack'], equipment: ['kettlebell'], minIntensity: 'moderada' },
   'band-row': { id: 'band-row', icon: '➰', title: 'Remo con banda', cue: 'Toma la banda con tensión cómoda y lleva los codos hacia atrás sin elevar los hombros.', easier: 'Reduce la tensión o el recorrido; si no se siente controlable, cambia el ejercicio.', swapWith: 'wall-press', needs: 'none', focus: ['fuerza', 'equilibrado'], areas: ['shoulders'], equipment: ['band'], minIntensity: 'suave' },
   'band-pull-apart': { id: 'band-pull-apart', icon: '➰', title: 'Apertura con banda', cue: 'Con brazos al frente y tensión suave, abre la banda sin forzar el rango de hombros.', easier: 'Usa menos tensión o mueve las manos menos distancia.', swapWith: 'reach', needs: 'none', focus: ['fuerza', 'movilidad'], areas: ['shoulders'], equipment: ['band'], minIntensity: 'suave' },
@@ -128,12 +128,13 @@ function orderedIds(preferences: MovePreferences, intensity: MoveIntensity) {
   if (preferences.focus === 'equilibrado' && preferences.goal === 'movilidad') order = [...MOBILITY_PREFIX, ...order];
 
   const loadGoal = preferences.goal === 'fuerza' || preferences.goal === 'musculo' || preferences.focus === 'fuerza';
-  if (loadGoal && MOVE_INTENSITY_RANK[intensity] >= MOVE_INTENSITY_RANK.moderada) {
+  if (loadGoal && MOVE_INTENSITY_RANK[intensity] >= MOVE_INTENSITY_RANK.suave) {
+    const loadLimit = intensity === 'suave' ? 1 : loadPriorityCount(preferences);
     const compatibleLoaded = LOADED_ORDER
       .map((id) => EXERCISES[id])
       .filter((exercise) => exercise && moveExerciseCompatible(exercise, preferences, intensity))
       .map((exercise) => exercise.id)
-      .slice(0, loadPriorityCount(preferences));
+      .slice(0, loadLimit);
     if (compatibleLoaded.length) order = [...compatibleLoaded, ...order];
   }
 
