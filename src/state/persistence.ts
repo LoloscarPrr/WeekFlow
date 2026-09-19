@@ -66,6 +66,7 @@ export type MoveSessionRecord = {
   feedback: string | null;
   feedbackSkipped?: boolean;
   intensity?: MoveIntensity;
+  exerciseIds?: string[];
 };
 
 export type ActiveMoveSession = {
