@@ -25,6 +25,18 @@ export type MoveEquipment = {
   weightedVestKg: number | null;
 };
 
+export type MoveEquipmentLoadField = 'dumbbellsKg' | 'kettlebellKg' | 'barbellKg' | 'medicineBallKg' | 'weightedVestKg';
+export type MoveEquipmentToggleField =
+  | 'resistanceBand'
+  | 'bench'
+  | 'pullupBar'
+  | 'cableMachine'
+  | 'gymMachines'
+  | 'suspensionTrainer'
+  | 'jumpRope'
+  | 'stepBox'
+  | 'foamRoller';
+
 export type MovePreferences = {
   focus: MoveFocus;
   floorAllowed: boolean;
