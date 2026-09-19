@@ -156,12 +156,12 @@ const upperRoutine = routineForDuration(20, avoidUpper);
 ok(upperRoutine.steps.every((step) => !step.exercise.areas.includes('shoulders')), 'hombros evitados no aparecen en la rutina');
 ok(upperRoutine.steps.every((step) => !step.exercise.areas.includes('wrists')), 'muñecas evitadas no aparecen en la rutina');
 const swapped = alternateExercise({
-  id: 'test', icon: '•', title: 'Test', cue: '', easier: '', swapWith: 'incline-push', needs: 'none', focus: ['fuerza'], areas: [],
+  id: 'test', icon: '•', title: 'Test', cue: '', easier: '', swapWith: 'incline-push', needs: 'none', focus: ['fuerza'], areas: [], pattern: 'push', family: 'horizontal-push', difficulty: 2, impact: 'low',
 }, avoidUpper);
 ok(!swapped.areas.includes('shoulders') && !swapped.areas.includes('wrists'), 'cambiar ejercicio respeta zonas evitadas');
 
 const noEquipmentSwap = alternateExercise({
-  id: 'test-equipment', icon: '•', title: 'Test', cue: '', easier: '', swapWith: 'db-goblet-squat', needs: 'none', focus: ['fuerza'], areas: [],
+  id: 'test-equipment', icon: '•', title: 'Test', cue: '', easier: '', swapWith: 'db-goblet-squat', needs: 'none', focus: ['fuerza'], areas: [], pattern: 'squat', family: 'squat', difficulty: 2, impact: 'low',
 }, standing);
 ok(!(noEquipmentSwap.equipment?.length), 'cambiar ejercicio no introduce equipo ausente');
 
