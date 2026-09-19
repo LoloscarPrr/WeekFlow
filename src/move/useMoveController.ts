@@ -25,6 +25,8 @@ import {
   type MoveFocus,
   type MoveGoal,
   type MovePreferences,
+  type MoveEquipmentLoadField,
+  type MoveEquipmentToggleField,
 } from '@/src/move/adaptation';
 import { alternateExercise, exerciseById, previewForDuration, routineForDuration } from '@/src/move/library';
 import {
@@ -107,18 +109,23 @@ export function useMoveController() {
     [dayState.energy, lastRecord?.endedEarly, lastRecord?.feedback, preferences.experience],
   );
   const sessionIntensity = activeSession?.intensity ?? adaptiveIntensity;
+  const progressionContext = useMemo(() => ({
+    lastFeedback: lastRecord?.feedback,
+    lastEndedEarly: Boolean(lastRecord?.endedEarly),
+    previousExerciseIds: lastRecord?.exerciseIds ?? [],
+  }), [lastRecord?.endedEarly, lastRecord?.exerciseIds, lastRecord?.feedback]);
   const recommendationCopy = useMemo(
     () => moveRecommendationCopy(dayState.energy, lastRecord?.feedback, todayShift, preferences, Boolean(lastRecord?.endedEarly)),
     [dayState.energy, lastRecord?.endedEarly, lastRecord?.feedback, preferences, todayShift],
   );
   const sessionDuration = activeSession?.plannedMinutes ?? duration;
   const routine = useMemo(
-    () => routineForDuration(sessionDuration, preferences, sessionIntensity),
-    [preferences, sessionDuration, sessionIntensity],
+    () => routineForDuration(sessionDuration, preferences, sessionIntensity, progressionContext),
+    [preferences, progressionContext, sessionDuration, sessionIntensity],
   );
   const preview = useMemo(
-    () => previewForDuration(duration, preferences, adaptiveIntensity),
-    [adaptiveIntensity, duration, preferences],
+    () => previewForDuration(duration, preferences, adaptiveIntensity, progressionContext),
+    [adaptiveIntensity, duration, preferences, progressionContext],
   );
   const doneToday = useMemo(() => Boolean(lastRecord && localDateKey(new Date(lastRecord.finishedAt)) === localDateKey(now)), [lastRecord, now]);
   const currentStepIndex = Math.min(activeSession?.step ?? 0, routine.steps.length - 1);
@@ -204,11 +211,19 @@ export function useMoveController() {
     updatePreferences({ ...preferences, equipment: { ...preferences.equipment, kettlebellKg } });
   }
 
-  function toggleResistanceBand() {
+  function setEquipmentLoad(field: MoveEquipmentLoadField, value: number | null) {
+    updatePreferences({ ...preferences, equipment: { ...preferences.equipment, [field]: value } });
+  }
+
+  function toggleEquipment(field: MoveEquipmentToggleField) {
     updatePreferences({
       ...preferences,
-      equipment: { ...preferences.equipment, resistanceBand: !preferences.equipment.resistanceBand },
+      equipment: { ...preferences.equipment, [field]: !preferences.equipment[field] },
     });
+  }
+
+  function toggleLowImpactOnly() {
+    updatePreferences({ ...preferences, lowImpactOnly: !preferences.lowImpactOnly });
   }
 
   function toggleFloorAllowed() {
@@ -234,7 +249,7 @@ export function useMoveController() {
   function startSession() {
     const nowMs = Date.now();
     const id = `${nowMs}`;
-    const selectedRoutine = routineForDuration(duration, preferences, adaptiveIntensity);
+    const selectedRoutine = routineForDuration(duration, preferences, adaptiveIntensity, progressionContext);
     const next: ActiveMoveSession = {
       id,
       startedAt: new Date(nowMs).toISOString(),
@@ -264,6 +279,9 @@ export function useMoveController() {
     const nowMs = Date.now();
     const actualSeconds = Math.max(0, Math.round(elapsedMs(activeSession, nowMs) / 1000));
     const completedSteps = forceComplete ? routine.steps.length : runtime?.phase === 'rest' ? currentStepIndex + 1 : currentStepIndex;
+    const exerciseIds = routine.steps
+      .slice(0, completedSteps)
+      .map((step, index) => exerciseById(runtime?.exerciseOverrides[String(index)], step.exercise).id);
     const record: MoveSessionRecord = {
       id: activeSession.id,
       startedAt: activeSession.startedAt,
@@ -276,6 +294,7 @@ export function useMoveController() {
       feedback: null,
       feedbackSkipped: false,
       intensity: activeSession.intensity ?? adaptiveIntensity,
+      exerciseIds,
     };
     saveMoveSession(record);
     clearActiveMoveSession();
@@ -407,7 +426,9 @@ export function useMoveController() {
     setHeightCm,
     setDumbbellsKg,
     setKettlebellKg,
-    toggleResistanceBand,
+    setEquipmentLoad,
+    toggleEquipment,
+    toggleLowImpactOnly,
     toggleFloorAllowed,
     toggleChairAvailable,
     toggleAvoidArea,
