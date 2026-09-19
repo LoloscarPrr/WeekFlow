@@ -30,6 +30,7 @@ equal(firebaseAuthErrorMessage({ code: 'auth/email-already-in-use' }), 'Ese corr
 equal(firebaseAuthErrorMessage({ code: 'auth/invalid-credential' }), 'Correo o contraseña incorrectos.', 'credenciales');
 equal(firebaseAuthErrorMessage({ code: 'auth/network-request-failed' }), 'No hay conexión suficiente para completar esta acción.', 'red');
 equal(firebaseAuthErrorMessage({ code: 'auth/operation-not-allowed' }), 'El acceso por correo todavía no está habilitado en el servicio de WeekFlow.', 'provider');
+equal(firebaseAuthErrorMessage({ code: 'auth/configuration-not-found' }), 'Esta versión de WeekFlow no está conectada al proyecto Firebase correcto. Actualiza la app e inténtalo nuevamente.', 'configuración Firebase incorrecta');
 equal(firebaseAuthErrorMessage({ code: 'auth/requires-recent-login' }), 'Por seguridad, vuelve a iniciar sesión antes de eliminar la cuenta.', 'reauth');
 equal(firebaseAuthErrorMessage(new Error('raw')), 'No pude completar esta acción de cuenta. Inténtalo nuevamente.', 'fallback');
 equal(isAuthErrorCode({ code: 'auth/user-not-found' }, 'auth/user-not-found'), true, 'detecta código');
