@@ -114,7 +114,8 @@ function supportedDuration(value: number) {
 }
 
 function experienceCompatible(exercise: MoveExercise, preferences: MovePreferences) {
-  if (!exercise.minExperience || preferences.experience === 'sin_definir') return true;
+  if (!exercise.minExperience) return true;
+  if (preferences.experience === 'sin_definir') return false;
   return MOVE_EXPERIENCE_RANK[preferences.experience] >= MOVE_EXPERIENCE_RANK[exercise.minExperience];
 }
 
