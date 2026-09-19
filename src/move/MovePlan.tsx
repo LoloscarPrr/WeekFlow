@@ -248,11 +248,12 @@ export function MovePlan({ move }: { move: MoveController }) {
                   Move no sube automáticamente tus kilos: usa exactamente el equipo y las cargas que declares.
                 </Text>
 
-                <Pressable style={styles.recommendUseButton} onPress={() => router.push('/move-library')}>
-                  <Text style={styles.recommendUseText}>Abrir Biblioteca Move</Text>
-                </Pressable>
               </>
             ) : null}
+
+            <Pressable style={styles.recommendUseButton} onPress={() => router.push('/move-library')}>
+              <Text style={styles.recommendUseText}>Abrir Biblioteca Move · 70+ ejercicios</Text>
+            </Pressable>
 
             <Text style={styles.smallLabel}>Enfoque de hoy</Text>
             <View style={styles.profileChips}>
