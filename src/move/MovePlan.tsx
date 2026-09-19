@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { router } from 'expo-router';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import {
   MOVE_AVOID_AREA_OPTIONS,
@@ -6,6 +7,8 @@ import {
   MOVE_FOCUS_OPTIONS,
   MOVE_GOAL_OPTIONS,
   MOVE_INTENSITY_LABELS,
+  type MoveEquipmentLoadField,
+  type MoveEquipmentToggleField,
 } from '@/src/move/adaptation';
 import { exerciseCueForPreferences, moveExerciseEquipmentLabel } from '@/src/move/library';
 import { moveStyles as styles } from '@/src/move/styles';
@@ -21,13 +24,44 @@ function optionLabel<T extends string>(options: { value: T; label: string }[], v
   return options.find((item) => item.value === value)?.label ?? value;
 }
 
+const LOAD_EQUIPMENT: { field: MoveEquipmentLoadField; icon: string; title: string; copy: string; unit: string; min: number; max: number }[] = [
+  { field: 'dumbbellsKg', icon: '🏋️', title: 'Mancuernas', copy: 'Peso por mancuerna', unit: 'kg c/u', min: 0.25, max: 200 },
+  { field: 'kettlebellKg', icon: '🔔', title: 'Kettlebell', copy: 'Carga disponible', unit: 'kg', min: 0.25, max: 200 },
+  { field: 'barbellKg', icon: '🏋️', title: 'Barra', copy: 'Peso total cargado', unit: 'kg', min: 1, max: 500 },
+  { field: 'medicineBallKg', icon: '🏐', title: 'Balón medicinal', copy: 'Carga disponible', unit: 'kg', min: 0.25, max: 100 },
+  { field: 'weightedVestKg', icon: '🎽', title: 'Chaleco lastrado', copy: 'Carga del chaleco', unit: 'kg', min: 0.25, max: 100 },
+];
+
+const TOGGLE_EQUIPMENT: { field: MoveEquipmentToggleField; icon: string; title: string }[] = [
+  { field: 'resistanceBand', icon: '➰', title: 'Banda de resistencia' },
+  { field: 'bench', icon: '🛋️', title: 'Banco' },
+  { field: 'pullupBar', icon: '🧗', title: 'Barra de dominadas' },
+  { field: 'cableMachine', icon: '🎛️', title: 'Polea / cable' },
+  { field: 'gymMachines', icon: '⚙️', title: 'Máquinas de gimnasio' },
+  { field: 'suspensionTrainer', icon: '🪢', title: 'TRX / suspensión' },
+  { field: 'jumpRope', icon: '🪢', title: 'Cuerda para saltar' },
+  { field: 'stepBox', icon: '🪜', title: 'Step / cajón' },
+  { field: 'foamRoller', icon: '🧻', title: 'Foam roller' },
+];
+
 function equipmentSummary(move: MoveController) {
   const { equipment } = move.preferences;
   const parts: string[] = [];
   if (equipment.dumbbellsKg) parts.push(`Mancuernas ${equipment.dumbbellsKg} kg`);
   if (equipment.kettlebellKg) parts.push(`Kettlebell ${equipment.kettlebellKg} kg`);
+  if (equipment.barbellKg) parts.push(`Barra ${equipment.barbellKg} kg`);
   if (equipment.resistanceBand) parts.push('Banda');
-  return parts.length ? parts.join(' · ') : 'Sin cargas externas';
+  if (equipment.bench) parts.push('Banco');
+  if (equipment.pullupBar) parts.push('Dominadas');
+  if (equipment.cableMachine) parts.push('Polea');
+  if (equipment.gymMachines) parts.push('Máquinas');
+  if (equipment.suspensionTrainer) parts.push('TRX');
+  if (equipment.medicineBallKg) parts.push(`Balón ${equipment.medicineBallKg} kg`);
+  if (equipment.jumpRope) parts.push('Cuerda');
+  if (equipment.stepBox) parts.push('Step');
+  if (equipment.foamRoller) parts.push('Roller');
+  if (equipment.weightedVestKg) parts.push(`Chaleco ${equipment.weightedVestKg} kg`);
+  return parts.length ? parts.join(' · ') : 'Sin equipo externo registrado';
 }
 
 export function MovePlan({ move }: { move: MoveController }) {
@@ -44,9 +78,9 @@ export function MovePlan({ move }: { move: MoveController }) {
     setGoal,
     setWeightKg,
     setHeightCm,
-    setDumbbellsKg,
-    setKettlebellKg,
-    toggleResistanceBand,
+    setEquipmentLoad,
+    toggleEquipment,
+    toggleLowImpactOnly,
     toggleFloorAllowed,
     toggleChairAvailable,
     toggleAvoidArea,
@@ -170,49 +204,52 @@ export function MovePlan({ move }: { move: MoveController }) {
 
                 <Text style={styles.smallLabel}>Equipo habitual</Text>
                 <View style={styles.equipmentGrid}>
-                  <View style={[styles.equipmentCard, preferences.equipment.dumbbellsKg !== null && styles.equipmentCardActive]}>
-                    <Text style={styles.equipmentIcon}>🏋️</Text>
-                    <Text style={styles.equipmentTitle}>Mancuernas</Text>
-                    <Text style={styles.equipmentCopy}>Peso por mancuerna</Text>
-                    <View style={styles.metricInputWrap}>
-                      <TextInput
-                        defaultValue={preferences.equipment.dumbbellsKg ? String(preferences.equipment.dumbbellsKg) : ''}
-                        style={styles.equipmentInput}
-                        keyboardType="decimal-pad"
-                        placeholder="Sin equipo"
-                        placeholderTextColor="#60718A"
-                        returnKeyType="done"
-                        onEndEditing={(event) => setDumbbellsKg(parseNumber(event.nativeEvent.text, 0.25, 200))}
-                      />
-                      <Text style={styles.metricUnitText}>kg</Text>
-                    </View>
-                  </View>
-
-                  <View style={[styles.equipmentCard, preferences.equipment.kettlebellKg !== null && styles.equipmentCardActive]}>
-                    <Text style={styles.equipmentIcon}>🔔</Text>
-                    <Text style={styles.equipmentTitle}>Kettlebell</Text>
-                    <Text style={styles.equipmentCopy}>Carga disponible</Text>
-                    <View style={styles.metricInputWrap}>
-                      <TextInput
-                        defaultValue={preferences.equipment.kettlebellKg ? String(preferences.equipment.kettlebellKg) : ''}
-                        style={styles.equipmentInput}
-                        keyboardType="decimal-pad"
-                        placeholder="Sin equipo"
-                        placeholderTextColor="#60718A"
-                        returnKeyType="done"
-                        onEndEditing={(event) => setKettlebellKg(parseNumber(event.nativeEvent.text, 0.25, 200))}
-                      />
-                      <Text style={styles.metricUnitText}>kg</Text>
-                    </View>
-                  </View>
+                  {LOAD_EQUIPMENT.map((item) => {
+                    const value = preferences.equipment[item.field];
+                    const active = typeof value === 'number' && value > 0;
+                    return (
+                      <View key={item.field} style={[styles.equipmentCard, active && styles.equipmentCardActive]}>
+                        <Text style={styles.equipmentIcon}>{item.icon}</Text>
+                        <Text style={styles.equipmentTitle}>{item.title}</Text>
+                        <Text style={styles.equipmentCopy}>{item.copy}</Text>
+                        <View style={styles.metricInputWrap}>
+                          <TextInput
+                            defaultValue={active ? String(value) : ''}
+                            style={styles.equipmentInput}
+                            keyboardType="decimal-pad"
+                            placeholder="Sin equipo"
+                            placeholderTextColor="#60718A"
+                            returnKeyType="done"
+                            onEndEditing={(event) => setEquipmentLoad(item.field, parseNumber(event.nativeEvent.text, item.min, item.max))}
+                          />
+                          <Text style={styles.metricUnitText}>{item.unit}</Text>
+                        </View>
+                      </View>
+                    );
+                  })}
                 </View>
-                <Pressable style={[styles.preferenceButton, preferences.equipment.resistanceBand && styles.preferenceButtonActive]} onPress={toggleResistanceBand}>
-                  <Text style={styles.preferenceIcon}>➰</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.preferenceTitle, preferences.equipment.resistanceBand && styles.preferenceTitleActive]}>Banda de resistencia</Text>
-                    <Text style={styles.preferenceCopy}>Se usa solo cuando el ejercicio y la intensidad encajan.</Text>
-                  </View>
-                  <Text style={styles.preferenceCheck}>{preferences.equipment.resistanceBand ? '✓' : '○'}</Text>
+
+                <View style={styles.profileChips}>
+                  {TOGGLE_EQUIPMENT.map((item) => {
+                    const active = preferences.equipment[item.field];
+                    return (
+                      <Pressable
+                        key={item.field}
+                        style={[styles.profileChip, active && styles.profileChipActive]}
+                        onPress={() => toggleEquipment(item.field)}
+                      >
+                        <Text style={[styles.profileChipText, active && styles.profileChipTextActive]}>{item.icon} {item.title}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                <Text style={styles.profileHint}>
+                  Move no sube automáticamente tus kilos: usa exactamente el equipo y las cargas que declares.
+                </Text>
+
+                <Pressable style={styles.recommendUseButton} onPress={() => router.push('/move-library')}>
+                  <Text style={styles.recommendUseText}>Abrir Biblioteca Move</Text>
                 </Pressable>
               </>
             ) : null}
@@ -237,6 +274,9 @@ export function MovePlan({ move }: { move: MoveController }) {
               </Pressable>
               <Pressable style={[styles.profileChip, preferences.floorAllowed && styles.profileChipActive]} onPress={toggleFloorAllowed}>
                 <Text style={[styles.profileChipText, preferences.floorAllowed && styles.profileChipTextActive]}>⬇️ Suelo</Text>
+              </Pressable>
+              <Pressable style={[styles.profileChip, preferences.lowImpactOnly && styles.profileChipActive]} onPress={toggleLowImpactOnly}>
+                <Text style={[styles.profileChipText, preferences.lowImpactOnly && styles.profileChipTextActive]}>🌿 Bajo impacto</Text>
               </Pressable>
             </View>
 
@@ -280,7 +320,7 @@ export function MovePlan({ move }: { move: MoveController }) {
                 </View>
               );
             })}
-            <Text style={styles.libraryNote}>La rutina se adapta con energía, feedback, perfil, equipo, tiempo y restricciones. Puedes cambiar un ejercicio durante la sesión.</Text>
+            <Text style={styles.libraryNote}>La rutina se adapta con energía, feedback, dificultad previa, perfil, equipo, tiempo y restricciones. “Muy fácil” busca progresiones; “Difícil/Demasiado” busca regresiones compatibles.</Text>
           </View>
         </>
       ) : null}
