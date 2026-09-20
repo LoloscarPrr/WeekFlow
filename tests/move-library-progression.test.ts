@@ -12,6 +12,7 @@ import {
 import {
   alternateExercise,
   moveExerciseCompatible,
+  moveExerciseSelectionEligible,
   previewForDuration,
   routineForDuration,
 } from '../src/move/library';
@@ -210,6 +211,24 @@ const swapPreferences = prefs({
 });
 const swappedManual = alternateExercise(MOVE_EXERCISE_BY_ID.squat, swapPreferences, 'moderada');
 ok(swappedManual.id !== 'tempo-squat', 'Cambiar ejercicio nunca devuelve una variante excluida');
+
+const advancedSelection = prefs({
+  experience: 'avanzado',
+  floorAllowed: true,
+  chairAvailable: true,
+  equipment: { pullupBar: true, jumpRope: true },
+});
+ok(moveExerciseSelectionEligible(MOVE_EXERCISE_BY_ID.pullup, advancedSelection), 'avanzado puede seleccionar dominada aunque requiera intensidad alta');
+ok(moveExerciseSelectionEligible(MOVE_EXERCISE_BY_ID['jump-rope-basic'], advancedSelection), 'avanzado puede seleccionar cuerda para una futura sesión alta');
+equal(moveExerciseCompatible(MOVE_EXERCISE_BY_ID.pullup, advancedSelection, 'moderada'), false, 'la sesión moderada sigue sin usar dominada aunque esté seleccionable');
+
+const beginnerSelection = prefs({
+  experience: 'principiante',
+  floorAllowed: true,
+  chairAvailable: true,
+  equipment: { pullupBar: true },
+});
+equal(moveExerciseSelectionEligible(MOVE_EXERCISE_BY_ID.pullup, beginnerSelection), false, 'principiante no puede forzar ejercicio avanzado');
 
 const fullyEquipped = prefs({
   focus: 'fuerza',
