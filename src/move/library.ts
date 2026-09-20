@@ -124,7 +124,7 @@ function intensityCompatible(exercise: MoveExercise, intensity: MoveIntensity) {
   return MOVE_INTENSITY_RANK[intensity] >= MOVE_INTENSITY_RANK[exercise.minIntensity];
 }
 
-export function moveExerciseCompatible(
+export function moveExerciseProfileCompatible(
   exercise: MoveExercise,
   preferences: MovePreferences,
   intensity: MoveIntensity = 'moderada',
@@ -139,12 +139,38 @@ export function moveExerciseCompatible(
   return true;
 }
 
+export function moveExerciseCompatible(
+  exercise: MoveExercise,
+  preferences: MovePreferences,
+  intensity: MoveIntensity = 'moderada',
+) {
+  if (!moveExerciseProfileCompatible(exercise, preferences, intensity)) return false;
+  return !preferences.excludedExerciseIds.includes(exercise.id);
+}
+
+const REST_FALLBACK: MoveExercise = {
+  id: 'move-rest-fallback',
+  icon: '😌',
+  title: 'Pausa activa',
+  cue: 'Respira cómodo y haz movimientos suaves a tu ritmo.',
+  easier: 'Quédate quieto y respira naturalmente.',
+  swapWith: '',
+  needs: 'none',
+  focus: ['equilibrado', 'activar', 'fuerza', 'movilidad'],
+  areas: [],
+  pattern: 'mobility',
+  family: 'recovery-fallback',
+  difficulty: 1,
+  impact: 'low',
+};
+
 function firstSafeFallback(preferences: MovePreferences, intensity: MoveIntensity) {
   for (const id of SAFE_FALLBACK_ORDER) {
     const exercise = MOVE_EXERCISE_BY_ID[id];
     if (exercise && moveExerciseCompatible(exercise, preferences, intensity)) return exercise;
   }
-  return MOVE_EXERCISE_BY_ID.breathing;
+  const anyCompatible = MOVE_EXERCISE_LIBRARY.find((exercise) => moveExerciseCompatible(exercise, preferences, intensity));
+  return anyCompatible ?? REST_FALLBACK;
 }
 
 function familyReferenceExercise(base: MoveExercise, progression: MoveProgressionContext) {
@@ -259,7 +285,7 @@ function idsFor(
     cursor += 1;
   }
 
-  if (selected.length) selected[selected.length - 1] = MOVE_EXERCISE_BY_ID.breathing;
+  if (selected.length) selected[selected.length - 1] = firstSafeFallback(preferences, intensity);
   return selected;
 }
 
