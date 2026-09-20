@@ -30,6 +30,7 @@ function preferences(
   const { equipment, ...rest } = overrides;
   return {
     ...DEFAULT_MOVE_PREFERENCES,
+    trainingStyle: 'intervalos',
     ...rest,
     equipment: { ...DEFAULT_MOVE_PREFERENCES.equipment, ...equipment },
   };

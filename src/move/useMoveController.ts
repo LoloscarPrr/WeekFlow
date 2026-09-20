@@ -27,6 +27,7 @@ import {
   type MovePreferences,
   type MoveEquipmentLoadField,
   type MoveEquipmentToggleField,
+  type MoveTrainingStyle,
 } from '@/src/move/adaptation';
 import { alternateExercise, exerciseById, previewForDuration, routineForDuration } from '@/src/move/library';
 import {
@@ -119,9 +120,15 @@ export function useMoveController() {
     [dayState.energy, lastRecord?.endedEarly, lastRecord?.feedback, preferences, todayShift],
   );
   const sessionDuration = activeSession?.plannedMinutes ?? duration;
+  const routinePreferences = useMemo(
+    () => activeSession?.trainingStyle
+      ? { ...preferences, trainingStyle: activeSession.trainingStyle }
+      : preferences,
+    [activeSession?.trainingStyle, preferences],
+  );
   const routine = useMemo(
-    () => routineForDuration(sessionDuration, preferences, sessionIntensity, progressionContext),
-    [preferences, progressionContext, sessionDuration, sessionIntensity],
+    () => routineForDuration(sessionDuration, routinePreferences, sessionIntensity, progressionContext),
+    [progressionContext, routinePreferences, sessionDuration, sessionIntensity],
   );
   const preview = useMemo(
     () => previewForDuration(duration, preferences, adaptiveIntensity, progressionContext),
@@ -175,7 +182,11 @@ export function useMoveController() {
   const phaseRemainingSeconds = Math.max(0, phaseTotalSeconds - phaseElapsedSeconds);
   const phasePercent = phaseTotalSeconds > 0 ? Math.min(100, Math.round((phaseElapsedSeconds / phaseTotalSeconds) * 100)) : 100;
   const sessionElapsedSeconds = activeSession ? Math.floor(elapsedMs(activeSession, clockMs) / 1000) : 0;
-  const overallPercent = routine.totalSeconds > 0 ? Math.min(100, Math.round((sessionElapsedSeconds / routine.totalSeconds) * 100)) : 0;
+  const overallPercent = routine.style === 'series'
+    ? Math.min(100, Math.round(((currentStepIndex + (runtime?.phase === 'rest' ? 0.5 : 0)) / Math.max(1, routine.steps.length)) * 100))
+    : routine.totalSeconds > 0
+      ? Math.min(100, Math.round((sessionElapsedSeconds / routine.totalSeconds) * 100))
+      : 0;
 
   function updatePreferences(next: MovePreferences) {
     const sanitized = sanitizeMovePreferences(next);
@@ -193,6 +204,10 @@ export function useMoveController() {
 
   function setGoal(goal: MoveGoal) {
     updatePreferences({ ...preferences, goal });
+  }
+
+  function setTrainingStyle(trainingStyle: MoveTrainingStyle) {
+    updatePreferences({ ...preferences, trainingStyle });
   }
 
   function setWeightKg(weightKg: number | null) {
@@ -260,6 +275,7 @@ export function useMoveController() {
       pausedAt: null,
       pausedTotalMs: 0,
       intensity: adaptiveIntensity,
+      trainingStyle: selectedRoutine.style,
     };
     const nextRuntime = createMoveRuntime(id, selectedRoutine.id, new Date(nowMs));
     saveActiveMoveSession(next);
@@ -279,9 +295,13 @@ export function useMoveController() {
     const nowMs = Date.now();
     const actualSeconds = Math.max(0, Math.round(elapsedMs(activeSession, nowMs) / 1000));
     const completedSteps = forceComplete ? routine.steps.length : runtime?.phase === 'rest' ? currentStepIndex + 1 : currentStepIndex;
-    const exerciseIds = routine.steps
-      .slice(0, completedSteps)
-      .map((step, index) => exerciseById(runtime?.exerciseOverrides[String(index)], step.exercise).id);
+    const exerciseIds = Array.from(new Set(
+      routine.steps
+        .slice(0, completedSteps)
+        .flatMap((step, index) => step.mode === 'amrap'
+          ? (step.circuit ?? []).map((item) => item.exercise.id)
+          : [exerciseById(runtime?.exerciseOverrides[String(index)], step.exercise).id]),
+    ));
     const record: MoveSessionRecord = {
       id: activeSession.id,
       startedAt: activeSession.startedAt,
@@ -295,6 +315,7 @@ export function useMoveController() {
       feedbackSkipped: false,
       intensity: activeSession.intensity ?? adaptiveIntensity,
       exerciseIds,
+      trainingStyle: activeSession.trainingStyle ?? routine.style,
     };
     saveMoveSession(record);
     clearActiveMoveSession();
@@ -338,8 +359,9 @@ export function useMoveController() {
 
   useEffect(() => {
     if (!activeSession || !runtime || activeSession.paused || phaseRemainingSeconds > 0) return;
+    if (runtime.phase === 'exercise' && stepDefinition.mode === 'set') return;
     if (runtime.phase === 'rest') advanceToNextExercise(); else completeCurrentExercise();
-  }, [activeSession, currentStepIndex, phaseRemainingSeconds, runtime, stepDefinition.restAfterSec]);
+  }, [activeSession, currentStepIndex, phaseRemainingSeconds, runtime, stepDefinition.mode, stepDefinition.restAfterSec]);
 
   function togglePause() {
     if (!activeSession || !runtime) return;
@@ -364,10 +386,21 @@ export function useMoveController() {
   }
 
   function switchExercise() {
-    if (!runtime || runtime.phase !== 'exercise') return;
+    if (!runtime || runtime.phase !== 'exercise' || stepDefinition.mode === 'amrap') return;
     const nowMs = Date.now();
     const alternative = alternateExercise(currentExercise, preferences, sessionIntensity);
-    const nextRuntime = resetPhase({ ...runtime, exerciseOverrides: { ...runtime.exerciseOverrides, [String(currentStepIndex)]: alternative.id } }, 'exercise', nowMs);
+    const exerciseOverrides = { ...runtime.exerciseOverrides };
+    if (stepDefinition.mode === 'set') {
+      for (let index = currentStepIndex; index < routine.steps.length; index += 1) {
+        const candidate = routine.steps[index];
+        if (candidate.mode === 'set' && candidate.exercise.id === stepDefinition.exercise.id) {
+          exerciseOverrides[String(index)] = alternative.id;
+        }
+      }
+    } else {
+      exerciseOverrides[String(currentStepIndex)] = alternative.id;
+    }
+    const nextRuntime = resetPhase({ ...runtime, exerciseOverrides }, 'exercise', nowMs);
     saveMoveRuntime(nextRuntime);
     setRuntime(nextRuntime);
     setClockMs(nowMs);
@@ -422,6 +455,7 @@ export function useMoveController() {
     setFocus,
     setExperience,
     setGoal,
+    setTrainingStyle,
     setWeightKg,
     setHeightCm,
     setDumbbellsKg,

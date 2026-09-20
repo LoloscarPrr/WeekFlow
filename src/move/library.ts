@@ -7,6 +7,7 @@ import {
   moveEquipmentLabel,
   type MoveIntensity,
   type MovePreferences,
+  type MoveResolvedTrainingStyle,
 } from './adaptation';
 import {
   MOVE_EXERCISE_BY_ID,
@@ -18,74 +19,53 @@ import {
   moveFeedbackDifficultyDelta,
   type MoveProgressionContext,
 } from './progression';
+import {
+  TRAINER_AMRAP_ITEMS,
+  TRAINER_SET_TEMPLATES,
+  TRAINER_SOURCE_RULES,
+  type TrainerSetTemplate,
+  type TrainerSetTemplateItem,
+} from './trainerTemplates';
 
 export type { MoveExercise, MovePattern, MoveImpact } from './exerciseCatalog';
+
+export type MoveCircuitItem = {
+  exercise: MoveExercise;
+  repsLabel: string;
+};
+
+export type MoveStepMode = 'timed' | 'set' | 'amrap';
 
 export type MoveStep = {
   slot: number;
   exercise: MoveExercise;
   durationSec: number;
   restAfterSec: number;
+  mode: MoveStepMode;
+  setNumber?: number;
+  setCount?: number;
+  repsLabel?: string;
+  blockLabel?: string;
+  roundNumber?: number;
+  roundCount?: number;
+  circuit?: MoveCircuitItem[];
 };
 
 export type MoveRoutine = {
   id: string;
   targetMinutes: number;
   intensity: MoveIntensity;
+  style: MoveResolvedTrainingStyle;
   steps: MoveStep[];
   totalSeconds: number;
+  sourceTemplate?: string;
 };
 
 const FOCUS_ORDER: Record<MovePreferences['focus'], string[]> = {
-  equilibrado: [
-    'march',
-    'squat',
-    'wall-press',
-    'band-row',
-    'hip-hinge',
-    'dead-bug',
-    'side-step',
-    'supported-split-squat',
-    'reach',
-    'calf-release',
-    'breathing',
-  ],
-  activar: [
-    'march',
-    'side-step',
-    'squat-reach',
-    'knee-lift',
-    'step-up',
-    'reverse-lunge',
-    'toe-tap',
-    'march',
-    'side-step',
-    'calf-release',
-    'breathing',
-  ],
-  fuerza: [
-    'squat',
-    'hip-hinge',
-    'wall-press',
-    'band-row',
-    'supported-split-squat',
-    'dead-bug',
-    'incline-push',
-    'bridge',
-    'plank-knees',
-    'heel-raise',
-    'breathing',
-  ],
-  movilidad: [
-    'shoulders',
-    'reach',
-    'calf-release',
-    'cat-cow',
-    'thoracic-rotation',
-    'hip-flexor-stretch',
-    'toe-tap',
-    'breathing',
-  ],
+  equilibrado: ['march', 'squat', 'wall-press', 'band-row', 'hip-hinge', 'dead-bug', 'side-step', 'supported-split-squat', 'reach', 'calf-release', 'breathing'],
+  activar: ['march', 'side-step', 'squat-reach', 'knee-lift', 'step-up', 'reverse-lunge', 'toe-tap', 'march', 'side-step', 'calf-release', 'breathing'],
+  fuerza: ['squat', 'hip-hinge', 'wall-press', 'band-row', 'supported-split-squat', 'dead-bug', 'incline-push', 'bridge', 'plank-knees', 'heel-raise', 'breathing'],
+  movilidad: ['shoulders', 'reach', 'calf-release', 'cat-cow', 'thoracic-rotation', 'hip-flexor-stretch', 'toe-tap', 'breathing'],
 };
 
 const LOADED_ORDER = [
@@ -139,10 +119,7 @@ export function moveExerciseProfileCompatible(
   return true;
 }
 
-export function moveExerciseSelectionEligible(
-  exercise: MoveExercise,
-  preferences: MovePreferences,
-) {
+export function moveExerciseSelectionEligible(exercise: MoveExercise, preferences: MovePreferences) {
   return moveExerciseProfileCompatible(exercise, preferences, 'alta');
 }
 
@@ -176,8 +153,7 @@ function firstSafeFallback(preferences: MovePreferences, intensity: MoveIntensit
     const exercise = MOVE_EXERCISE_BY_ID[id];
     if (exercise && moveExerciseCompatible(exercise, preferences, intensity)) return exercise;
   }
-  const anyCompatible = MOVE_EXERCISE_LIBRARY.find((exercise) => moveExerciseCompatible(exercise, preferences, intensity));
-  return anyCompatible ?? REST_FALLBACK;
+  return MOVE_EXERCISE_LIBRARY.find((exercise) => moveExerciseCompatible(exercise, preferences, intensity)) ?? REST_FALLBACK;
 }
 
 function familyReferenceExercise(base: MoveExercise, progression: MoveProgressionContext) {
@@ -198,7 +174,6 @@ function progressionAdjustedExercise(
   const reference = familyReferenceExercise(base, progression);
   const delta = moveFeedbackDifficultyDelta(progression.lastFeedback, progression.lastEndedEarly);
   const target = clampMoveDifficulty(reference.difficulty + delta);
-
   const candidates = MOVE_EXERCISE_LIBRARY
     .filter((exercise) => exercise.family === base.family)
     .filter((exercise) => moveExerciseCompatible(exercise, preferences, intensity));
@@ -210,13 +185,12 @@ function progressionAdjustedExercise(
     if (delta < 0) return exercise.difficulty < reference.difficulty;
     return exercise.difficulty === reference.difficulty;
   });
-
   const pool = directional.length ? directional : candidates;
+
   return [...pool].sort((a, b) => {
     const distanceA = Math.abs(a.difficulty - target);
     const distanceB = Math.abs(b.difficulty - target);
     if (distanceA !== distanceB) return distanceA - distanceB;
-
     const equipmentA = a.equipment?.length ? 1 : 0;
     const equipmentB = b.equipment?.length ? 1 : 0;
     const loadGoal = preferences.goal === 'fuerza' || preferences.goal === 'musculo' || preferences.focus === 'fuerza';
@@ -234,7 +208,6 @@ function compatibleExercise(
   const progressed = progressionAdjustedExercise(exercise, preferences, intensity, progression);
   if (progressed) return progressed;
   if (moveExerciseCompatible(exercise, preferences, intensity)) return exercise;
-
   const swap = MOVE_EXERCISE_BY_ID[exercise.swapWith];
   if (swap && moveExerciseCompatible(swap, preferences, intensity)) return swap;
   return firstSafeFallback(preferences, intensity);
@@ -250,18 +223,10 @@ function loadPriorityCount(preferences: MovePreferences) {
 
 function orderedIds(preferences: MovePreferences, intensity: MoveIntensity) {
   let order = [...(FOCUS_ORDER[preferences.focus] ?? FOCUS_ORDER.equilibrado)];
+  if (preferences.focus === 'equilibrado' && preferences.goal === 'condicion') order = [...CONDITIONING_PREFIX, ...order];
+  if (preferences.focus === 'equilibrado' && preferences.goal === 'movilidad') order = [...MOBILITY_PREFIX, ...order];
 
-  if (preferences.focus === 'equilibrado' && preferences.goal === 'condicion') {
-    order = [...CONDITIONING_PREFIX, ...order];
-  }
-  if (preferences.focus === 'equilibrado' && preferences.goal === 'movilidad') {
-    order = [...MOBILITY_PREFIX, ...order];
-  }
-
-  const loadGoal = preferences.goal === 'fuerza'
-    || preferences.goal === 'musculo'
-    || preferences.focus === 'fuerza';
-
+  const loadGoal = preferences.goal === 'fuerza' || preferences.goal === 'musculo' || preferences.focus === 'fuerza';
   if (loadGoal && MOVE_INTENSITY_RANK[intensity] >= MOVE_INTENSITY_RANK.suave) {
     const loadLimit = intensity === 'suave' ? 1 : loadPriorityCount(preferences);
     const compatibleLoaded = LOADED_ORDER
@@ -272,7 +237,6 @@ function orderedIds(preferences: MovePreferences, intensity: MoveIntensity) {
       .slice(0, loadLimit);
     if (compatibleLoaded.length) order = [...compatibleLoaded, ...order];
   }
-
   return order;
 }
 
@@ -285,13 +249,11 @@ function idsFor(
   const order = orderedIds(preferences, intensity);
   const selected: MoveExercise[] = [];
   let cursor = 0;
-
   while (selected.length < count) {
     const base = MOVE_EXERCISE_BY_ID[order[cursor % order.length]] ?? MOVE_EXERCISE_BY_ID.breathing;
     selected.push(compatibleExercise(base, preferences, intensity, progression));
     cursor += 1;
   }
-
   if (selected.length) selected[selected.length - 1] = firstSafeFallback(preferences, intensity);
   return selected;
 }
@@ -304,13 +266,40 @@ function restSecondsFor(targetMinutes: number, intensity: MoveIntensity) {
   return base;
 }
 
-export function routineForDuration(
+export function resolveMoveTrainingStyle(
   value: number,
-  preferences: MovePreferences = DEFAULT_MOVE_PREFERENCES,
-  intensity: MoveIntensity = 'moderada',
-  progression: MoveProgressionContext = {},
-): MoveRoutine {
+  preferences: MovePreferences,
+  intensity: MoveIntensity,
+): MoveResolvedTrainingStyle {
   const targetMinutes = supportedDuration(value);
+  if (intensity === 'recuperacion' || preferences.focus === 'movilidad' || preferences.goal === 'movilidad') return 'intervalos';
+
+  if (preferences.trainingStyle === 'intervalos') return 'intervalos';
+  if (preferences.trainingStyle === 'series') return targetMinutes >= 10 ? 'series' : 'intervalos';
+  if (preferences.trainingStyle === 'amrap') {
+    return targetMinutes >= 10 && MOVE_INTENSITY_RANK[intensity] >= MOVE_INTENSITY_RANK.moderada ? 'amrap' : 'intervalos';
+  }
+
+  if (
+    targetMinutes >= 20
+    && MOVE_INTENSITY_RANK[intensity] >= MOVE_INTENSITY_RANK.moderada
+    && (preferences.goal === 'condicion' || preferences.focus === 'activar')
+  ) return 'amrap';
+
+  if (
+    targetMinutes >= 10
+    && (preferences.goal === 'fuerza' || preferences.goal === 'musculo' || preferences.focus === 'fuerza')
+  ) return 'series';
+
+  return 'intervalos';
+}
+
+function intervalRoutine(
+  targetMinutes: number,
+  preferences: MovePreferences,
+  intensity: MoveIntensity,
+  progression: MoveProgressionContext,
+): MoveRoutine {
   const exercises = idsFor(preferences, STEP_COUNT[targetMinutes], intensity, progression);
   const restAfterSec = restSecondsFor(targetMinutes, intensity);
   const targetSeconds = targetMinutes * 60;
@@ -327,16 +316,181 @@ export function routineForDuration(
       exercise,
       durationSec,
       restAfterSec: slot === exercises.length - 1 ? 0 : restAfterSec,
+      mode: 'timed' as const,
     };
   });
 
   return {
-    id: `move-${targetMinutes}-${preferences.focus}-${intensity}-${moveFeedbackDifficultyDelta(progression.lastFeedback, progression.lastEndedEarly)}`,
+    id: `move-${targetMinutes}-${preferences.focus}-${intensity}-intervalos-${moveFeedbackDifficultyDelta(progression.lastFeedback, progression.lastEndedEarly)}`,
     targetMinutes,
     intensity,
+    style: 'intervalos',
     steps,
     totalSeconds: steps.reduce((total, step) => total + step.durationSec + step.restAfterSec, 0),
   };
+}
+
+function templateExercise(
+  item: TrainerSetTemplateItem,
+  preferences: MovePreferences,
+  intensity: MoveIntensity,
+  progression: MoveProgressionContext,
+) {
+  const base = MOVE_EXERCISE_BY_ID[item.exerciseId];
+  if (!base) return null;
+  return progressionAdjustedExercise(base, preferences, intensity, progression);
+}
+
+function templateScore(
+  template: TrainerSetTemplate,
+  preferences: MovePreferences,
+  intensity: MoveIntensity,
+  progression: MoveProgressionContext,
+) {
+  const compatible = template.items.filter((item) => templateExercise(item, preferences, intensity, progression)).length;
+  const goalBoost = template.goals.includes(preferences.goal) ? 3 : 0;
+  return compatible * 10 + goalBoost;
+}
+
+function selectSetTemplate(
+  preferences: MovePreferences,
+  intensity: MoveIntensity,
+  progression: MoveProgressionContext,
+) {
+  return [...TRAINER_SET_TEMPLATES].sort(
+    (a, b) => templateScore(b, preferences, intensity, progression) - templateScore(a, preferences, intensity, progression),
+  )[0];
+}
+
+function adaptedSetCount(sourceSets: number, targetMinutes: number, intensity: MoveIntensity) {
+  let cap = targetMinutes <= 10 ? 3 : targetMinutes <= 20 ? 4 : 5;
+  if (intensity === 'suave') cap = Math.min(cap, 3);
+  return Math.max(2, Math.min(sourceSets, cap));
+}
+
+function seriesRoutine(
+  targetMinutes: number,
+  preferences: MovePreferences,
+  intensity: MoveIntensity,
+  progression: MoveProgressionContext,
+): MoveRoutine | null {
+  const template = selectSetTemplate(preferences, intensity, progression);
+  if (!template) return null;
+
+  const exerciseLimit = targetMinutes <= 10 ? 2 : targetMinutes <= 20 ? 3 : 4;
+  const items = template.items
+    .map((item) => {
+      const exercise = templateExercise(item, preferences, intensity, progression);
+      return exercise ? { item, exercise } : null;
+    })
+    .filter((item): item is { item: TrainerSetTemplateItem; exercise: MoveExercise } => Boolean(item))
+    .slice(0, exerciseLimit);
+
+  if (items.length < 2) return null;
+
+  const steps: MoveStep[] = [];
+  const restSec = targetMinutes <= 10 ? 60 : TRAINER_SOURCE_RULES.structuredRestSec;
+
+  for (const { item, exercise } of items) {
+    const exactSourceVariant = exercise.id === item.exerciseId;
+    const setCount = exactSourceVariant
+      ? adaptedSetCount(item.sets, targetMinutes, intensity)
+      : Math.min(3, adaptedSetCount(item.sets, targetMinutes, intensity));
+    const repsLabel = exactSourceVariant ? item.reps : (item.unilateral ? '10/lado' : '10');
+
+    for (let setNumber = 1; setNumber <= setCount; setNumber += 1) {
+      steps.push({
+        slot: steps.length,
+        exercise,
+        durationSec: 35,
+        restAfterSec: restSec,
+        mode: 'set',
+        setNumber,
+        setCount,
+        repsLabel,
+        blockLabel: template.title,
+      });
+    }
+  }
+
+  if (steps.length) steps[steps.length - 1].restAfterSec = 0;
+
+  return {
+    id: `move-${targetMinutes}-${preferences.focus}-${intensity}-series-${template.id}-${moveFeedbackDifficultyDelta(progression.lastFeedback, progression.lastEndedEarly)}`,
+    targetMinutes,
+    intensity,
+    style: 'series',
+    steps,
+    totalSeconds: steps.reduce((total, step) => total + step.durationSec + step.restAfterSec, 0),
+    sourceTemplate: template.id,
+  };
+}
+
+function amrapRoutine(
+  targetMinutes: number,
+  preferences: MovePreferences,
+  intensity: MoveIntensity,
+  progression: MoveProgressionContext,
+): MoveRoutine | null {
+  const circuit = TRAINER_AMRAP_ITEMS
+    .map((item) => {
+      const base = MOVE_EXERCISE_BY_ID[item.exerciseId];
+      if (!base) return null;
+      const exercise = progressionAdjustedExercise(base, preferences, intensity, progression);
+      return exercise ? { exercise, repsLabel: item.reps } : null;
+    })
+    .filter((item): item is MoveCircuitItem => Boolean(item));
+
+  const uniqueCircuit = circuit.filter(
+    (item, index, all) => all.findIndex((candidate) => candidate.exercise.id === item.exercise.id) === index,
+  ).slice(0, 6);
+
+  if (uniqueCircuit.length < 3) return null;
+
+  const roundCount = targetMinutes >= 20 ? 3 : 1;
+  const steps: MoveStep[] = Array.from({ length: roundCount }, (_, index) => ({
+    slot: index,
+    exercise: uniqueCircuit[0].exercise,
+    durationSec: TRAINER_SOURCE_RULES.amrapWorkSec,
+    restAfterSec: index === roundCount - 1 ? 0 : TRAINER_SOURCE_RULES.amrapRestSec,
+    mode: 'amrap',
+    roundNumber: index + 1,
+    roundCount,
+    circuit: uniqueCircuit,
+    blockLabel: 'AMRAP',
+  }));
+
+  return {
+    id: `move-${targetMinutes}-${preferences.focus}-${intensity}-amrap-${moveFeedbackDifficultyDelta(progression.lastFeedback, progression.lastEndedEarly)}`,
+    targetMinutes,
+    intensity,
+    style: 'amrap',
+    steps,
+    totalSeconds: steps.reduce((total, step) => total + step.durationSec + step.restAfterSec, 0),
+    sourceTemplate: 'trainer-amrap-5-2',
+  };
+}
+
+export function routineForDuration(
+  value: number,
+  preferences: MovePreferences = DEFAULT_MOVE_PREFERENCES,
+  intensity: MoveIntensity = 'moderada',
+  progression: MoveProgressionContext = {},
+): MoveRoutine {
+  const targetMinutes = supportedDuration(value);
+  const requestedStyle = resolveMoveTrainingStyle(targetMinutes, preferences, intensity);
+
+  if (requestedStyle === 'series') {
+    const structured = seriesRoutine(targetMinutes, preferences, intensity, progression);
+    if (structured) return structured;
+  }
+
+  if (requestedStyle === 'amrap') {
+    const structured = amrapRoutine(targetMinutes, preferences, intensity, progression);
+    if (structured) return structured;
+  }
+
+  return intervalRoutine(targetMinutes, preferences, intensity, progression);
 }
 
 export function previewForDuration(
@@ -347,11 +501,50 @@ export function previewForDuration(
 ) {
   const routine = routineForDuration(value, preferences, intensity, progression);
   const unique: MoveExercise[] = [];
+
   for (const step of routine.steps) {
-    if (!unique.some((item) => item.id === step.exercise.id)) unique.push(step.exercise);
-    if (unique.length >= 4) break;
+    const candidates = step.mode === 'amrap' && step.circuit?.length
+      ? step.circuit.map((item) => item.exercise)
+      : [step.exercise];
+    for (const exercise of candidates) {
+      if (!unique.some((item) => item.id === exercise.id)) unique.push(exercise);
+      if (unique.length >= 4) return unique;
+    }
   }
+
   return unique;
+}
+
+export function routineExercisePrescription(routine: MoveRoutine, exerciseId: string) {
+  for (const step of routine.steps) {
+    if (step.mode === 'set' && step.exercise.id === exerciseId) {
+      return `${step.setCount ?? 1}×${step.repsLabel ?? 'reps'} · descanso ${step.restAfterSec || TRAINER_SOURCE_RULES.structuredRestSec}s`;
+    }
+    if (step.mode === 'amrap') {
+      const item = step.circuit?.find((candidate) => candidate.exercise.id === exerciseId);
+      if (item) return `${item.repsLabel} · AMRAP 5 min`;
+    }
+  }
+  return null;
+}
+
+export function routineStyleLabel(style: MoveResolvedTrainingStyle) {
+  if (style === 'series') return 'Series + repeticiones';
+  if (style === 'amrap') return 'AMRAP';
+  return 'Intervalos';
+}
+
+export function routineSummary(routine: MoveRoutine) {
+  if (routine.style === 'series') {
+    const uniqueExercises = new Set(routine.steps.map((step) => step.exercise.id)).size;
+    return `${uniqueExercises} ejercicios · series/repeticiones · descanso estructurado`;
+  }
+  if (routine.style === 'amrap') {
+    const rounds = routine.steps[0]?.roundCount ?? routine.steps.length;
+    const items = routine.steps[0]?.circuit?.length ?? 0;
+    return `${rounds} ronda${rounds === 1 ? '' : 's'} · 5 min trabajo · 2 min descanso · ${items} ejercicios`;
+  }
+  return `${routine.targetMinutes} min por intervalos adaptativos`;
 }
 
 export function exerciseById(id: string | undefined, fallback: MoveExercise) {
@@ -374,10 +567,8 @@ export function alternateExercise(
     });
 
   if (sameFamily[0]) return sameFamily[0];
-
   const explicitSwap = MOVE_EXERCISE_BY_ID[current.swapWith];
   if (explicitSwap && moveExerciseCompatible(explicitSwap, preferences, intensity)) return explicitSwap;
-
   return firstSafeFallback(preferences, intensity);
 }
 

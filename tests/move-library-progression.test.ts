@@ -65,6 +65,8 @@ const requiredEquipment: MoveEquipmentType[] = [
   'stepBox',
   'foamRoller',
   'weightedVest',
+  'battleRope',
+  'parallelBars',
 ];
 const catalogEquipment = new Set(MOVE_EXERCISE_LIBRARY.flatMap((exercise) => exercise.equipment ?? []));
 for (const equipment of requiredEquipment) {
@@ -88,6 +90,9 @@ equal(legacy.equipment.barbellKg, null, 'legacy no inventa barra');
 equal(legacy.equipment.bench, false, 'legacy no inventa banco');
 equal(legacy.lowImpactOnly, false, 'legacy no activa bajo impacto');
 equal(legacy.excludedExerciseIds.length, 0, 'legacy permite todos los ejercicios por defecto');
+equal(legacy.trainingStyle, 'auto', 'legacy usa formato automático por defecto');
+equal(legacy.equipment.battleRope, false, 'legacy no inventa battle rope');
+equal(legacy.equipment.parallelBars, false, 'legacy no inventa paralelas');
 equal(sanitizeExcludedExerciseIds(['squat', 'id-inexistente', 'squat']).join(','), 'squat', 'selección elimina IDs inválidos y duplicados');
 
 const bodyweightStrength = prefs({
