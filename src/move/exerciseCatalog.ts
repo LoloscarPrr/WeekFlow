@@ -146,3 +146,7 @@ export const MOVE_EXERCISE_LIBRARY: MoveExercise[] = [
 export const MOVE_EXERCISE_BY_ID: Record<string, MoveExercise> = Object.fromEntries(
   MOVE_EXERCISE_LIBRARY.map((exercise) => [exercise.id, exercise]),
 );
+
+export function sanitizeExcludedExerciseIds(ids: string[]) {
+  return Array.from(new Set(ids.filter((id) => Boolean(MOVE_EXERCISE_BY_ID[id]))));
+}

@@ -29,6 +29,7 @@ import {
   type MoveIntensity,
   type MovePreferences,
 } from '@/src/move/adaptation';
+import { sanitizeExcludedExerciseIds } from '@/src/move/exerciseCatalog';
 import {
   localDateKey,
   nextWorkingShift as nextWorkingShiftDomain,
@@ -121,13 +122,20 @@ export function saveMoveSession(record: MoveSessionRecord) {
   sqliteStateStore.write(MOVE_HISTORY_KEY, [record, ...history].slice(0, 30));
 }
 
+function normalizeMovePreferences(value: unknown): MovePreferences {
+  const sanitized = value ? sanitizeMovePreferences(value) : DEFAULT_MOVE_PREFERENCES;
+  return {
+    ...sanitized,
+    excludedExerciseIds: sanitizeExcludedExerciseIds(sanitized.excludedExerciseIds),
+  };
+}
+
 export function loadMovePreferences(): MovePreferences {
-  const parsed = sqliteStateStore.read<unknown>(MOVE_PREFERENCES_KEY);
-  return parsed ? sanitizeMovePreferences(parsed) : DEFAULT_MOVE_PREFERENCES;
+  return normalizeMovePreferences(sqliteStateStore.read<unknown>(MOVE_PREFERENCES_KEY));
 }
 
 export function saveMovePreferences(preferences: MovePreferences) {
-  sqliteStateStore.write(MOVE_PREFERENCES_KEY, sanitizeMovePreferences(preferences));
+  sqliteStateStore.write(MOVE_PREFERENCES_KEY, normalizeMovePreferences(preferences));
 }
 
 export function loadActiveMoveSession(): ActiveMoveSession | null {
