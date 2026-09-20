@@ -11,7 +11,6 @@ import {
 import {
   moveExerciseCompatible,
   moveExerciseEquipmentLabel,
-  moveExerciseProfileCompatible,
   moveExerciseSelectionEligible,
 } from '@/src/move/library';
 import { MOVE_EXPERIENCE_OPTIONS, type MovePreferences } from '@/src/move/adaptation';
