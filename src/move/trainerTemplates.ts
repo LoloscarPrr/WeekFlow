@@ -53,7 +53,7 @@ export const TRAINER_SET_TEMPLATES: TrainerSetTemplate[] = [
     goals: ['fuerza', 'musculo', 'bienestar'],
     sourceNote: 'Pizarras: peso muerto 4×10, remo con barra 4×10, press banca 4×10, press de hombro 4×10 y curls 4×10–12.',
     items: [
-      { exerciseId: 'kb-deadlift', sets: 4, reps: '10' },
+      { exerciseId: 'barbell-deadlift', sets: 4, reps: '10' },
       { exerciseId: 'barbell-row', sets: 4, reps: '10' },
       { exerciseId: 'barbell-bench-press', sets: 4, reps: '10' },
       { exerciseId: 'db-shoulder-press', sets: 4, reps: '10' },
