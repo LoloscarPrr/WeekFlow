@@ -139,6 +139,13 @@ export function moveExerciseProfileCompatible(
   return true;
 }
 
+export function moveExerciseSelectionEligible(
+  exercise: MoveExercise,
+  preferences: MovePreferences,
+) {
+  return moveExerciseProfileCompatible(exercise, preferences, 'alta');
+}
+
 export function moveExerciseCompatible(
   exercise: MoveExercise,
   preferences: MovePreferences,
