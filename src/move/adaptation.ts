@@ -48,6 +48,7 @@ export type MovePreferences = {
   heightCm: number | null;
   equipment: MoveEquipment;
   lowImpactOnly: boolean;
+  excludedExerciseIds: string[];
 };
 
 export const DEFAULT_MOVE_EQUIPMENT: MoveEquipment = {
@@ -78,6 +79,7 @@ export const DEFAULT_MOVE_PREFERENCES: MovePreferences = {
   heightCm: null,
   equipment: DEFAULT_MOVE_EQUIPMENT,
   lowImpactOnly: false,
+  excludedExerciseIds: [],
 };
 
 export const MOVE_FOCUS_OPTIONS: { value: MoveFocus; label: string; icon: string; copy: string }[] = [
@@ -317,5 +319,8 @@ export function sanitizeMovePreferences(value: unknown): MovePreferences {
       weightedVestKg: normalizedNumber(equipment.weightedVestKg, 0.25, 100),
     },
     lowImpactOnly: Boolean(candidate.lowImpactOnly),
+    excludedExerciseIds: Array.isArray(candidate.excludedExerciseIds)
+      ? Array.from(new Set(candidate.excludedExerciseIds.filter((id): id is string => typeof id === 'string' && id.trim().length > 0)))
+      : [],
   };
 }
