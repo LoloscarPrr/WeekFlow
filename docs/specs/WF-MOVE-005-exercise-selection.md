@@ -1,6 +1,6 @@
 # WF-MOVE-005 — Selección manual de ejercicios
 
-Status: LOCKED
+Status: DONE
 Owner: WeekFlow
 Approved by: Oscar · 19-09-2026
 Source: prueba física de WeekFlow Alpha 0.3.23 + capturas de Biblioteca Move
@@ -50,19 +50,37 @@ La Biblioteca Move muestra qué ejercicios son compatibles con el perfil actual 
 
 ## Acceptance criteria
 
-- [ ] AC1 — Preferencias legacy cargan con `excludedExerciseIds=[]`.
-- [ ] AC2 — IDs inválidos/obsoletos se eliminan al sanitizar.
-- [ ] AC3 — Un ejercicio excluido no aparece en rutina ni preview.
-- [ ] AC4 — “Cambiar ejercicio” nunca devuelve un ejercicio excluido.
-- [ ] AC5 — Progresión “Muy fácil” no puede reintroducir un ejercicio excluido.
-- [ ] AC6 — Regresión “Difícil/Demasiado” tampoco puede reintroducir un excluido.
-- [ ] AC7 — Biblioteca permite alternar ✓/— solo para ejercicios compatibles.
-- [ ] AC8 — Ejercicios incompatibles muestran estado bloqueado y no se pueden forzar.
-- [ ] AC9 — Existe “Restablecer selección”.
-- [ ] AC10 — La selección persiste en SQLite vía MovePreferences.
-- [ ] AC11 — Quality/TypeScript/regresiones pasan.
-- [ ] AC12 — Android release 0.3.24 genera APK + AAB firmados.
+- [x] AC1 — Preferencias legacy cargan con `excludedExerciseIds=[]`.
+- [x] AC2 — IDs inválidos/obsoletos se eliminan al sanitizar.
+- [x] AC3 — Un ejercicio excluido no aparece en rutina ni preview.
+- [x] AC4 — “Cambiar ejercicio” nunca devuelve un ejercicio excluido.
+- [x] AC5 — Progresión “Muy fácil” no puede reintroducir un ejercicio excluido.
+- [x] AC6 — Regresión “Difícil/Demasiado” tampoco puede reintroducir un excluido.
+- [x] AC7 — Biblioteca permite alternar ✓/— solo para ejercicios compatibles.
+- [x] AC8 — Ejercicios incompatibles muestran estado bloqueado y no se pueden forzar.
+- [x] AC9 — Existe “Restablecer selección”.
+- [x] AC10 — La selección persiste en SQLite vía MovePreferences.
+- [x] AC11 — Quality/TypeScript/regresiones pasan.
+- [x] AC12 — Android release 0.3.24 genera APK + AAB firmados.
 
 ## Verification result
 
-- AC1–AC12: PENDING
+- AC1: PASS — preferencias legacy migran con selección vacía por defecto.
+- AC2: PASS — sanitización elimina IDs inexistentes y duplicados.
+- AC3: PASS — generación y preview comparten compatibilidad con exclusiones.
+- AC4: PASS — alternateExercise filtra ejercicios excluidos.
+- AC5: PASS — progresión “Muy fácil” no reintroduce variantes excluidas.
+- AC6: PASS — regresión “Difícil/Demasiado” tampoco reintroduce exclusiones.
+- AC7: PASS — Biblioteca Move permite alternar Permitido / Excluido por ti solo cuando el ejercicio es elegible por perfil.
+- AC8: PASS — ejercicios no elegibles quedan bloqueados y no se pueden forzar.
+- AC9: PASS — acción Restablecer selección implementada.
+- AC10: PASS — exclusiones persisten dentro de MovePreferences en SQLite.
+- AC11: PASS — PR Quality #166 y main Quality #167.
+- AC12: PASS — Android #144 generó APK + AAB firmados y publicó WeekFlow Alpha v0.3.24.
+
+### Release evidence
+- Merge commit: `fbbd4c5a48fd824d6b6478f6997fd75122e8608a`.
+- Release: `weekflow-v0.3.24`.
+- Standalone APK artifact: `WeekFlow-Alpha-v0.3.24-Standalone-APK`.
+- Play AAB artifact: `WeekFlow-Alpha-v0.3.24-Play-AAB`.
+- Physical Android UX validation remains useful, but does not block functional closure because selection behavior, persistence and generation constraints are covered by code + regressions.
