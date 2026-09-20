@@ -1,6 +1,6 @@
 # WF-MOVE-006 — Sesiones estructuradas desde rutinas reales
 
-Status: LOCKED
+Status: DONE
 Owner: WeekFlow
 Approved by: Oscar · 20-09-2026
 Source: 8 fotografías de rutinas escritas por el antiguo entrenador del usuario
@@ -63,22 +63,33 @@ Move 0.3.24 selecciona ejercicios y adapta dificultad, pero todas las sesiones s
 
 ## Acceptance criteria
 
-- [ ] AC1 — Existe formato Auto / Intervalos / Series / AMRAP y persiste en preferencias.
-- [ ] AC2 — Legacy carga como Auto sin pérdida.
-- [ ] AC3 — Fuerza/músculo en Auto puede generar series/repeticiones.
-- [ ] AC4 — Condición/activar en Auto puede generar AMRAP cuando tiempo e intensidad lo permiten.
-- [ ] AC5 — Recuperación/movilidad nunca genera AMRAP exigente.
-- [ ] AC6 — Series muestran sets, reps/rango y descanso; el player avanza set por set.
-- [ ] AC7 — AMRAP muestra circuito completo, 5 min trabajo y descanso entre rondas.
-- [ ] AC8 — Con >=21 min, plantilla AMRAP puede usar 3 rondas de 5+2 min; con menos tiempo reduce rondas sin exceder el plan.
-- [ ] AC9 — Plantillas respetan equipo, selección manual, experiencia, impacto y zonas evitadas.
-- [ ] AC10 — Se añaden ejercicios legibles faltantes de las fotos y Battle Rope al inventario.
-- [ ] AC11 — No se copian los RM/pesos de otras personas ni datos ilegibles.
-- [ ] AC12 — Historial guarda el formato de sesión y ejercicios realizados.
-- [ ] AC13 — Feedback Muy fácil/Bien/Difícil/Demasiado sigue afectando variantes sin alterar kg automáticamente.
-- [ ] AC14 — Quality/TypeScript/regresiones pasan.
-- [ ] AC15 — Android release 0.3.25 genera APK + AAB firmados.
+- [x] AC1 — Existe formato Auto / Intervalos / Series / AMRAP y persiste en preferencias.
+- [x] AC2 — Legacy carga como Auto sin pérdida.
+- [x] AC3 — Fuerza/músculo en Auto puede generar series/repeticiones.
+- [x] AC4 — Condición/activar en Auto puede generar AMRAP cuando tiempo e intensidad lo permiten.
+- [x] AC5 — Recuperación/movilidad nunca genera AMRAP exigente.
+- [x] AC6 — Series muestran sets, reps/rango y descanso; el player avanza set por set.
+- [x] AC7 — AMRAP muestra circuito completo, 5 min trabajo y descanso entre rondas.
+- [x] AC8 — Con >=21 min, plantilla AMRAP puede usar 3 rondas de 5+2 min; con menos tiempo reduce rondas sin exceder el plan.
+- [x] AC9 — Plantillas respetan equipo, selección manual, experiencia, impacto y zonas evitadas.
+- [x] AC10 — Se añaden ejercicios legibles faltantes de las fotos y Battle Rope al inventario.
+- [x] AC11 — No se copian los RM/pesos de otras personas ni datos ilegibles.
+- [x] AC12 — Historial guarda el formato de sesión y ejercicios realizados.
+- [x] AC13 — Feedback Muy fácil/Bien/Difícil/Demasiado sigue afectando variantes sin alterar kg automáticamente.
+- [x] AC14 — Quality/TypeScript/regresiones pasan.
+- [x] AC15 — Android release 0.3.25 genera APK + AAB firmados.
 
 ## Verification result
 
-- AC1–AC15: PENDING
+- AC1–AC13: PASS — formato, persistencia, generación estructurada, compatibilidad con perfil/equipo/exclusiones y progresión quedaron cubiertos por implementación y regresiones.
+- AC14: PASS — PR Quality #170 y main Quality #171.
+- AC15: PASS — Android #145 compiló, firmó y publicó APK + AAB de WeekFlow Alpha v0.3.25.
+
+### Release evidence
+- Merge commit: `628892a7dc88a01d870ec938f8325c6c0603a83f`.
+- Release: `weekflow-v0.3.25`.
+- Standalone APK artifact: `WeekFlow-Alpha-v0.3.25-Standalone-APK`.
+- Play AAB artifact: `WeekFlow-Alpha-v0.3.25-Play-AAB`.
+- APK digest artifact: `sha256:345ad1baffdb5723f00d975d04f87ebd47896b8cf718455b04cb688052e06cf6`.
+- AAB digest artifact: `sha256:4e33348c814a2baf89f966ebe611b9163b2eacbf884f41590040ac9646300fff`.
+- Physical Android UX validation remains useful for typography, touch targets and session flow, but functional closure is covered by automated regression + signed Android build.
