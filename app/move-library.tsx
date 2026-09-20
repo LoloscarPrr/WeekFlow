@@ -12,6 +12,7 @@ import {
   moveExerciseCompatible,
   moveExerciseEquipmentLabel,
   moveExerciseProfileCompatible,
+  moveExerciseSelectionEligible,
 } from '@/src/move/library';
 import { MOVE_EXPERIENCE_OPTIONS, type MovePreferences } from '@/src/move/adaptation';
 import { loadMovePreferences, saveMovePreferences } from '@/src/state/persistence';
@@ -38,7 +39,7 @@ export default function MoveLibraryScreen() {
     const needle = query.trim().toLowerCase();
     return MOVE_EXERCISE_LIBRARY
       .filter((exercise) => pattern === 'all' || exercise.pattern === pattern)
-      .filter((exercise) => !compatibleOnly || moveExerciseProfileCompatible(exercise, preferences, 'moderada'))
+      .filter((exercise) => !compatibleOnly || moveExerciseSelectionEligible(exercise, preferences))
       .filter((exercise) => {
         if (!needle) return true;
         const equipment = (exercise.equipment ?? []).join(' ');
@@ -54,7 +55,7 @@ export default function MoveLibraryScreen() {
   }, [compatibleOnly, pattern, preferences, query]);
 
   const profileCompatibleExercises = useMemo(
-    () => MOVE_EXERCISE_LIBRARY.filter((exercise) => moveExerciseProfileCompatible(exercise, preferences, 'moderada')),
+    () => MOVE_EXERCISE_LIBRARY.filter((exercise) => moveExerciseSelectionEligible(exercise, preferences)),
     [preferences],
   );
   const excludedCompatibleCount = profileCompatibleExercises.filter((exercise) => preferences.excludedExerciseIds.includes(exercise.id)).length;
@@ -137,7 +138,7 @@ export default function MoveLibraryScreen() {
           <Text style={styles.compatibleIcon}>{compatibleOnly ? '✓' : '○'}</Text>
           <View style={{ flex: 1 }}>
             <Text style={styles.compatibleTitle}>Solo compatibles con mi perfil actual</Text>
-            <Text style={styles.compatibleCopy}>Usa tus restricciones y equipo registrado, con intensidad moderada como referencia.</Text>
+            <Text style={styles.compatibleCopy}>Usa tu nivel, restricciones y equipo registrado. La intensidad del día se aplica después.</Text>
           </View>
         </Pressable>
 
@@ -157,7 +158,7 @@ export default function MoveLibraryScreen() {
 
         <View style={styles.list}>
           {filtered.map((exercise) => {
-            const profileCompatible = moveExerciseProfileCompatible(exercise, preferences, 'moderada');
+            const profileCompatible = moveExerciseSelectionEligible(exercise, preferences);
             const excludedByUser = preferences.excludedExerciseIds.includes(exercise.id);
             const compatible = moveExerciseCompatible(exercise, preferences, 'moderada');
             const equipment = moveExerciseEquipmentLabel(exercise, preferences);
