@@ -28,6 +28,7 @@ import {
   sanitizeMovePreferences,
   type MoveIntensity,
   type MovePreferences,
+  type MoveResolvedTrainingStyle,
 } from '@/src/move/adaptation';
 import { sanitizeExcludedExerciseIds } from '@/src/move/exerciseCatalog';
 import {
@@ -68,6 +69,7 @@ export type MoveSessionRecord = {
   feedbackSkipped?: boolean;
   intensity?: MoveIntensity;
   exerciseIds?: string[];
+  trainingStyle?: MoveResolvedTrainingStyle;
 };
 
 export type ActiveMoveSession = {
@@ -80,12 +82,17 @@ export type ActiveMoveSession = {
   pausedAt: string | null;
   pausedTotalMs: number;
   intensity?: MoveIntensity;
+  trainingStyle?: MoveResolvedTrainingStyle;
 };
 
 export type { FoodDayRecord, FoodEntry } from '@/src/food/history';
 
 function isMoveIntensity(value: unknown): value is MoveIntensity {
   return value === 'recuperacion' || value === 'suave' || value === 'moderada' || value === 'alta';
+}
+
+function isResolvedTrainingStyle(value: unknown): value is MoveResolvedTrainingStyle {
+  return value === 'intervalos' || value === 'series' || value === 'amrap';
 }
 
 export function loadDayState(): PersistedDayState {
@@ -151,6 +158,7 @@ export function loadActiveMoveSession(): ActiveMoveSession | null {
     pausedAt: typeof parsed.pausedAt === 'string' ? parsed.pausedAt : null,
     pausedTotalMs: typeof parsed.pausedTotalMs === 'number' ? parsed.pausedTotalMs : 0,
     intensity: isMoveIntensity(parsed.intensity) ? parsed.intensity : undefined,
+    trainingStyle: isResolvedTrainingStyle(parsed.trainingStyle) ? parsed.trainingStyle : undefined,
   };
 }
 
