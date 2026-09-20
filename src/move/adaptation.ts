@@ -6,7 +6,9 @@ export type MoveAvoidArea = 'shoulders' | 'knees' | 'wrists' | 'lowerBack';
 export type MoveExperience = 'sin_definir' | 'principiante' | 'intermedio' | 'avanzado';
 export type MoveGoal = 'bienestar' | 'fuerza' | 'musculo' | 'condicion' | 'movilidad';
 export type MoveIntensity = 'recuperacion' | 'suave' | 'moderada' | 'alta';
-export type MoveEquipmentType = 'dumbbells' | 'kettlebell' | 'band' | 'barbell' | 'bench' | 'pullupBar' | 'cable' | 'machine' | 'suspension' | 'medicineBall' | 'jumpRope' | 'stepBox' | 'foamRoller' | 'weightedVest';
+export type MoveTrainingStyle = 'auto' | 'intervalos' | 'series' | 'amrap';
+export type MoveResolvedTrainingStyle = Exclude<MoveTrainingStyle, 'auto'>;
+export type MoveEquipmentType = 'dumbbells' | 'kettlebell' | 'band' | 'barbell' | 'bench' | 'pullupBar' | 'cable' | 'machine' | 'suspension' | 'medicineBall' | 'jumpRope' | 'stepBox' | 'foamRoller' | 'weightedVest' | 'battleRope' | 'parallelBars';
 
 export type MoveEquipment = {
   dumbbellsKg: number | null;
@@ -23,6 +25,8 @@ export type MoveEquipment = {
   stepBox: boolean;
   foamRoller: boolean;
   weightedVestKg: number | null;
+  battleRope: boolean;
+  parallelBars: boolean;
 };
 
 export type MoveEquipmentLoadField = 'dumbbellsKg' | 'kettlebellKg' | 'barbellKg' | 'medicineBallKg' | 'weightedVestKg';
@@ -35,7 +39,9 @@ export type MoveEquipmentToggleField =
   | 'suspensionTrainer'
   | 'jumpRope'
   | 'stepBox'
-  | 'foamRoller';
+  | 'foamRoller'
+  | 'battleRope'
+  | 'parallelBars';
 
 export type MovePreferences = {
   focus: MoveFocus;
@@ -49,6 +55,7 @@ export type MovePreferences = {
   equipment: MoveEquipment;
   lowImpactOnly: boolean;
   excludedExerciseIds: string[];
+  trainingStyle: MoveTrainingStyle;
 };
 
 export const DEFAULT_MOVE_EQUIPMENT: MoveEquipment = {
@@ -66,6 +73,8 @@ export const DEFAULT_MOVE_EQUIPMENT: MoveEquipment = {
   stepBox: false,
   foamRoller: false,
   weightedVestKg: null,
+  battleRope: false,
+  parallelBars: false,
 };
 
 export const DEFAULT_MOVE_PREFERENCES: MovePreferences = {
@@ -80,6 +89,7 @@ export const DEFAULT_MOVE_PREFERENCES: MovePreferences = {
   equipment: DEFAULT_MOVE_EQUIPMENT,
   lowImpactOnly: false,
   excludedExerciseIds: [],
+  trainingStyle: 'auto',
 };
 
 export const MOVE_FOCUS_OPTIONS: { value: MoveFocus; label: string; icon: string; copy: string }[] = [
@@ -215,6 +225,8 @@ export function moveEquipmentAvailable(type: MoveEquipmentType, preferences: Mov
   if (type === 'jumpRope') return equipment.jumpRope;
   if (type === 'stepBox') return equipment.stepBox;
   if (type === 'foamRoller') return equipment.foamRoller;
+  if (type === 'battleRope') return equipment.battleRope;
+  if (type === 'parallelBars') return equipment.parallelBars;
   return typeof equipment.weightedVestKg === 'number' && equipment.weightedVestKg > 0;
 }
 
@@ -233,6 +245,8 @@ export function moveEquipmentLabel(type: MoveEquipmentType, preferences: MovePre
   if (type === 'jumpRope' && moveEquipmentAvailable(type, preferences)) return 'Cuerda para saltar';
   if (type === 'stepBox' && moveEquipmentAvailable(type, preferences)) return 'Step / cajón';
   if (type === 'foamRoller' && moveEquipmentAvailable(type, preferences)) return 'Foam roller';
+  if (type === 'battleRope' && moveEquipmentAvailable(type, preferences)) return 'Battle rope';
+  if (type === 'parallelBars' && moveEquipmentAvailable(type, preferences)) return 'Paralelas';
   if (type === 'weightedVest' && moveEquipmentAvailable(type, preferences)) return `Chaleco lastrado · ${equipment.weightedVestKg} kg`;
   return null;
 }
@@ -317,10 +331,15 @@ export function sanitizeMovePreferences(value: unknown): MovePreferences {
       stepBox: Boolean(equipment.stepBox),
       foamRoller: Boolean(equipment.foamRoller),
       weightedVestKg: normalizedNumber(equipment.weightedVestKg, 0.25, 100),
+      battleRope: Boolean(equipment.battleRope),
+      parallelBars: Boolean(equipment.parallelBars),
     },
     lowImpactOnly: Boolean(candidate.lowImpactOnly),
     excludedExerciseIds: Array.isArray(candidate.excludedExerciseIds)
       ? Array.from(new Set(candidate.excludedExerciseIds.filter((id): id is string => typeof id === 'string' && id.trim().length > 0)))
       : [],
+    trainingStyle: candidate.trainingStyle === 'intervalos' || candidate.trainingStyle === 'series' || candidate.trainingStyle === 'amrap'
+      ? candidate.trainingStyle
+      : 'auto',
   };
 }
