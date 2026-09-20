@@ -9,8 +9,15 @@ import {
   MOVE_INTENSITY_LABELS,
   type MoveEquipmentLoadField,
   type MoveEquipmentToggleField,
+  type MoveTrainingStyle,
 } from '@/src/move/adaptation';
-import { exerciseCueForPreferences, moveExerciseEquipmentLabel } from '@/src/move/library';
+import {
+  exerciseCueForPreferences,
+  moveExerciseEquipmentLabel,
+  routineExercisePrescription,
+  routineStyleLabel,
+  routineSummary,
+} from '@/src/move/library';
 import { moveStyles as styles } from '@/src/move/styles';
 import { MOVE_DURATIONS, moveRecordDuration, type MoveController } from '@/src/move/useMoveController';
 
@@ -42,6 +49,15 @@ const TOGGLE_EQUIPMENT: { field: MoveEquipmentToggleField; icon: string; title: 
   { field: 'jumpRope', icon: '🪢', title: 'Cuerda para saltar' },
   { field: 'stepBox', icon: '🪜', title: 'Step / cajón' },
   { field: 'foamRoller', icon: '🧻', title: 'Foam roller' },
+  { field: 'battleRope', icon: '🌊', title: 'Battle rope' },
+  { field: 'parallelBars', icon: '💪', title: 'Paralelas' },
+];
+
+const TRAINING_STYLES: { value: MoveTrainingStyle; label: string; copy: string }[] = [
+  { value: 'auto', label: 'Auto', copy: 'Move decide según objetivo, energía, nivel y tiempo.' },
+  { value: 'intervalos', label: 'Intervalos', copy: 'Ejercicios temporizados con pausas cortas.' },
+  { value: 'series', label: 'Series', copy: 'Series + repeticiones + descanso estructurado.' },
+  { value: 'amrap', label: 'AMRAP', copy: 'Circuito por rondas de tiempo cuando el contexto lo permite.' },
 ];
 
 function equipmentSummary(move: MoveController) {
@@ -60,6 +76,8 @@ function equipmentSummary(move: MoveController) {
   if (equipment.jumpRope) parts.push('Cuerda');
   if (equipment.stepBox) parts.push('Step');
   if (equipment.foamRoller) parts.push('Roller');
+  if (equipment.battleRope) parts.push('Battle rope');
+  if (equipment.parallelBars) parts.push('Paralelas');
   if (equipment.weightedVestKg) parts.push(`Chaleco ${equipment.weightedVestKg} kg`);
   return parts.length ? parts.join(' · ') : 'Sin equipo externo registrado';
 }
@@ -76,6 +94,7 @@ export function MovePlan({ move }: { move: MoveController }) {
     setFocus,
     setExperience,
     setGoal,
+    setTrainingStyle,
     setWeightKg,
     setHeightCm,
     setEquipmentLoad,
@@ -89,6 +108,7 @@ export function MovePlan({ move }: { move: MoveController }) {
     recommendationCopy,
     useRecommendation,
     preview,
+    routine,
     doneToday,
     startSession,
   } = move;
@@ -252,7 +272,7 @@ export function MovePlan({ move }: { move: MoveController }) {
             ) : null}
 
             <Pressable style={styles.recommendUseButton} onPress={() => router.push('/move-library')}>
-              <Text style={styles.recommendUseText}>Abrir Biblioteca Move · 70+ ejercicios</Text>
+              <Text style={styles.recommendUseText}>Abrir Biblioteca Move · 100+ ejercicios</Text>
             </Pressable>
 
             <Text style={styles.smallLabel}>Enfoque de hoy</Text>
@@ -293,6 +313,28 @@ export function MovePlan({ move }: { move: MoveController }) {
               })}
             </View>
 
+            <Text style={styles.smallLabel}>Formato de sesión</Text>
+            <View style={styles.profileChips}>
+              {TRAINING_STYLES.map((item) => {
+                const active = preferences.trainingStyle === item.value;
+                return (
+                  <Pressable
+                    key={item.value}
+                    style={[styles.profileChip, active && styles.profileChipActive]}
+                    onPress={() => setTrainingStyle(item.value)}
+                  >
+                    <Text style={[styles.profileChipText, active && styles.profileChipTextActive]}>{item.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Text style={styles.profileHint}>
+              {TRAINING_STYLES.find((item) => item.value === preferences.trainingStyle)?.copy}
+            </Text>
+            <Text style={styles.profileHint}>
+              Hoy se resolvería como: {routineStyleLabel(routine.style)} · {routineSummary(routine)}
+            </Text>
+
             <Text style={styles.smallLabel}>¿Cuánto tiempo tienes?</Text>
             <View style={styles.durationRow}>
               {MOVE_DURATIONS.map((item) => (
@@ -316,12 +358,15 @@ export function MovePlan({ move }: { move: MoveController }) {
                   <View style={{ flex: 1 }}>
                     <Text style={styles.libraryTitle}>{exercise.title}</Text>
                     {equipment ? <Text style={styles.equipmentBadge}>{equipment}</Text> : null}
+                    {routineExercisePrescription(routine, exercise.id) ? (
+                      <Text style={styles.prescriptionBadge}>{routineExercisePrescription(routine, exercise.id)}</Text>
+                    ) : null}
                     <Text style={styles.libraryCopy}>{exerciseCueForPreferences(exercise, preferences)}</Text>
                   </View>
                 </View>
               );
             })}
-            <Text style={styles.libraryNote}>La rutina se adapta con energía, feedback, dificultad previa, perfil, equipo, tiempo y restricciones. “Muy fácil” busca progresiones; “Difícil/Demasiado” busca regresiones compatibles.</Text>
+            <Text style={styles.libraryNote}>Formato: {routineStyleLabel(routine.style)}. {routineSummary(routine)}. Las series y AMRAP toman estructuras legibles de tus rutinas de entrenador, pero siempre pasan por nivel, equipo, exclusiones, energía y feedback.</Text>
           </View>
         </>
       ) : null}
