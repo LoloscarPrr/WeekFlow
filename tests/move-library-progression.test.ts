@@ -7,9 +7,12 @@ import {
 import {
   MOVE_EXERCISE_BY_ID,
   MOVE_EXERCISE_LIBRARY,
+  sanitizeExcludedExerciseIds,
 } from '../src/move/exerciseCatalog';
 import {
+  alternateExercise,
   moveExerciseCompatible,
+  previewForDuration,
   routineForDuration,
 } from '../src/move/library';
 import { moveFeedbackDifficultyDelta } from '../src/move/progression';
@@ -83,6 +86,8 @@ equal(legacy.equipment.resistanceBand, true, 'legacy conserva banda');
 equal(legacy.equipment.barbellKg, null, 'legacy no inventa barra');
 equal(legacy.equipment.bench, false, 'legacy no inventa banco');
 equal(legacy.lowImpactOnly, false, 'legacy no activa bajo impacto');
+equal(legacy.excludedExerciseIds.length, 0, 'legacy permite todos los ejercicios por defecto');
+equal(sanitizeExcludedExerciseIds(['squat', 'id-inexistente', 'squat']).join(','), 'squat', 'selección elimina IDs inválidos y duplicados');
 
 const bodyweightStrength = prefs({
   focus: 'fuerza',
@@ -149,6 +154,62 @@ const lowImpact = prefs({
 const lowImpactRoutine = routineForDuration(20, lowImpact, 'alta');
 ok(lowImpactRoutine.steps.every((step) => step.exercise.impact === 'low'), 'bajo impacto excluye impacto medio/alto');
 equal(moveExerciseCompatible(MOVE_EXERCISE_BY_ID['jump-rope-basic'], lowImpact, 'alta'), false, 'cuerda con salto queda filtrada');
+
+const manualSelection = prefs({
+  focus: 'fuerza',
+  goal: 'fuerza',
+  experience: 'intermedio',
+  floorAllowed: true,
+  chairAvailable: true,
+  excludedExerciseIds: ['squat', 'tempo-squat', 'db-goblet-squat'],
+});
+equal(moveExerciseCompatible(MOVE_EXERCISE_BY_ID.squat, manualSelection, 'moderada'), false, 'ejercicio excluido deja de ser compatible para generación');
+const selectedRoutine = routineForDuration(10, manualSelection, 'moderada');
+ok(selectedRoutine.steps.every((step) => !manualSelection.excludedExerciseIds.includes(step.exercise.id)), 'rutina nunca reintroduce ejercicios excluidos');
+const selectedPreview = previewForDuration(10, manualSelection, 'moderada');
+ok(selectedPreview.every((exercise) => !manualSelection.excludedExerciseIds.includes(exercise.id)), 'preview respeta exclusiones');
+
+const progressionWithoutTempo = routineForDuration(
+  10,
+  prefs({
+    focus: 'fuerza',
+    goal: 'fuerza',
+    experience: 'intermedio',
+    floorAllowed: true,
+    chairAvailable: true,
+    excludedExerciseIds: ['tempo-squat'],
+  }),
+  'moderada',
+  { lastFeedback: 'Muy fácil', previousExerciseIds: ['squat'] },
+);
+ok(progressionWithoutTempo.steps[0].exercise.id !== 'tempo-squat', 'Muy fácil no puede reintroducir una progresión excluida');
+ok(progressionWithoutTempo.steps[0].exercise.difficulty >= MOVE_EXERCISE_BY_ID.squat.difficulty, 'progresión busca la mejor variante permitida restante');
+
+const regressionWithoutChairRise = routineForDuration(
+  10,
+  prefs({
+    focus: 'fuerza',
+    goal: 'fuerza',
+    experience: 'intermedio',
+    floorAllowed: true,
+    chairAvailable: true,
+    excludedExerciseIds: ['chair-rise'],
+  }),
+  'moderada',
+  { lastFeedback: 'Difícil', previousExerciseIds: ['tempo-squat'] },
+);
+ok(regressionWithoutChairRise.steps.every((step) => step.exercise.id !== 'chair-rise'), 'Difícil no reintroduce una regresión excluida');
+
+const swapPreferences = prefs({
+  focus: 'fuerza',
+  goal: 'fuerza',
+  experience: 'intermedio',
+  floorAllowed: true,
+  chairAvailable: true,
+  excludedExerciseIds: ['tempo-squat'],
+});
+const swappedManual = alternateExercise(MOVE_EXERCISE_BY_ID.squat, swapPreferences, 'moderada');
+ok(swappedManual.id !== 'tempo-squat', 'Cambiar ejercicio nunca devuelve una variante excluida');
 
 const fullyEquipped = prefs({
   focus: 'fuerza',
