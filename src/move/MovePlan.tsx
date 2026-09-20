@@ -268,6 +268,31 @@ export function MovePlan({ move }: { move: MoveController }) {
                   Move no sube automáticamente tus kilos: usa exactamente el equipo y las cargas que declares.
                 </Text>
 
+                <Text style={styles.smallLabel}>Preferencias de ejercicio</Text>
+                <View style={styles.profileChips}>
+                  <Pressable style={[styles.profileChip, preferences.chairAvailable && styles.profileChipActive]} onPress={toggleChairAvailable}>
+                    <Text style={[styles.profileChipText, preferences.chairAvailable && styles.profileChipTextActive]}>🪑 Silla disponible</Text>
+                  </Pressable>
+                  <Pressable style={[styles.profileChip, preferences.floorAllowed && styles.profileChipActive]} onPress={toggleFloorAllowed}>
+                    <Text style={[styles.profileChipText, preferences.floorAllowed && styles.profileChipTextActive]}>⬇️ Puedo usar suelo</Text>
+                  </Pressable>
+                  <Pressable style={[styles.profileChip, preferences.lowImpactOnly && styles.profileChipActive]} onPress={toggleLowImpactOnly}>
+                    <Text style={[styles.profileChipText, preferences.lowImpactOnly && styles.profileChipTextActive]}>🌿 Solo bajo impacto</Text>
+                  </Pressable>
+                </View>
+
+                <Text style={styles.profileSubLabel}>ZONAS A EVITAR</Text>
+                <View style={styles.profileChips}>
+                  {MOVE_AVOID_AREA_OPTIONS.map((item) => {
+                    const active = preferences.avoidAreas.includes(item.value);
+                    return (
+                      <Pressable key={item.value} style={[styles.profileChip, active && styles.profileChipActive]} onPress={() => toggleAvoidArea(item.value)}>
+                        <Text style={[styles.profileChipText, active && styles.profileChipTextActive]}>{item.icon} {item.label}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
               </>
             ) : null}
 
@@ -287,31 +312,6 @@ export function MovePlan({ move }: { move: MoveController }) {
               })}
             </View>
             {selectedFocus ? <Text style={styles.profileHint}>{selectedFocus.copy}</Text> : null}
-
-            <Text style={styles.smallLabel}>Ajustes de hoy</Text>
-            <View style={styles.profileChips}>
-              <Pressable style={[styles.profileChip, preferences.chairAvailable && styles.profileChipActive]} onPress={toggleChairAvailable}>
-                <Text style={[styles.profileChipText, preferences.chairAvailable && styles.profileChipTextActive]}>🪑 Silla</Text>
-              </Pressable>
-              <Pressable style={[styles.profileChip, preferences.floorAllowed && styles.profileChipActive]} onPress={toggleFloorAllowed}>
-                <Text style={[styles.profileChipText, preferences.floorAllowed && styles.profileChipTextActive]}>⬇️ Suelo</Text>
-              </Pressable>
-              <Pressable style={[styles.profileChip, preferences.lowImpactOnly && styles.profileChipActive]} onPress={toggleLowImpactOnly}>
-                <Text style={[styles.profileChipText, preferences.lowImpactOnly && styles.profileChipTextActive]}>🌿 Bajo impacto</Text>
-              </Pressable>
-            </View>
-
-            <Text style={styles.profileSubLabel}>EVITAR HOY</Text>
-            <View style={styles.profileChips}>
-              {MOVE_AVOID_AREA_OPTIONS.map((item) => {
-                const active = preferences.avoidAreas.includes(item.value);
-                return (
-                  <Pressable key={item.value} style={[styles.profileChip, active && styles.profileChipActive]} onPress={() => toggleAvoidArea(item.value)}>
-                    <Text style={[styles.profileChipText, active && styles.profileChipTextActive]}>{item.icon} {item.label}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
 
             <Text style={styles.smallLabel}>Formato de sesión</Text>
             <View style={styles.profileChips}>

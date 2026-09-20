@@ -50,6 +50,7 @@ export default function AccountScreen() {
   const [email, setEmail] = useState(account?.email ?? '');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
+  const [editingName, setEditingName] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [errorText, setErrorText] = useState<string | null>(null);
 
@@ -154,6 +155,7 @@ export default function AccountScreen() {
       saveUserProfile({ ...loadUserProfile(), name: cleanName });
       setName(cleanName);
       setAccount(next);
+      setEditingName(false);
       setFeedback('Nombre actualizado.');
     });
   }
@@ -178,6 +180,7 @@ export default function AccountScreen() {
       await signOutWeekFlowAccount();
       setAccount(null);
       setPassword('');
+      setEditingName(false);
       setFeedback('Sesión cerrada. Tu semana y registros locales siguen en este teléfono.');
     });
   }
@@ -196,6 +199,7 @@ export default function AccountScreen() {
               await deleteWeekFlowAccount();
               setAccount(null);
               setPassword('');
+              setEditingName(false);
               setFeedback('Cuenta eliminada. Los datos locales de WeekFlow permanecen en este teléfono.');
             });
           },
@@ -244,6 +248,17 @@ export default function AccountScreen() {
                     <Text style={styles.accountName}>{account.displayName || name || 'Cuenta WeekFlow'}</Text>
                     <Text style={styles.accountEmail}>{account.email}</Text>
                   </View>
+                  <Pressable
+                    style={styles.editNameButton}
+                    disabled={busy}
+                    onPress={() => {
+                      clearMessages();
+                      setName(account.displayName || loadUserProfile().name || name);
+                      setEditingName(true);
+                    }}
+                  >
+                    <Text style={styles.editNameText}>Editar nombre</Text>
+                  </Pressable>
                 </View>
                 <View style={[styles.statusPill, account.emailVerified ? styles.statusOk : styles.statusPending]}>
                   <Text style={styles.statusText}>{account.emailVerified ? 'CORREO VERIFICADO' : 'VERIFICACIÓN PENDIENTE'}</Text>
@@ -260,24 +275,38 @@ export default function AccountScreen() {
                 ) : null}
               </View>
 
-              <View style={styles.card}>
-                <Text style={styles.cardTitle}>Tu nombre</Text>
-                <Text style={styles.cardBody}>Así te reconocerá WeekFlow. El nombre de tu planilla sigue siendo independiente.</Text>
-                <TextInput
-                  value={name}
-                  onChangeText={setName}
-                  autoCapitalize="words"
-                  autoCorrect={false}
-                  maxLength={60}
-                  placeholder="Tu nombre"
-                  placeholderTextColor="#60728E"
-                  style={styles.input}
-                  editable={!busy}
-                />
-                <Pressable style={[styles.primaryButton, busy && styles.disabled]} disabled={busy} onPress={saveName}>
-                  <Text style={styles.primaryText}>Guardar nombre</Text>
-                </Pressable>
-              </View>
+              {editingName ? (
+                <View style={styles.card}>
+                  <Text style={styles.cardTitle}>Editar nombre</Text>
+                  <Text style={styles.cardBody}>Cámbialo solo si quieres que WeekFlow te muestre otro nombre.</Text>
+                  <TextInput
+                    value={name}
+                    onChangeText={setName}
+                    autoCapitalize="words"
+                    autoCorrect={false}
+                    maxLength={60}
+                    placeholder="Tu nombre"
+                    placeholderTextColor="#60728E"
+                    style={styles.input}
+                    editable={!busy}
+                    autoFocus
+                  />
+                  <Pressable style={[styles.primaryButton, busy && styles.disabled]} disabled={busy} onPress={saveName}>
+                    <Text style={styles.primaryText}>Guardar cambio</Text>
+                  </Pressable>
+                  <Pressable
+                    style={styles.linkButton}
+                    disabled={busy}
+                    onPress={() => {
+                      clearMessages();
+                      setName(account.displayName || loadUserProfile().name || '');
+                      setEditingName(false);
+                    }}
+                  >
+                    <Text style={styles.linkText}>Cancelar</Text>
+                  </Pressable>
+                </View>
+              ) : null}
 
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>Sesión</Text>
@@ -394,6 +423,8 @@ const styles = StyleSheet.create({
   avatar: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: '#143867', borderWidth: 1, borderColor: colors.blue },
   avatarText: { color: '#FFFFFF', fontWeight: '900', fontSize: 19 },
   accountCopy: { flex: 1 },
+  editNameButton: { minHeight: 34, justifyContent: 'center', paddingHorizontal: 9, borderRadius: 11, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface2 },
+  editNameText: { color: '#8FC2FF', fontSize: 10, fontWeight: '900', textAlign: 'center' },
   accountName: { color: colors.text, fontWeight: '900', fontSize: 18 },
   accountEmail: { color: colors.muted, fontSize: 12, marginTop: 3 },
   statusPill: { alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6, marginTop: 14, borderWidth: 1 },
