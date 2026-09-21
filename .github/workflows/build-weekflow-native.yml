@@ -203,7 +203,38 @@ jobs:
           fs.writeFileSync(path, lines.join('\n'));
           NODE
 
-      - name: Build signed release APK and AAB
+      - name: Tune Gradle memory for release dexing
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+
+          path = Path('android/gradle.properties')
+          source = path.read_text()
+          replacements = {
+              'org.gradle.jvmargs': 'org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8',
+              'org.gradle.workers.max': 'org.gradle.workers.max=2',
+          }
+          lines = source.splitlines()
+          seen = set()
+          output = []
+          for line in lines:
+              key = line.split('=', 1)[0].strip() if '=' in line else ''
+              if key in replacements:
+                  if key not in seen:
+                      output.append(replacements[key])
+                      seen.add(key)
+              else:
+                  output.append(line)
+          for key, value in replacements.items():
+              if key not in seen:
+                  output.append(value)
+          path.write_text('\n'.join(output) + '\n')
+          print(path.read_text())
+          PY
+
+      - name: Build signed release APK
         working-directory: android
         env:
           NODE_ENV: production
@@ -213,7 +244,21 @@ jobs:
           WEEKFLOW_KEY_PASSWORD: ${{ secrets.WEEKFLOW_KEY_PASSWORD }}
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease bundleRelease --no-daemon
+          ./gradlew assembleRelease --no-daemon --max-workers=2
+          ./gradlew --stop || true
+
+      - name: Build signed Play AAB
+        working-directory: android
+        env:
+          NODE_ENV: production
+          WEEKFLOW_KEYSTORE_PATH: ${{ github.workspace }}/android/app/weekflow-release.jks
+          WEEKFLOW_KEYSTORE_PASSWORD: ${{ secrets.WEEKFLOW_KEYSTORE_PASSWORD }}
+          WEEKFLOW_KEY_ALIAS: ${{ secrets.WEEKFLOW_KEY_ALIAS }}
+          WEEKFLOW_KEY_PASSWORD: ${{ secrets.WEEKFLOW_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew bundleRelease --no-daemon --max-workers=2
+          ./gradlew --stop || true
 
       - name: Prepare Android outputs
         shell: bash
