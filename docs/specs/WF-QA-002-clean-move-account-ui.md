@@ -1,6 +1,6 @@
 # WF-QA-002 — Limpiar ajustes de Move y edición de nombre
 
-Status: LOCKED
+Status: DONE
 Owner: WeekFlow
 Approved by: Oscar · 20-09-2026
 Source: validación física Android de WeekFlow Alpha v0.3.25
@@ -40,16 +40,26 @@ La prueba física muestra dos problemas de UX:
 
 ## Acceptance criteria
 
-- [ ] AC1 — "Ajustes de hoy" y "Evitar hoy" ya no aparecen en la vista principal de Move.
-- [ ] AC2 — Silla, Suelo, Bajo impacto y zonas evitadas siguen editables dentro de Perfil base → Editar.
-- [ ] AC3 — Las preferencias existentes siguen persistiendo sin migración.
-- [ ] AC4 — Cuenta no muestra por defecto un formulario "Tu nombre" para una cuenta autenticada.
-- [ ] AC5 — La cabecera autenticada ofrece una acción explícita "Editar nombre".
-- [ ] AC6 — Editar nombre abre el campo y Guardar actualiza Firebase + perfil local y cierra el editor.
-- [ ] AC7 — Cancelar restaura el nombre actual y cierra el editor sin guardar.
-- [ ] AC8 — Quality/TypeScript/regresiones pasan.
-- [ ] AC9 — Android release 0.3.26 genera APK + AAB firmados.
+- [x] AC1 — "Ajustes de hoy" y "Evitar hoy" ya no aparecen en la vista principal de Move.
+- [x] AC2 — Silla, Suelo, Bajo impacto y zonas evitadas siguen editables dentro de Perfil base → Editar.
+- [x] AC3 — Las preferencias existentes siguen persistiendo sin migración.
+- [x] AC4 — Cuenta no muestra por defecto un formulario "Tu nombre" para una cuenta autenticada.
+- [x] AC5 — La cabecera autenticada ofrece una acción explícita "Editar nombre".
+- [x] AC6 — Editar nombre abre el campo y Guardar actualiza Firebase + perfil local y cierra el editor.
+- [x] AC7 — Cancelar restaura el nombre actual y cierra el editor sin guardar.
+- [x] AC8 — Quality/TypeScript/regresiones pasan.
+- [x] AC9 — Android release 0.3.26 genera APK + AAB firmados.
 
 ## Verification result
 
-- AC1–AC9: PENDING
+- AC1–AC7: PASS — validado por implementación + Quality.
+- AC8: PASS — PR Quality #173, main Quality #174 y hotfix Quality #175/#176.
+- AC9: PASS — Android #147 generó APK + AAB firmados y publicó WeekFlow Alpha v0.3.26.
+
+### Release evidence
+- UI merge commit: `3048117d1e96f7d5fadee293cdabe3fccacca124`.
+- Android OOM hotfix merge commit: `c20adffccc7d81dd81ea59fff92bfdc42568b06b`.
+- Release: `weekflow-v0.3.26`.
+- Standalone APK artifact: `WeekFlow-Alpha-v0.3.26-Standalone-APK`.
+- Play AAB artifact: `WeekFlow-Alpha-v0.3.26-Play-AAB`.
+- Android #146 failed only at D8 dex merging due Java heap exhaustion; #147 passed after splitting APK/AAB builds and increasing Gradle heap.
