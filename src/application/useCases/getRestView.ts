@@ -1,7 +1,6 @@
-import { buildBrainPlan } from '../../brain/engine';
 import type { DayState } from '../../domain/entities/DailyState';
-import type { BrainSnapshot } from '../../domain/entities/Planning';
 import type { WeekSchedule } from '../../domain/entities/Shift';
+import { addDateMinutes, restWindowForShift } from '../../domain/services/restPlanning';
 import {
   isNightShift,
   nextWorkingShift,
@@ -42,18 +41,6 @@ function formatHm(date: Date) {
 function formatDayTime(date: Date) {
   const day = date.toLocaleDateString('es-CL', { weekday: 'short' }).replace('.', '');
   return `${day} · ${formatHm(date)}`;
-}
-
-function dateForClockNearStart(startAt: Date, clock: string) {
-  const [hours, minutes] = clock.split(':').map(Number);
-  const date = new Date(startAt);
-  date.setHours(hours, minutes, 0, 0);
-  if (date.getTime() > startAt.getTime()) date.setDate(date.getDate() - 1);
-  return date;
-}
-
-function addDateMinutes(date: Date, minutes: number) {
-  return new Date(date.getTime() + minutes * 60_000);
 }
 
 export function getRestView(dayState: DayState, weekState: WeekSchedule, now = new Date()): RestView {
@@ -107,21 +94,7 @@ export function getRestView(dayState: DayState, weekState: WeekSchedule, now = n
 
   const nextShift = nextWorkingShift(weekState, now);
   const nextRest = nextShift
-    ? (() => {
-      const nextStart = new Date(nextShift.startAt);
-      const nextSnapshot: BrainSnapshot = {
-        ...dayState.settings,
-        shift: nextShift.shift,
-        energy: dayState.energy,
-      };
-      const plan = buildBrainPlan(nextSnapshot);
-      const wake = plan.moments.find((item) => item.type === 'wake');
-      if (!wake) return null;
-      const wakeAt = dateForClockNearStart(nextStart, wake.time);
-      const sleepAt = addDateMinutes(wakeAt, -8 * 60);
-      const windDownAt = addDateMinutes(sleepAt, -45);
-      return { nextStart, wakeAt, sleepAt, windDownAt, shift: nextShift.shift };
-    })()
+    ? restWindowForShift(dayState, nextShift.shift, new Date(nextShift.startAt))
     : null;
 
   let heroTitle = 'Tu descanso se adapta a tu semana.';
