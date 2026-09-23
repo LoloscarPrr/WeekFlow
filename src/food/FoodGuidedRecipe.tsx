@@ -60,7 +60,7 @@ export function FoodGuidedRecipe({
               })}
             </View>
 
-            {match?.missing.length && onAddMissing ? (
+            {Boolean(match?.missing.length) && onAddMissing ? (
               <Pressable style={styles.shoppingButton} onPress={onAddMissing}>
                 <Text style={styles.shoppingButtonText}>+ Agregar faltantes a compras</Text>
               </Pressable>
