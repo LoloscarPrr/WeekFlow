@@ -10,6 +10,7 @@ import {
   updateNowEnergy,
 } from '@/src/application/useCases/updateNowState';
 import type { Energy } from '@/src/domain/entities/DailyState';
+import { syncLivePlanReminders } from '@/src/services/notifications';
 import {
   loadDayState,
   loadWeekState,
@@ -44,6 +45,9 @@ export function useNowController() {
 
   useEffect(() => {
     saveDayState(dayState);
+    void syncLivePlanReminders().catch((error) => {
+      console.warn('Could not refresh WeekFlow reminders after day-state change', error);
+    });
   }, [dayState]);
 
   const view = useMemo(
