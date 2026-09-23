@@ -24,6 +24,15 @@ import {
   type FoodEntry,
 } from '@/src/food/history';
 import {
+  DEFAULT_FOOD_PREFERENCES,
+  sanitizeFoodPantry,
+  sanitizeFoodPreferences,
+  sanitizeFoodShopping,
+  type FoodPantryItem,
+  type FoodPreferences,
+  type FoodShoppingItem,
+} from '@/src/food/pantry';
+import {
   DEFAULT_MOVE_PREFERENCES,
   sanitizeMovePreferences,
   type MoveIntensity,
@@ -44,6 +53,9 @@ const MOVE_HISTORY_KEY = 'move-history';
 const MOVE_ACTIVE_KEY = 'move-active-session';
 const MOVE_PREFERENCES_KEY = 'move-preferences';
 const FOOD_HISTORY_KEY = 'food-history';
+const FOOD_PANTRY_KEY = 'food-pantry';
+const FOOD_PREFERENCES_KEY = 'food-preferences';
+const FOOD_SHOPPING_KEY = 'food-shopping';
 
 // Compatibility aliases for existing screens. New code should import these
 // concepts from src/domain rather than from this persistence facade.
@@ -86,6 +98,7 @@ export type ActiveMoveSession = {
 };
 
 export type { FoodDayRecord, FoodEntry } from '@/src/food/history';
+export type { FoodPantryItem, FoodPreferences, FoodShoppingItem } from '@/src/food/pantry';
 
 function isMoveIntensity(value: unknown): value is MoveIntensity {
   return value === 'recuperacion' || value === 'suave' || value === 'moderada' || value === 'alta';
@@ -173,6 +186,37 @@ export function clearActiveMoveSession() {
 export function moveSessionDoneToday(date = new Date()) {
   const key = localDateKey(date);
   return loadMoveHistory().some((item) => localDateKey(new Date(item.finishedAt)) === key);
+}
+
+export function loadFoodPantry(): FoodPantryItem[] {
+  return sanitizeFoodPantry(sqliteStateStore.read<unknown>(FOOD_PANTRY_KEY));
+}
+
+export function saveFoodPantry(items: FoodPantryItem[]) {
+  const sanitized = sanitizeFoodPantry(items);
+  sqliteStateStore.write(FOOD_PANTRY_KEY, sanitized);
+  return sanitized;
+}
+
+export function loadFoodPreferences(): FoodPreferences {
+  const parsed = sqliteStateStore.read<unknown>(FOOD_PREFERENCES_KEY);
+  return parsed ? sanitizeFoodPreferences(parsed) : DEFAULT_FOOD_PREFERENCES;
+}
+
+export function saveFoodPreferences(preferences: FoodPreferences) {
+  const sanitized = sanitizeFoodPreferences(preferences);
+  sqliteStateStore.write(FOOD_PREFERENCES_KEY, sanitized);
+  return sanitized;
+}
+
+export function loadFoodShopping(): FoodShoppingItem[] {
+  return sanitizeFoodShopping(sqliteStateStore.read<unknown>(FOOD_SHOPPING_KEY));
+}
+
+export function saveFoodShopping(items: FoodShoppingItem[]) {
+  const sanitized = sanitizeFoodShopping(items);
+  sqliteStateStore.write(FOOD_SHOPPING_KEY, sanitized);
+  return sanitized;
 }
 
 export function loadFoodHistory(): FoodDayRecord[] {

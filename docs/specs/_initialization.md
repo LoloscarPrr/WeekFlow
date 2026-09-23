@@ -2,53 +2,52 @@
 
 ## Repository
 - Repository: `LoloscarPrr/WeekFlow`.
-- Base ref: remote `main` at `d6d1d37526b460bd4a2d99f63eb9911c2958d7f2`.
-- Working ref/branch: `codex/wf-account-001-email-auth`.
-- Latest relevant implementation commit: `9aac648896b3efc0ded92e99d8bf5ad52ea6826a` — adaptive Move; `d6d1d37526b460bd4a2d99f63eb9911c2958d7f2` only closes its spec.
+- Base ref: remote `main` at `fb4382f07f72e6ec75e9945907aa450756a0027b`.
+- Working ref/branch: `codex/wf-food-001-pantry-viable-recipes`.
 
 ## App / build state
-- Source version: `0.3.19`; Android source `versionCode`: `74`.
+- Source version: `0.3.27`; Android source `versionCode`: `81`.
 - Package: `com.weekflow.app`.
-- Latest main Quality: PASS — run #156 at `d6d1d37526b460bd4a2d99f63eb9911c2958d7f2`.
-- Latest native Android release build: PASS — run #139 at `9aac648896b3efc0ded92e99d8bf5ad52ea6826a`.
+- Latest main Quality: PASS — run #179.
+- Latest native Android release build: PASS — run #148; APK + AAB published.
 
 ## Product context
-- Current Blueprint Maestro supplied for this session: v3.3, cut 17-09-2026.
-- v3.3 keeps Core offline-first and says backend is only justified when synchronization/scale requires it.
-- v3.3 defines `UserProfile` as name, schedule name, personality and preferences.
-- v3.3 reserves Premium backup/synchronization for the point where an account exists.
-- The user explicitly approved opening the WeekFlow account layer now.
-- Current repository privacy copy explicitly says WeekFlow does not create accounts, so it must change together with account support.
+- Current Blueprint Maestro: v3.3.
+- Roadmap gate for Move is functionally satisfied in current main; the next committed product focus is `0.4.x · Food completo`.
+- Food exit intent: help execute a viable meal end-to-end with recipes, available ingredients, substitutions, shopping/prep support, context-aware proposals and correctable logging.
+- Existing Food already has shift/energy suggestions, 4 guided recipes, manual “Comí otra cosa”, 14-day local history and time correction.
+- The user explicitly approved proceeding with Food now.
 
 ## Specs
-- `WF-MOVE-003`: DONE.
-- `WF-COMM-001`: DONE; Free/Premium remains one app and billing stays disabled.
-- `WF-COMM-003`: DONE historically; its “no Auth/account” limitation is superseded only by the new account spec.
-- Proposed active spec: `WF-ACCOUNT-001 — Cuenta WeekFlow con Firebase Auth`.
+- No existing `WF-FOOD-*` spec exists in main.
+- Relevant completed work: `WF-MOVE-006`, `WF-NOTIFY-002`.
+- Proposed active spec: `WF-FOOD-001 — Despensa, recetas viables y compras`.
 
 ## Relevant implementation surface
-- Navigation / entry point: `app/assistant.tsx`, Expo Router.
-- New account UI: `app/account.tsx`.
-- Local profile: `src/domain/entities/UserProfile.ts`, defaults, migration and SQLite repository.
-- Firebase foundation already present: `@react-native-firebase/app`, Crashlytics, `google-services.json`.
-- Privacy: `app/privacy.tsx`, `PRIVACY_POLICY.md`.
-- Build/install: `package.json`, `app.json`, Android GitHub Actions workflow.
+- Main Food screen: `app/food.tsx`.
+- Guided cooking: `src/food/FoodGuidedRecipe.tsx`.
+- Recipe data: `src/food/recipes.ts`.
+- Context suggestions: `src/food/suggestions.ts`.
+- Food history: `src/food/history.ts`.
+- Persistence facade / SQLite state store: `src/state/persistence.ts`.
+- Navigation: `src/components/BottomNav.tsx`.
 
 ## Baseline
-- TypeScript + regression suite: PASS via Quality #156.
-- Native Android release build: PASS via Android #139.
-- Firebase Email/Password provider state in Firebase Console: UNAVAILABLE from repository access.
-- Physical account-flow verification on Android: UNAVAILABLE until a new APK is installed and the Firebase provider is enabled.
+- TypeScript + regression suite: PASS via Quality #179.
+- Native Android release build: PASS via Android #148.
+- Physical Food pantry/purchase flow: NOT RUN because it does not exist yet.
 
 ## Constraints / uncertainties
-- Account must be optional; Core flows remain usable offline and signed-out.
-- Signing out or deleting the cloud identity must not silently erase local WeekFlow data.
-- No Firestore/cloud schedule sync in this spec; that becomes a separate sync spec.
-- No Google/Apple/social login, billing activation or entitlement-server validation in this spec.
-- Firebase Email/Password authentication must be enabled in the Firebase project for create/sign-in/reset to work at runtime; code/build cannot prove that console setting.
-- Privacy copy must distinguish local planning data from account identity data handled by Firebase Authentication.
+- Preserve current Food logging/history behavior and guided recipe completion.
+- Remain offline-first; no account/cloud dependency.
+- Do not introduce calories into the MVP.
+- Do not infer allergies/medical diets or make health diagnoses.
+- Pantry/photo recognition is not yet implemented. WF-FOOD-001 will establish the text/persistence/ranking core first; photo input must later feed the same model rather than create a second Food truth.
+- Budget is a user preference/context signal, not a precise price promise.
+- Do not silently mark missing ingredients as owned.
+- Keep keyboard-safe Android behavior.
 
 ## Next TLC action
-- Lock `WF-ACCOUNT-001`, then implement optional email/password account flows, local profile name, privacy updates and regression coverage. Verify CI and Android release before DONE.
+- Lock `WF-FOOD-001`, implement pantry text + viable recipe ranking + shopping list + preferences + persistence + regression coverage, then verify Quality and signed Android release.
 
-> Rule: do not turn UNAVAILABLE console/device checks into PASS.
+> Rule: do not turn physical-device checks into PASS without device evidence.

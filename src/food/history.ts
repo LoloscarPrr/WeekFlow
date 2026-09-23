@@ -3,7 +3,7 @@ export type FoodEntry = {
   at: string;
   title: string;
   kind: 'meal' | 'snack' | 'drink' | 'other';
-  source: 'suggestion' | 'manual';
+  source: 'suggestion' | 'recipe' | 'manual';
 };
 
 export type FoodDayRecord = {

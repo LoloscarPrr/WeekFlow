@@ -3,16 +3,21 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Brand } from '@/src/components/Brand';
 import type { FoodRecipe } from '@/src/food/recipes';
+import type { FoodRecipeMatch } from '@/src/food/recommendations';
 import { colors } from '@/src/theme/colors';
 
 export function FoodGuidedRecipe({
   recipe,
   onCancel,
   onComplete,
+  match,
+  onAddMissing,
 }: {
   recipe: FoodRecipe;
   onCancel: () => void;
   onComplete: () => void;
+  match?: FoodRecipeMatch | null;
+  onAddMissing?: () => void;
 }) {
   const [started, setStarted] = useState(false);
   const [step, setStep] = useState(0);
@@ -38,16 +43,28 @@ export function FoodGuidedRecipe({
           <>
             <Text style={styles.section}>INGREDIENTES</Text>
             <View style={styles.card}>
-              {recipe.ingredients.map((item, index) => (
-                <View key={`${item.name}-${index}`} style={[styles.row, index === recipe.ingredients.length - 1 && styles.rowLast]}>
-                  <Text style={styles.bullet}>•</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.ingredient}>{item.name}</Text>
-                    <Text style={styles.amount}>{item.amount}</Text>
+              {recipe.ingredients.map((item, index) => {
+                const owned = match?.owned.some((ownedItem) => ownedItem.key === item.key) ?? false;
+                const missing = match?.missing.some((missingItem) => missingItem.key === item.key) ?? false;
+                return (
+                  <View key={`${item.name}-${index}`} style={[styles.row, index === recipe.ingredients.length - 1 && styles.rowLast]}>
+                    <Text style={[styles.bullet, owned && styles.bulletOwned, missing && styles.bulletMissing]}>
+                      {owned ? '✓' : item.optional ? '○' : '•'}
+                    </Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.ingredient}>{item.name}{item.optional ? ' · opcional' : ''}</Text>
+                      <Text style={styles.amount}>{item.amount}</Text>
+                    </View>
                   </View>
-                </View>
-              ))}
+                );
+              })}
             </View>
+
+            {Boolean(match?.missing.length) && onAddMissing ? (
+              <Pressable style={styles.shoppingButton} onPress={onAddMissing}>
+                <Text style={styles.shoppingButtonText}>+ Agregar faltantes a compras</Text>
+              </Pressable>
+            ) : null}
 
             <Text style={styles.section}>SI TE FALTA ALGO</Text>
             <View style={styles.swapCard}>
@@ -114,9 +131,13 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 22, paddingHorizontal: 16 },
   row: { flexDirection: 'row', gap: 10, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.line },
   rowLast: { borderBottomWidth: 0 },
-  bullet: { color: '#76AFFF', fontSize: 18, lineHeight: 21 },
+  bullet: { color: '#76AFFF', fontSize: 18, lineHeight: 21, width: 18, textAlign: 'center' },
+  bulletOwned: { color: '#8CE0C7' },
+  bulletMissing: { color: '#E5C779' },
   ingredient: { color: colors.text, fontWeight: '900', fontSize: 14 },
   amount: { color: colors.muted, fontSize: 12, marginTop: 3 },
+  shoppingButton: { marginTop: 10, borderRadius: 14, borderWidth: 1, borderColor: '#356596', backgroundColor: '#112C4B', minHeight: 46, alignItems: 'center', justifyContent: 'center' },
+  shoppingButtonText: { color: '#A9CEFA', fontSize: 12, fontWeight: '900' },
   swapCard: { backgroundColor: '#122A43', borderWidth: 1, borderColor: '#28577F', borderRadius: 20, padding: 16, gap: 8 },
   swap: { color: '#BFD2E8', fontSize: 13, lineHeight: 19 },
   primary: { marginTop: 24, backgroundColor: colors.blue, borderRadius: 17, minHeight: 52, alignItems: 'center', justifyContent: 'center' },
