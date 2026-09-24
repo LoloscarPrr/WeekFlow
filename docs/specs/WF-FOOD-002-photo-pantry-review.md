@@ -1,6 +1,6 @@
 # WF-FOOD-002 — Foto de despensa revisable
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Approved by: Oscar · 24-09-2026
 Blueprint mapping: 0.4.x · Food completo · entrada por foto
