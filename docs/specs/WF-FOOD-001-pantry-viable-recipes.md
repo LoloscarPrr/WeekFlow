@@ -1,6 +1,6 @@
 # WF-FOOD-001 — Despensa, recetas viables y compras
 
-Status: LOCKED
+Status: DONE
 Owner: WeekFlow
 Approved by: Oscar · 23-09-2026
 Blueprint mapping: 0.4.x · Food completo
@@ -99,24 +99,24 @@ Food history existente permanece compatible.
 
 ## Acceptance criteria
 
-- [ ] AC1 — Legacy carga despensa vacía, preferencias default y compras vacías sin afectar historial.
-- [ ] AC2 — Texto `huevos, tomate, arroz` produce tres ingredientes canónicos sin duplicados.
-- [ ] AC3 — Quitar un ingrediente de despensa persiste.
-- [ ] AC4 — Las recetas exponen claves canónicas y la biblioteca contiene al menos 10 recetas guiables.
-- [ ] AC5 — FoodRecipeMatch separa owned/missing/optionalMissing correctamente.
-- [ ] AC6 — Ranking favorece menos faltantes cuando contexto/tiempo son equivalentes.
-- [ ] AC7 — Energía baja favorece recetas de menor preparación.
-- [ ] AC8 — Tiempo máximo preferido reduce prioridad de recetas más largas sin ocultarlas totalmente.
-- [ ] AC9 — UI Food permite agregar/quitar ingredientes de despensa por texto.
-- [ ] AC10 — UI muestra recetas viables con “Tienes X/Y” y faltantes reales.
-- [ ] AC11 — Faltantes de una receta pueden agregarse a compras sin duplicados.
-- [ ] AC12 — Compras permite pendiente/comprado/quitar.
-- [ ] AC13 — Pasar comprado a despensa requiere acción explícita.
-- [ ] AC14 — Guided recipe conserva ingredientes, sustituciones, pasos y registro al completar.
-- [ ] AC15 — “Comí otra cosa”, corregir hora y quitar registro continúan funcionando.
-- [ ] AC16 — No se introducen calorías/macros ni claims médicos.
-- [ ] AC17 — TypeScript + regresiones pasan.
-- [ ] AC18 — Android release 0.4.0 genera APK + AAB firmados.
+- [x] AC1 — Legacy carga despensa vacía, preferencias default y compras vacías sin afectar historial.
+- [x] AC2 — Texto `huevos, tomate, arroz` produce tres ingredientes canónicos sin duplicados.
+- [x] AC3 — Quitar un ingrediente de despensa persiste.
+- [x] AC4 — Las recetas exponen claves canónicas y la biblioteca contiene al menos 10 recetas guiables.
+- [x] AC5 — FoodRecipeMatch separa owned/missing/optionalMissing correctamente.
+- [x] AC6 — Ranking favorece menos faltantes cuando contexto/tiempo son equivalentes.
+- [x] AC7 — Energía baja favorece recetas de menor preparación.
+- [x] AC8 — Tiempo máximo preferido reduce prioridad de recetas más largas sin ocultarlas totalmente.
+- [x] AC9 — UI Food permite agregar/quitar ingredientes de despensa por texto.
+- [x] AC10 — UI muestra recetas viables con “Tienes X/Y” y faltantes reales.
+- [x] AC11 — Faltantes de una receta pueden agregarse a compras sin duplicados.
+- [x] AC12 — Compras permite pendiente/comprado/quitar.
+- [x] AC13 — Pasar comprado a despensa requiere acción explícita.
+- [x] AC14 — Guided recipe conserva ingredientes, sustituciones, pasos y registro al completar.
+- [x] AC15 — “Comí otra cosa”, corregir hora y quitar registro continúan funcionando.
+- [x] AC16 — No se introducen calorías/macros ni claims médicos.
+- [x] AC17 — TypeScript + regresiones pasan.
+- [x] AC18 — Android release 0.4.0 genera APK + AAB firmados.
 
 ## Verification plan
 
@@ -128,4 +128,7 @@ Food history existente permanece compatible.
 
 ## Verification result
 
-- AC1–AC18: PENDING
+- AC1–AC16: PASS — implementation + regression coverage merged in `d43b1d1bb72300491be2a620b50b06a6e51c6889`.
+- AC17: PASS — PR Quality #180 and main Quality #181.
+- AC18: PASS — Android #149 generated signed WeekFlow 0.4.0 APK + AAB and published both artifacts.
+- Physical-device keyboard/scroll ergonomics: NOT RUN in CI; remains a manual field-validation item and does not change the functional closure above.
