@@ -2,52 +2,57 @@
 
 ## Repository
 - Repository: `LoloscarPrr/WeekFlow`.
-- Base ref: remote `main` at `fb4382f07f72e6ec75e9945907aa450756a0027b`.
-- Working ref/branch: `codex/wf-food-001-pantry-viable-recipes`.
+- Base ref: remote `main` at `b1412dabed17aeae1b77629d39035fb6a384eba4`.
+- Working ref/branch: `codex/wf-food-002-photo-prep-reuse`.
 
 ## App / build state
-- Source version: `0.3.27`; Android source `versionCode`: `81`.
+- Source version: `0.4.0`; Android source `versionCode`: `82`.
 - Package: `com.weekflow.app`.
-- Latest main Quality: PASS — run #179.
-- Latest native Android release build: PASS — run #148; APK + AAB published.
+- Main Quality baseline: PASS — run #181 for Food 0.4.0 implementation.
+- Native Android release baseline: PASS — run #149; signed 0.4.0 APK + AAB published.
+- WF-FOOD-001: DONE.
 
 ## Product context
-- Current Blueprint Maestro: v3.3.
-- Roadmap gate for Move is functionally satisfied in current main; the next committed product focus is `0.4.x · Food completo`.
-- Food exit intent: help execute a viable meal end-to-end with recipes, available ingredients, substitutions, shopping/prep support, context-aware proposals and correctable logging.
-- Existing Food already has shift/energy suggestions, 4 guided recipes, manual “Comí otra cosa”, 14-day local history and time correction.
-- The user explicitly approved proceeding with Food now.
+- Current Blueprint Maestro v3.3 defines 0.4.x Food complete as: recipes, “qué tienes”, shopping, meal prep, budget, substitutions and logging, with a viable meal end-to-end.
+- Its Food exit criteria explicitly require “¿Qué tienes disponible?” to accept text and photo, and require shopping, advance preparation and ingredient reuse to reduce effort/waste.
+- Current main already provides text pantry, shopping, budget/time/cooking preferences, 12 guided recipes and correctable logging.
+- The user explicitly approved proceeding with the photo + meal-prep/reuse layer now.
 
 ## Specs
-- No existing `WF-FOOD-*` spec exists in main.
-- Relevant completed work: `WF-MOVE-006`, `WF-NOTIFY-002`.
-- Proposed active spec: `WF-FOOD-001 — Despensa, recetas viables y compras`.
+- `WF-FOOD-001`: DONE.
+- New active specs:
+  - `WF-FOOD-002 — Foto de despensa revisable`.
+  - `WF-FOOD-003 — Preparación anticipada y reutilización`.
 
 ## Relevant implementation surface
-- Main Food screen: `app/food.tsx`.
+- Food main screen: `app/food.tsx`.
+- Food library/shopping: `app/food-library.tsx`, `app/food-shopping.tsx`.
 - Guided cooking: `src/food/FoodGuidedRecipe.tsx`.
-- Recipe data: `src/food/recipes.ts`.
-- Context suggestions: `src/food/suggestions.ts`.
-- Food history: `src/food/history.ts`.
-- Persistence facade / SQLite state store: `src/state/persistence.ts`.
-- Navigation: `src/components/BottomNav.tsx`.
+- Pantry model: `src/food/pantry.ts`.
+- Recipe catalog/ranking: `src/food/recipes.ts`, `src/food/recommendations.ts`.
+- Persistence: `src/state/persistence.ts`.
+- Existing camera/gallery + on-device OCR reference: `src/components/ScheduleImportCard.tsx`.
+- Existing native dependencies already include `expo-image-picker` and `@infinitered/react-native-mlkit-text-recognition`.
 
 ## Baseline
-- TypeScript + regression suite: PASS via Quality #179.
-- Native Android release build: PASS via Android #148.
-- Physical Food pantry/purchase flow: NOT RUN because it does not exist yet.
+- TypeScript + regression suite: PASS via Quality #181.
+- Native Android release: PASS via Android #149.
+- Physical Food 0.4.0 flow: NOT RUN in this coding session.
 
 ## Constraints / uncertainties
-- Preserve current Food logging/history behavior and guided recipe completion.
-- Remain offline-first; no account/cloud dependency.
-- Do not introduce calories into the MVP.
-- Do not infer allergies/medical diets or make health diagnoses.
-- Pantry/photo recognition is not yet implemented. WF-FOOD-001 will establish the text/persistence/ranking core first; photo input must later feed the same model rather than create a second Food truth.
-- Budget is a user preference/context signal, not a precise price promise.
-- Do not silently mark missing ingredients as owned.
-- Keep keyboard-safe Android behavior.
+- Photo input must feed the same canonical FoodPantry; no second pantry truth.
+- No pantry change is saved until explicit review/confirmation.
+- Current installed ML Kit OCR can reliably read visible package/label text but is not a fresh-produce object detector. WF-FOOD-002 therefore proposes from visible text and lets the user complete missing visual items manually rather than pretending certainty.
+- Photos are processed locally and are not persisted/uploaded by this flow.
+- Do not add an unproven native vision dependency that risks Android release stability.
+- Meal prep must not invent expiry/shelf-life or food-safety guarantees.
+- Prepared portions require explicit creation and consumption actions.
+- Preserve offline-first behavior, existing Food history, shopping and guided cooking.
 
 ## Next TLC action
-- Lock `WF-FOOD-001`, implement pantry text + viable recipe ranking + shopping list + preferences + persistence + regression coverage, then verify Quality and signed Android release.
+- Lock WF-FOOD-002 and WF-FOOD-003 before changing behavior.
+- Implement local photo review into FoodPantry.
+- Implement prepared portions and shared-ingredient reuse suggestions.
+- Add regression tests, bump to 0.4.1, run PR Quality, merge, then verify signed Android APK + AAB.
 
-> Rule: do not turn physical-device checks into PASS without device evidence.
+> Rule: physical-device and camera recognition quality remain field-validation items; CI can verify logic/build, not real-world camera accuracy.
