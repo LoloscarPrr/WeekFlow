@@ -8,6 +8,8 @@ import { RefreshableScrollView } from '@/src/components/AppRefresh';
 import { TimeEditModal } from '@/src/components/TimeEditModal';
 import { FoodGuidedRecipe } from '@/src/food/FoodGuidedRecipe';
 import { FoodRecipeCard } from '@/src/food/FoodRecipeCard';
+import { FoodPantryPhotoCapture } from '@/src/food/FoodPantryPhotoCapture';
+import { preparedPortionCount, type FoodPreparedMeal } from '@/src/food/prep';
 import {
   addShoppingItems,
   mergeFoodPantry,
@@ -28,6 +30,7 @@ import {
   loadFoodDay,
   loadFoodPantry,
   loadFoodPreferences,
+  loadFoodPrepared,
   loadFoodShopping,
   loadWeekState,
   removeFoodEntry,
@@ -55,6 +58,7 @@ function timeLabel(iso: string) {
 function sourceLabel(entry: FoodEntry) {
   if (entry.source === 'manual') return 'Registrado por ti';
   if (entry.source === 'recipe') return 'Cocinado con Food';
+  if (entry.source === 'prepared') return 'Desde una porción preparada';
   return 'Desde una sugerencia';
 }
 
@@ -67,6 +71,7 @@ export default function FoodScreen() {
   const [pantry, setPantry] = useState<FoodPantryItem[]>(() => loadFoodPantry());
   const [foodPreferences, setFoodPreferences] = useState<FoodPreferences>(() => loadFoodPreferences());
   const [shopping, setShopping] = useState<FoodShoppingItem[]>(() => loadFoodShopping());
+  const [prepared, setPrepared] = useState<FoodPreparedMeal[]>(() => loadFoodPrepared());
   const [pantryOpen, setPantryOpen] = useState(false);
   const [pantryText, setPantryText] = useState('');
   const [preferencesOpen, setPreferencesOpen] = useState(false);
@@ -89,6 +94,7 @@ export default function FoodScreen() {
     [context, foodPreferences, guidedRecipe, lowEnergy, pantry],
   );
   const pendingShopping = shopping.filter((item) => !item.checked).length;
+  const preparedPortions = preparedPortionCount(prepared);
 
   const refreshFood = useCallback(() => {
     const now = new Date();
@@ -99,6 +105,7 @@ export default function FoodScreen() {
     setPantry(loadFoodPantry());
     setFoodPreferences(loadFoodPreferences());
     setShopping(loadFoodShopping());
+    setPrepared(loadFoodPrepared());
   }, []);
 
   useFocusEffect(
@@ -158,6 +165,11 @@ export default function FoodScreen() {
 
   function removePantryItem(key: string) {
     setPantry(saveFoodPantry(pantry.filter((item) => item.key !== key)));
+  }
+
+  function addPhotoPantry(items: FoodPantryItem[]) {
+    if (!items.length) return;
+    setPantry(saveFoodPantry(mergeFoodPantry(pantry, items)));
   }
 
   function updatePreferences(patch: Partial<FoodPreferences>) {
@@ -269,6 +281,8 @@ export default function FoodScreen() {
                 <Text style={styles.pantryAddText}>+ Agregar ingredientes</Text>
               </Pressable>
             )}
+
+            <FoodPantryPhotoCapture onConfirm={addPhotoPantry} />
           </View>
 
           <View style={styles.quickActions}>
@@ -281,6 +295,11 @@ export default function FoodScreen() {
               <Text style={styles.quickIcon}>🛒</Text>
               <Text style={styles.quickTitle}>Compras</Text>
               <Text style={styles.quickCopy}>{pendingShopping} pendiente{pendingShopping === 1 ? '' : 's'}</Text>
+            </Pressable>
+            <Pressable style={styles.quickButton} onPress={() => router.push('/food-prep')}>
+              <Text style={styles.quickIcon}>🍱</Text>
+              <Text style={styles.quickTitle}>Prep</Text>
+              <Text style={styles.quickCopy}>{preparedPortions} porción{preparedPortions === 1 ? '' : 'es'}</Text>
             </Pressable>
           </View>
 
@@ -468,11 +487,11 @@ const styles = StyleSheet.create({
   saveButton: { flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: 13, backgroundColor: colors.blue },
   saveDisabled: { opacity: 0.4 },
   saveText: { color: '#FFFFFF', fontWeight: '900', fontSize: 12 },
-  quickActions: { flexDirection: 'row', gap: 9, marginTop: 10 },
-  quickButton: { flex: 1, minHeight: 92, borderRadius: 18, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, padding: 13 },
+  quickActions: { flexDirection: 'row', gap: 7, marginTop: 10 },
+  quickButton: { flex: 1, minHeight: 92, borderRadius: 18, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, padding: 11 },
   quickIcon: { fontSize: 20 },
-  quickTitle: { color: colors.text, fontSize: 13, fontWeight: '900', marginTop: 6 },
-  quickCopy: { color: colors.muted, fontSize: 10, marginTop: 2 },
+  quickTitle: { color: colors.text, fontSize: 11, fontWeight: '900', marginTop: 6 },
+  quickCopy: { color: colors.muted, fontSize: 8, marginTop: 2 },
   preferenceToggle: { marginTop: 12, minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 17, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, padding: 13 },
   preferenceTitle: { color: colors.text, fontSize: 12, fontWeight: '900' },
   preferenceCopy: { color: colors.muted, fontSize: 9, lineHeight: 14, marginTop: 3 },
