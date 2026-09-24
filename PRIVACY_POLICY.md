@@ -1,6 +1,6 @@
 # Política de privacidad de WeekFlow
 
-Última actualización: 18 de septiembre de 2026
+Última actualización: 24 de septiembre de 2026
 
 WeekFlow es una aplicación de organización personal para Android. Esta política explica qué datos usa la aplicación, dónde se procesan y qué controles tiene la persona usuaria.
 
@@ -32,7 +32,11 @@ En la versión actual esos datos de planificación no se sincronizan con Firebas
 
 ## Cámara, imágenes y archivos
 
-La cámara y el selector de archivos se usan únicamente cuando la persona elige importar un horario. Las imágenes, PDF y planillas seleccionadas se procesan en el dispositivo para reconocer o extraer la información. WeekFlow no los sube a servidores propios ni los adjunta deliberadamente a informes de fallos.
+La cámara y el selector de archivos se usan únicamente cuando la persona elige importar un horario o revisar ingredientes dentro de Food. Las imágenes, PDF y planillas seleccionadas para horarios se procesan en el dispositivo para reconocer o extraer la información.
+
+En Food, una foto elegida o tomada se procesa localmente para leer nombres o etiquetas visibles y proponer candidatos de despensa. La foto no se guarda como parte de la despensa ni se sube a servidores de WeekFlow. Los candidatos solo se incorporan cuando la persona los revisa y confirma; si la imagen no permite reconocer suficiente texto, se puede completar manualmente.
+
+WeekFlow no adjunta deliberadamente estas imágenes a informes de fallos.
 
 ## Notificaciones
 

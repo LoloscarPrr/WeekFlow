@@ -33,6 +33,10 @@ import {
   type FoodShoppingItem,
 } from '@/src/food/pantry';
 import {
+  sanitizeFoodPrepared,
+  type FoodPreparedMeal,
+} from '@/src/food/prep';
+import {
   DEFAULT_MOVE_PREFERENCES,
   sanitizeMovePreferences,
   type MoveIntensity,
@@ -56,6 +60,7 @@ const FOOD_HISTORY_KEY = 'food-history';
 const FOOD_PANTRY_KEY = 'food-pantry';
 const FOOD_PREFERENCES_KEY = 'food-preferences';
 const FOOD_SHOPPING_KEY = 'food-shopping';
+const FOOD_PREPARED_KEY = 'food-prepared';
 
 // Compatibility aliases for existing screens. New code should import these
 // concepts from src/domain rather than from this persistence facade.
@@ -99,6 +104,7 @@ export type ActiveMoveSession = {
 
 export type { FoodDayRecord, FoodEntry } from '@/src/food/history';
 export type { FoodPantryItem, FoodPreferences, FoodShoppingItem } from '@/src/food/pantry';
+export type { FoodPreparedMeal } from '@/src/food/prep';
 
 function isMoveIntensity(value: unknown): value is MoveIntensity {
   return value === 'recuperacion' || value === 'suave' || value === 'moderada' || value === 'alta';
@@ -216,6 +222,16 @@ export function loadFoodShopping(): FoodShoppingItem[] {
 export function saveFoodShopping(items: FoodShoppingItem[]) {
   const sanitized = sanitizeFoodShopping(items);
   sqliteStateStore.write(FOOD_SHOPPING_KEY, sanitized);
+  return sanitized;
+}
+
+export function loadFoodPrepared(): FoodPreparedMeal[] {
+  return sanitizeFoodPrepared(sqliteStateStore.read<unknown>(FOOD_PREPARED_KEY));
+}
+
+export function saveFoodPrepared(items: FoodPreparedMeal[]) {
+  const sanitized = sanitizeFoodPrepared(items);
+  sqliteStateStore.write(FOOD_PREPARED_KEY, sanitized);
   return sanitized;
 }
 
