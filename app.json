@@ -31,8 +31,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "WeekFlow necesita acceder a la imagen de tu horario para preparar la importación.",
-          "cameraPermission": "WeekFlow necesita usar la cámara para fotografiar tu horario.",
+          "photosPermission": "WeekFlow necesita acceder a imágenes que elijas para importar tu horario o revisar ingredientes en Food.",
+          "cameraPermission": "WeekFlow necesita usar la cámara para fotografiar tu horario o ingredientes que quieras revisar en Food.",
           "microphonePermission": false
         }
       ],
