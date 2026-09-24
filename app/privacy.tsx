@@ -74,7 +74,7 @@ export default function PrivacyScreen() {
 
         <PrivacyCard
           title="Guardado local"
-          body="Jornadas, comidas, movimiento, descanso y preferencias se guardan en la base local de la app. Las imágenes y archivos que eliges se procesan para importar tu horario; WeekFlow no los envía a sus servidores."
+          body="Jornadas, comidas, movimiento, descanso y preferencias se guardan en la base local de la app. Las imágenes que eliges para importar tu horario o revisar ingredientes se procesan localmente; WeekFlow no las envía a sus servidores ni guarda la foto de tu despensa."
         />
 
         <PrivacyCard
@@ -84,7 +84,7 @@ export default function PrivacyScreen() {
 
         <PrivacyCard
           title="Permisos con contexto"
-          body="La cámara y el selector de archivos se abren únicamente cuando tú eliges importar un horario. Las notificaciones son recordatorios locales programados en tu dispositivo."
+          body="La cámara y el selector de imágenes se abren únicamente cuando tú eliges importar un horario o revisar ingredientes en Food. En Food, los candidatos detectados requieren tu confirmación antes de entrar a la despensa. Las notificaciones son recordatorios locales programados en tu dispositivo."
         />
 
         <View style={styles.card}>
