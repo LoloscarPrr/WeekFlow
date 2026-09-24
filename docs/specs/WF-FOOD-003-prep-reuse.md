@@ -1,6 +1,6 @@
 # WF-FOOD-003 — Preparación anticipada y reutilización
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Approved by: Oscar · 24-09-2026
 Blueprint mapping: 0.4.x · Food completo · meal prep + reutilización
