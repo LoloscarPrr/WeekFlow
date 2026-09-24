@@ -12,17 +12,23 @@ export function FoodGuidedRecipe({
   onComplete,
   match,
   onAddMissing,
+  mode = 'eat',
+  prepPortions,
 }: {
   recipe: FoodRecipe;
   onCancel: () => void;
   onComplete: () => void;
   match?: FoodRecipeMatch | null;
   onAddMissing?: () => void;
+  mode?: 'eat' | 'prep';
+  prepPortions?: number;
 }) {
   const [started, setStarted] = useState(false);
   const [step, setStep] = useState(0);
   const lastStep = step === recipe.steps.length - 1;
   const progress = started ? Math.round(((step + 1) / recipe.steps.length) * 100) : 0;
+  const prepTarget = mode === 'prep' ? Math.max(recipe.portions, prepPortions ?? recipe.portions) : recipe.portions;
+  const prepBatches = mode === 'prep' ? Math.max(1, Math.ceil(prepTarget / recipe.portions)) : 1;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -34,13 +40,26 @@ export function FoodGuidedRecipe({
           </Pressable>
         </View>
 
-        <Text style={styles.eyebrow}>FOOD · COCINA CONMIGO</Text>
+        <Text style={styles.eyebrow}>{mode === 'prep' ? 'FOOD · PREPARAR PARA DESPUÉS' : 'FOOD · COCINA CONMIGO'}</Text>
         <Text style={styles.icon}>{recipe.icon}</Text>
         <Text style={styles.title}>{recipe.title}</Text>
-        <Text style={styles.meta}>{recipe.minutes} min · {recipe.portions} porción{recipe.portions === 1 ? '' : 'es'} · {recipe.difficulty}</Text>
+        <Text style={styles.meta}>
+          {recipe.minutes} min · {mode === 'prep' ? prepTarget : recipe.portions} porción{(mode === 'prep' ? prepTarget : recipe.portions) === 1 ? '' : 'es'} · {recipe.difficulty}
+        </Text>
 
         {!started ? (
           <>
+            {mode === 'prep' ? (
+              <View style={styles.prepNotice}>
+                <Text style={styles.prepNoticeTitle}>PREP · {prepTarget} PORCIONES</Text>
+                <Text style={styles.prepNoticeCopy}>
+                  {prepBatches > 1
+                    ? `Usa esta receta base en ${prepBatches} tandas para dejar ${prepTarget} porciones preparadas.`
+                    : `Esta receta ya rinde ${recipe.portions} porciones. Al terminar quedarán guardadas en Prep.`}
+                </Text>
+              </View>
+            ) : null}
+
             <Text style={styles.section}>INGREDIENTES</Text>
             <View style={styles.card}>
               {recipe.ingredients.map((item, index) => {
@@ -74,7 +93,7 @@ export function FoodGuidedRecipe({
             </View>
 
             <Pressable style={styles.primary} onPress={() => setStarted(true)}>
-              <Text style={styles.primaryText}>Empezar a cocinar</Text>
+              <Text style={styles.primaryText}>{mode === 'prep' ? 'Empezar preparación' : 'Empezar a cocinar'}</Text>
             </Pressable>
           </>
         ) : (
@@ -105,11 +124,17 @@ export function FoodGuidedRecipe({
                   else setStep((value) => value + 1);
                 }}
               >
-                <Text style={styles.primaryText}>{lastStep ? 'Listo, comí esto' : 'Siguiente'}</Text>
+                <Text style={styles.primaryText}>
+                  {lastStep ? (mode === 'prep' ? `Guardar ${prepTarget} porciones` : 'Listo, comí esto') : 'Siguiente'}
+                </Text>
               </Pressable>
             </View>
 
-            <Text style={styles.helper}>WeekFlow te guía paso a paso. Si necesitas cambiar un ingrediente, usa una sustitución de arriba o vuelve y elige otra opción.</Text>
+            <Text style={styles.helper}>
+              {mode === 'prep'
+                ? 'Al finalizar, WeekFlow guardará las porciones como preparadas; no las registrará como comidas hasta que realmente consumas una.'
+                : 'WeekFlow te guía paso a paso. Si necesitas cambiar un ingrediente, usa una sustitución de arriba o vuelve y elige otra opción.'}
+            </Text>
           </>
         )}
       </ScrollView>
@@ -128,6 +153,9 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontSize: 36, lineHeight: 41, fontWeight: '900', marginTop: 8 },
   meta: { color: '#8FB6E5', fontSize: 13, fontWeight: '800', marginTop: 10 },
   section: { color: '#76AFFF', fontWeight: '800', letterSpacing: 3, fontSize: 12, marginTop: 28, marginBottom: 10 },
+  prepNotice: { marginTop: 18, borderRadius: 18, borderWidth: 1, borderColor: '#347363', backgroundColor: '#153A31', padding: 14 },
+  prepNoticeTitle: { color: '#8CE0C7', fontSize: 10, fontWeight: '900', letterSpacing: 1.5 },
+  prepNoticeCopy: { color: '#B9DCD2', fontSize: 11, lineHeight: 17, marginTop: 5 },
   card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 22, paddingHorizontal: 16 },
   row: { flexDirection: 'row', gap: 10, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.line },
   rowLast: { borderBottomWidth: 0 },
