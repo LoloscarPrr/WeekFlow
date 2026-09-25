@@ -18,10 +18,9 @@ type Props = {
   moments: ImportantMoment[];
   onSave: (moment: ImportantMoment) => void;
   onDelete: (id: string) => void;
-  onTitleFocus?: () => void;
 };
 
-export function ImportantEventCard({ moments, onSave, onDelete, onTitleFocus }: Props) {
+export function ImportantEventCard({ moments, onSave, onDelete }: Props) {
   const [title, setTitle] = useState('');
   const [when, setWhen] = useState(() => defaultImportantEventWhen());
   const [picker, setPicker] = useState<PickerMode | null>(null);
@@ -67,7 +66,6 @@ export function ImportantEventCard({ moments, onSave, onDelete, onTitleFocus }: 
         placeholderTextColor="#63758A"
         maxLength={80}
         returnKeyType="done"
-        onFocus={onTitleFocus}
         onSubmitEditing={saveEvent}
         style={styles.input}
       />
