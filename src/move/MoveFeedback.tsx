@@ -4,10 +4,9 @@ import { MOVE_FEEDBACK, moveRecordDuration, type MoveController } from '@/src/mo
 
 type MoveFeedbackProps = {
   move: MoveController;
-  onNoteFocus: () => void;
 };
 
-export function MoveFeedback({ move, onNoteFocus }: MoveFeedbackProps) {
+export function MoveFeedback({ move }: MoveFeedbackProps) {
   const { feedback, feedbackNote, setFeedbackNote, noteSaved, setNoteSaved, lastRecord, applyFeedback, skipFeedback, saveNote, resetFinished } = move;
   if (!lastRecord) return null;
 
@@ -29,7 +28,6 @@ export function MoveFeedback({ move, onNoteFocus }: MoveFeedbackProps) {
       <TextInput
         value={feedbackNote}
         onChangeText={(value) => { setFeedbackNote(value); setNoteSaved(false); }}
-        onFocus={onNoteFocus}
         placeholder="Escribe una nota breve"
         placeholderTextColor="#64758F"
         multiline
