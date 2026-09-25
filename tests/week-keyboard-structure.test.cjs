@@ -14,11 +14,17 @@ assert.doesNotMatch(weekScreen, /scrollToEnd/);
 assert.doesNotMatch(weekScreen, /keepImportantEventVisible/);
 assert.doesNotMatch(weekScreen, /onTitleFocus=/);
 assert.doesNotMatch(eventCard, /onTitleFocus/);
+assert.doesNotMatch(eventCard, /\.blur\(/);
+assert.doesNotMatch(eventCard, /Keyboard\.dismiss/);
 
 assert.match(foodScreen, /<KeyboardAvoidingView/);
 assert.match(foodScreen, /behavior=\{Platform\.OS === 'ios' \? 'padding' : 'height'\}/);
 assert.match(foodScreen, /keyboardDismissMode="on-drag"/);
 assert.doesNotMatch(foodScreen, /scrollToEnd/);
 assert.doesNotMatch(foodScreen, /keepInputVisible/);
+assert.doesNotMatch(foodScreen, /\.blur\(/);
+assert.doesNotMatch(foodScreen, /Keyboard\.dismiss/);
+assert.doesNotMatch(weekScreen, /\.blur\(/);
+assert.doesNotMatch(weekScreen, /Keyboard\.dismiss/);
 
 console.log('Week/Food keyboard focus structure passed.');
