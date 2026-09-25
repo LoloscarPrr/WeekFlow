@@ -1,7 +1,7 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Brand } from '@/src/components/Brand';
 import { PillarTabs } from '@/src/components/PillarTabs';
 import { RefreshableScrollView } from '@/src/components/AppRefresh';
@@ -79,7 +79,6 @@ export default function FoodScreen() {
   const [manualText, setManualText] = useState('');
   const [guidedRecipe, setGuidedRecipe] = useState<FoodRecipe | null>(null);
   const [editingEntry, setEditingEntry] = useState<FoodEntry | null>(null);
-  const scrollRef = useRef<ScrollView>(null);
 
   const todayShift = useMemo(() => shiftForDate(weekState, clockNow), [clockNow, weekState]);
   const context = useMemo(() => foodContextForShift(clockNow, todayShift), [clockNow, todayShift]);
@@ -150,9 +149,6 @@ export default function FoodScreen() {
     setEditingEntry(null);
   }
 
-  function keepInputVisible() {
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 160);
-  }
 
   function addPantryText() {
     const incoming = parseFoodPantryInput(pantryText);
@@ -206,7 +202,6 @@ export default function FoodScreen() {
         keyboardVerticalOffset={0}
       >
         <RefreshableScrollView
-          ref={scrollRef}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
@@ -255,7 +250,6 @@ export default function FoodScreen() {
                   style={styles.input}
                   multiline
                   autoFocus
-                  onFocus={keepInputVisible}
                 />
                 <View style={styles.inlineActions}>
                   <Pressable
@@ -429,7 +423,6 @@ export default function FoodScreen() {
                 style={styles.input}
                 autoFocus
                 returnKeyType="done"
-                onFocus={keepInputVisible}
                 onSubmitEditing={addManual}
               />
               <View style={styles.inlineActions}>

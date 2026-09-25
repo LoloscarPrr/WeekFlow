@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -51,7 +51,6 @@ export function TimeEditModal({
   const [hours, setHours] = useState('');
   const [minutes, setMinutes] = useState('');
   const [error, setError] = useState('');
-  const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     if (!visible) return;
@@ -78,9 +77,6 @@ export function TimeEditModal({
     setError('');
   }
 
-  function keepActionsVisible() {
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 180);
-  }
 
   function cancel() {
     Keyboard.dismiss();
@@ -127,7 +123,6 @@ export function TimeEditModal({
           accessibilityLabel="Cerrar editor de hora"
         />
         <ScrollView
-          ref={scrollRef}
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
@@ -146,7 +141,6 @@ export function TimeEditModal({
                 <TextInput
                   value={hours}
                   onChangeText={updateHours}
-                  onFocus={keepActionsVisible}
                   style={styles.input}
                   keyboardType="number-pad"
                   maxLength={2}
@@ -160,7 +154,6 @@ export function TimeEditModal({
                 <TextInput
                   value={minutes}
                   onChangeText={updateMinutes}
-                  onFocus={keepActionsVisible}
                   style={styles.input}
                   keyboardType="number-pad"
                   maxLength={2}
