@@ -1,6 +1,6 @@
 # WF-FOOD-003 — Preparación anticipada y reutilización
 
-Status: VERIFYING
+Status: DONE
 Owner: WeekFlow
 Approved by: Oscar · 24-09-2026
 Blueprint mapping: 0.4.x · Food completo · meal prep + reutilización
@@ -55,22 +55,22 @@ Food ya puede proponer/cocinar una comida y construir compras, pero todavía no 
 - Ranking considera faltantes sin afirmar disponibilidad inexistente.
 
 ## Acceptance criteria
-- [ ] AC1 — Legacy carga food-prepared vacío.
-- [ ] AC2 — Guardar una preparación persiste receta, título, porciones y fecha.
-- [ ] AC3 — Consumir decrementa una porción.
-- [ ] AC4 — Consumir la última porción elimina la preparación.
-- [ ] AC5 — Quitar preparación no registra comida.
-- [ ] AC6 — Comida consumida desde prep se guarda con source prepared.
-- [ ] AC7 — Pantalla Food Prep muestra preparaciones disponibles.
-- [ ] AC8 — Food Prep permite iniciar una receta de 2+ porciones como preparación anticipada.
-- [ ] AC9 — Finalizar modo prep guarda las porciones declaradas y no registra que se comieron.
-- [ ] AC10 — Food principal muestra acceso/contador de porciones preparadas.
-- [ ] AC11 — Ranking de reutilización propone pares con ingredientes esenciales compartidos.
-- [ ] AC12 — UI muestra qué ingredientes comparten las dos recetas.
-- [ ] AC13 — No se muestran caducidades ni garantías de seguridad.
-- [ ] AC14 — Historial manual/suggestion/recipe existente sigue compatible.
-- [ ] AC15 — TypeScript + regresiones pasan.
-- [ ] AC16 — Android release 0.4.1 genera APK + AAB firmados.
+- [x] AC1 — Legacy carga food-prepared vacío.
+- [x] AC2 — Guardar una preparación persiste receta, título, porciones y fecha.
+- [x] AC3 — Consumir decrementa una porción.
+- [x] AC4 — Consumir la última porción elimina la preparación.
+- [x] AC5 — Quitar preparación no registra comida.
+- [x] AC6 — Comida consumida desde prep se guarda con source prepared.
+- [x] AC7 — Pantalla Food Prep muestra preparaciones disponibles.
+- [x] AC8 — Food Prep permite iniciar una receta de 2+ porciones como preparación anticipada.
+- [x] AC9 — Finalizar modo prep guarda las porciones declaradas y no registra que se comieron.
+- [x] AC10 — Food principal muestra acceso/contador de porciones preparadas.
+- [x] AC11 — Ranking de reutilización propone pares con ingredientes esenciales compartidos.
+- [x] AC12 — UI muestra qué ingredientes comparten las dos recetas.
+- [x] AC13 — No se muestran caducidades ni garantías de seguridad.
+- [x] AC14 — Historial manual/suggestion/recipe existente sigue compatible.
+- [x] AC15 — TypeScript + regresiones pasan.
+- [x] AC16 — Android release 0.4.1 genera APK + AAB firmados.
 
 ## Verification plan
 - Tests puros de persistencia/sanitización/consumo.
@@ -81,4 +81,9 @@ Food ya puede proponer/cocinar una comida y construir compras, pero todavía no 
 - Validación física posterior de camera/prep UX.
 
 ## Verification result
-- AC1–AC16: PENDING
+
+- Functional acceptance: PASS — merged in `437756025c972be7d51d2fe100c8acafb771cd77`.
+- PR Quality #183: PASS.
+- Main Quality #184: PASS.
+- Android #150: PASS — signed WeekFlow 0.4.1 APK + AAB generated and published.
+- Physical-device camera recognition quality and Prep ergonomics remain manual field-validation items; CI cannot validate real-world camera accuracy.
