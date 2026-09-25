@@ -1,6 +1,7 @@
+import { KeyboardAwareTextInput as TextInput } from '@/src/components/KeyboardAwareScrollView';
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import {
   MOVE_AVOID_AREA_OPTIONS,
   MOVE_EXPERIENCE_OPTIONS,

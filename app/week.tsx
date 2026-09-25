@@ -1,6 +1,7 @@
+import { KeyboardAwareTextInput as TextInput } from '@/src/components/KeyboardAwareScrollView';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker from '@expo/ui/community/datetime-picker';
 import { Brand } from '@/src/components/Brand';
 import { RefreshableScrollView } from '@/src/components/AppRefresh';
@@ -34,7 +35,7 @@ export default function WeekScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <KeyboardAvoidingView
         style={styles.keyboardShell}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}
       >
         <RefreshableScrollView

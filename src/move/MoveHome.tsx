@@ -13,7 +13,7 @@ export function MoveHome({ move }: { move: MoveController }) {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <KeyboardAvoidingView
         style={styles.keyboardShell}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <RefreshableScrollView
           contentContainerStyle={styles.content}

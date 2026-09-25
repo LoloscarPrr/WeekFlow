@@ -53,7 +53,8 @@ Food y Evento importante demostraron un patrón defectuoso: algunos formularios 
 - AC6: PASS by code inspection — Food, Semana, TimeEditModal and MoveHome retain KeyboardAvoidingView, handled taps and on-drag dismissal; app.json retains Android resize. Explicit modal Save/Cancel still dismiss the keyboard.
 - AC7: PASS — global regression scans 12 TSX files with TextInput; also searched app/src for onFocus, scrollToEnd, blur and Keyboard.dismiss. Only explicit TimeEditModal Save/Cancel dismissals remain.
 - AC8: PASS — Quality #194, run 36094821035, exact source a1417ae; TypeScript and full regression suite passed. Both keyboard regressions also passed locally on 2026-09-25.
-- AC9: PENDING — signed Android 0.4.2 release after merge.
+- AC9: PASS — Android #151 / run 36095127195 generated signed 0.4.2 APK + AAB from main 891499a.
+- Follow-up: video 1000142985.mp4 shows residual obscured-input behavior. WF-QA-004 adds measured visibility correction; physical acceptance remains pending.
 - Persistence/regression review: PASS — PR changes are limited to focus callbacks/refs, tests, release metadata and documentation. No database, records, account or scheduling logic changed.
 
 ### Physical verification checklist

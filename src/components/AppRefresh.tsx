@@ -1,5 +1,6 @@
 import { forwardRef, useCallback, useState } from 'react';
 import { RefreshControl, ScrollView, type ScrollViewProps } from 'react-native';
+import { KeyboardAwareScrollView } from './KeyboardAwareScrollView';
 import { colors } from '@/src/theme/colors';
 
 type RefreshableScrollViewProps = ScrollViewProps & {
@@ -22,7 +23,7 @@ export const RefreshableScrollView = forwardRef<ScrollView, RefreshableScrollVie
     }, [onRefreshData, refreshing]);
 
     return (
-      <ScrollView
+      <KeyboardAwareScrollView
         ref={ref}
         {...props}
         overScrollMode="always"

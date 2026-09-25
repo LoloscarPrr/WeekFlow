@@ -1,3 +1,5 @@
+import { KeyboardAwareScrollView } from '@/src/components/KeyboardAwareScrollView';
+import { KeyboardAwareTextInput as TextInput } from '@/src/components/KeyboardAwareScrollView';
 import { useEffect, useState } from 'react';
 import {
   Keyboard,
@@ -5,10 +7,8 @@ import {
   Modal,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { colors } from '@/src/theme/colors';
@@ -114,7 +114,7 @@ export function TimeEditModal({
     >
       <KeyboardAvoidingView
         style={styles.overlay}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <Pressable
           style={StyleSheet.absoluteFill}
@@ -122,7 +122,7 @@ export function TimeEditModal({
           accessibilityRole="button"
           accessibilityLabel="Cerrar editor de hora"
         />
-        <ScrollView
+        <KeyboardAwareScrollView
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
@@ -179,7 +179,7 @@ export function TimeEditModal({
               </Pressable>
             </View>
           </View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </KeyboardAvoidingView>
     </Modal>
   );

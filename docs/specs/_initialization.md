@@ -1,30 +1,12 @@
 # TLC Initialization Snapshot
 
-## Repository and ref
-- LoloscarPrr/WeekFlow; main at 8c9b7617216839450b06ac70d67f292a082dc749.
-- Resume PR #97, codex/wf-qa-003-keyboard-focus-scroll at a1417ae8f0007d20e9963203dc4c5b8c78e5dccf, reviewed 2026-09-25.
-- Older uncommitted Move work in another checkout is stale and preserved untouched.
-
-## App / build
-- Release candidate 0.4.2, source versionCode 84; package com.weekflow.app.
-- Workflow retains permanent signing and assigns monotonic versionCode 100000 + run number.
-
-## Product context / active scope
-- Attached Blueprint Maestro v3.3 reviewed: P0 stability, keyboard accessibility, persistent updates and shared canonical state take priority.
-- Main already includes Food 0.4.1; resume WF-QA-003 only. No new Food/Move features or persistence changes.
-- Relevant product decision weekflow-0.2.5-scope is historical; current ImportantEventCard is preserved as required by the active spec.
-
-## Relevant specs and modules
-- WF-QA-003 keyboard focus stability, LOCKED scope.
-- Food, Semana/ImportantEventCard, TimeEditModal, MoveHome/MoveFeedback, RefreshableScrollView and keyboard regression tests reviewed.
-
-## Baseline
-- PASS: PR Quality #194 / run 36094821035 at a1417ae; dependency installation, TypeScript and full regressions succeeded.
-- PASS: local Week/Food keyboard regression and global focus regression (12 TextInput files).
-- PASS by diff inspection: no data/persistence/business-rule modifications; keyboard avoiding wrappers, native resize and on-drag dismissal retained.
-- NOT RUN: Android 0.4.2 release, pending merge.
-- UNAVAILABLE: physical-device keyboard interaction in this environment.
-
-## Next action / constraints
-- Record review evidence, integrate PR #97 and verify signed APK/AAB.
-- Do not claim physical focus/visibility acceptance solely from static checks or CI.
+- Repository: LoloscarPrr/WeekFlow, main 891499a76a66b9ac4b093cd061a79824d0c76bee.
+- Session: 2026-09-25, resume after Android video 1000142985.mp4 (33 seconds).
+- Source: 0.4.2 / versionCode 84; release build #151 uses 100151 and permanent signing.
+- Baseline PASS: main Quality #196 and Android #151, APK and AAB generated.
+- Physical evidence FAIL: opening keyboard leaves important-event title or Food pantry below the visible viewport; repeated opening/closing changes layout. Video does not expose installed version, so exact installed version is unknown.
+- Blueprint Maestro v3.3 reviewed earlier this session: P0 usability and stable updates before feature expansion.
+- WF-QA-003 removed unconditional scrolling but did not implement measured field visibility. Its physical acceptance remains incomplete.
+- Active next spec: WF-QA-004, measured keyboard field visibility in shared scrolling forms.
+- Relevant code reviewed: RootLayout/BottomNav, RefreshableScrollView, Food, Semana/ImportantEventCard, MoveHome/MovePlan/MoveFeedback, TimeEditModal, existing keyboard tests.
+- Constraints: preserve native input focus, saved data, explicit Save/Cancel, manual drag dismissal and permanent signing. No new native dependencies. Physical re-test of new APK remains external.

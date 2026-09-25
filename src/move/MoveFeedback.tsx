@@ -1,4 +1,5 @@
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { KeyboardAwareTextInput as TextInput } from '@/src/components/KeyboardAwareScrollView';
+import { Pressable, Text, View } from 'react-native';
 import { moveStyles as styles } from '@/src/move/styles';
 import { MOVE_FEEDBACK, moveRecordDuration, type MoveController } from '@/src/move/useMoveController';
 

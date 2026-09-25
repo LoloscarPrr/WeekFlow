@@ -8,7 +8,7 @@ const eventCard = fs.readFileSync(path.join(root, 'src/components/ImportantEvent
 const foodScreen = fs.readFileSync(path.join(root, 'app/food.tsx'), 'utf8');
 
 assert.match(weekScreen, /<KeyboardAvoidingView/);
-assert.match(weekScreen, /behavior=\{Platform\.OS === 'ios' \? 'padding' : 'height'\}/);
+assert.match(weekScreen, /behavior=\{Platform\.OS === 'ios' \? 'padding' : undefined\}/);
 assert.match(weekScreen, /keyboardDismissMode="on-drag"/);
 assert.doesNotMatch(weekScreen, /scrollToEnd/);
 assert.doesNotMatch(weekScreen, /keepImportantEventVisible/);
@@ -18,7 +18,7 @@ assert.doesNotMatch(eventCard, /\.blur\(/);
 assert.doesNotMatch(eventCard, /Keyboard\.dismiss/);
 
 assert.match(foodScreen, /<KeyboardAvoidingView/);
-assert.match(foodScreen, /behavior=\{Platform\.OS === 'ios' \? 'padding' : 'height'\}/);
+assert.match(foodScreen, /behavior=\{Platform\.OS === 'ios' \? 'padding' : undefined\}/);
 assert.match(foodScreen, /keyboardDismissMode="on-drag"/);
 assert.doesNotMatch(foodScreen, /scrollToEnd/);
 assert.doesNotMatch(foodScreen, /keepInputVisible/);
