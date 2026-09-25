@@ -154,7 +154,6 @@ export function TimeEditModal({
                 <TextInput
                   value={minutes}
                   onChangeText={updateMinutes}
-                  onFocus={keepActionsVisible}
                   style={styles.input}
                   keyboardType="number-pad"
                   maxLength={2}
