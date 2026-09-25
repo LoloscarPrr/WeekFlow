@@ -1,6 +1,6 @@
 # WF-QA-003 — Focus estable para todos los campos de texto
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Approved by: Oscar · 25-09-2026
 Source: validación física Android de WeekFlow 0.4.1
@@ -48,4 +48,13 @@ Food y Evento importante demostraron un patrón defectuoso: algunos formularios 
 
 ## Verification result
 
-- AC1–AC9: PENDING
+- AC1–AC4: BLOCKED for final physical-device acceptance. Code review confirms all four focus-driven scroll callbacks and obsolete refs are removed; device interaction must still verify focus/visibility with the keyboard open.
+- AC5: PASS — ImportantEventCard no longer accepts or invokes onTitleFocus; local regression passed.
+- AC6: PASS by code inspection — Food, Semana, TimeEditModal and MoveHome retain KeyboardAvoidingView, handled taps and on-drag dismissal; app.json retains Android resize. Explicit modal Save/Cancel still dismiss the keyboard.
+- AC7: PASS — global regression scans 12 TSX files with TextInput; also searched app/src for onFocus, scrollToEnd, blur and Keyboard.dismiss. Only explicit TimeEditModal Save/Cancel dismissals remain.
+- AC8: PASS — Quality #194, run 36094821035, exact source a1417ae; TypeScript and full regression suite passed. Both keyboard regressions also passed locally on 2026-09-25.
+- AC9: PENDING — signed Android 0.4.2 release after merge.
+- Persistence/regression review: PASS — PR changes are limited to focus callbacks/refs, tests, release metadata and documentation. No database, records, account or scheduling logic changed.
+
+### Physical verification checklist
+On Android, focus and type in Food pantry/manual entry, Semana important-event title, both time-correction fields and the Move feedback note. Confirm the caret stays in the field, no jump to screen bottom, text remains visible, drag dismisses the keyboard and Save/Cancel still work. Repeat with existing saved data after updating the signed APK.
