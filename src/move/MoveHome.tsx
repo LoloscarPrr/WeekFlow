@@ -1,5 +1,4 @@
-import { useRef } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text } from 'react-native';
+import { KeyboardAvoidingView, Platform, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Brand } from '@/src/components/Brand';
 import { PillarTabs } from '@/src/components/PillarTabs';
@@ -10,12 +9,6 @@ import { moveStyles as styles } from '@/src/move/styles';
 import type { MoveController } from '@/src/move/useMoveController';
 
 export function MoveHome({ move }: { move: MoveController }) {
-  const scrollRef = useRef<ScrollView>(null);
-
-  function keepFeedbackVisible() {
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 180);
-  }
-
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <KeyboardAvoidingView
@@ -23,7 +16,6 @@ export function MoveHome({ move }: { move: MoveController }) {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <RefreshableScrollView
-          ref={scrollRef}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
@@ -32,7 +24,7 @@ export function MoveHome({ move }: { move: MoveController }) {
           <PillarTabs active="move" />
           <Text style={styles.eyebrow}>PILARES · MOVE</Text>
           <Text style={styles.title}>Una sesión real, no una etiqueta.</Text>
-          {move.finished ? <MoveFeedback move={move} onNoteFocus={keepFeedbackVisible} /> : <MovePlan move={move} />}
+          {move.finished ? <MoveFeedback move={move} /> : <MovePlan move={move} />}
         </RefreshableScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
