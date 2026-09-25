@@ -1,5 +1,6 @@
+import { KeyboardAwareTextInput as TextInput } from '@/src/components/KeyboardAwareScrollView';
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker from '@expo/ui/community/datetime-picker';
 import type { ImportantMoment } from '@/src/domain/entities/Shift';
 import {
