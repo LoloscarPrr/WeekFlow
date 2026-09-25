@@ -1,6 +1,6 @@
 # WF-FOOD-002 — Foto de despensa revisable
 
-Status: VERIFYING
+Status: DONE
 Owner: WeekFlow
 Approved by: Oscar · 24-09-2026
 Blueprint mapping: 0.4.x · Food completo · entrada por foto
@@ -51,20 +51,20 @@ Food ya acepta texto para “¿Qué tienes disponible?”, pero el roadmap exige
 - Un token desconocido nunca se agrega automáticamente.
 
 ## Acceptance criteria
-- [ ] AC1 — Cámara y galería están disponibles desde Food.
-- [ ] AC2 — OCR se ejecuta localmente sobre la URI elegida.
-- [ ] AC3 — Parser reconoce aliases canónicos conocidos, por ejemplo “HUEVOS”, “ARROZ”, “ATÚN”.
-- [ ] AC4 — Texto desconocido no se convierte en ingrediente automático.
-- [ ] AC5 — Los candidatos se revisan antes de guardar.
-- [ ] AC6 — El usuario puede desmarcar candidatos.
-- [ ] AC7 — El usuario puede añadir manualmente ingredientes omitidos dentro de la revisión.
-- [ ] AC8 — Confirmar fusiona con FoodPantry sin duplicados.
-- [ ] AC9 — Cancelar/fallo no modifica FoodPantry.
-- [ ] AC10 — La foto/URI no se persiste por este flujo.
-- [ ] AC11 — Los permisos dejan de hablar solo de “horario” y cubren ingredientes.
-- [ ] AC12 — Copy de privacidad indica procesamiento local y revisión explícita.
-- [ ] AC13 — TypeScript + regresiones pasan.
-- [ ] AC14 — Android release 0.4.1 compila con la firma permanente.
+- [x] AC1 — Cámara y galería están disponibles desde Food.
+- [x] AC2 — OCR se ejecuta localmente sobre la URI elegida.
+- [x] AC3 — Parser reconoce aliases canónicos conocidos, por ejemplo “HUEVOS”, “ARROZ”, “ATÚN”.
+- [x] AC4 — Texto desconocido no se convierte en ingrediente automático.
+- [x] AC5 — Los candidatos se revisan antes de guardar.
+- [x] AC6 — El usuario puede desmarcar candidatos.
+- [x] AC7 — El usuario puede añadir manualmente ingredientes omitidos dentro de la revisión.
+- [x] AC8 — Confirmar fusiona con FoodPantry sin duplicados.
+- [x] AC9 — Cancelar/fallo no modifica FoodPantry.
+- [x] AC10 — La foto/URI no se persiste por este flujo.
+- [x] AC11 — Los permisos dejan de hablar solo de “horario” y cubren ingredientes.
+- [x] AC12 — Copy de privacidad indica procesamiento local y revisión explícita.
+- [x] AC13 — TypeScript + regresiones pasan.
+- [x] AC14 — Android release 0.4.1 compila con la firma permanente.
 
 ## Verification plan
 - Tests puros de OCR text → candidatos.
@@ -75,4 +75,9 @@ Food ya acepta texto para “¿Qué tienes disponible?”, pero el roadmap exige
 - Calidad real de reconocimiento: validación física posterior con fotos reales.
 
 ## Verification result
-- AC1–AC14: PENDING
+
+- Functional acceptance: PASS — merged in `437756025c972be7d51d2fe100c8acafb771cd77`.
+- PR Quality #183: PASS.
+- Main Quality #184: PASS.
+- Android #150: PASS — signed WeekFlow 0.4.1 APK + AAB generated and published.
+- Physical-device camera recognition quality and Prep ergonomics remain manual field-validation items; CI cannot validate real-world camera accuracy.
