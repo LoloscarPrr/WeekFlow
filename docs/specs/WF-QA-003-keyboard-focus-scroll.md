@@ -1,4 +1,4 @@
-# WF-QA-003 — Foco de teclado sin salto al fondo
+# WF-QA-003 — Focus estable para todos los campos de texto
 
 Status: LOCKED
 Owner: WeekFlow
@@ -7,42 +7,45 @@ Source: validación física Android de WeekFlow 0.4.1
 
 ## Problem
 
-Al enfocar campos de texto en Food y en Evento importante, la pantalla llama manualmente a `scrollToEnd()`. Eso manda la vista al fondo de la pantalla en vez de mantener estable el contexto alrededor del campo que se está editando.
+Food y Evento importante demostraron un patrón defectuoso: algunos formularios usaban el evento de focus para llamar `scrollToEnd()`, mandando la pantalla al fondo. La misma técnica también estaba presente en Corregir hora y en el comentario de feedback de Move. Este comportamiento debe quedar prohibido transversalmente.
 
 ## Desired behavior
 
-- Enfocar un campo de Food no desplaza la pantalla al fondo y el TextInput conserva el focus mientras la persona escribe.
-- Enfocar el nombre de un evento importante no desplaza Semana al fondo y el campo conserva el focus mientras la persona escribe.
-- KeyboardAvoidingView y el ajuste nativo de Android siguen encargándose de dejar espacio al teclado.
-- Arrastrar la pantalla con el teclado abierto sigue permitiendo cerrarlo.
-- No se cambia lógica de Food, recordatorios ni persistencia.
+- Cualquier TextInput de WeekFlow conserva su focus natural mientras la persona escribe.
+- Enfocar un TextInput no puede disparar scroll al inicio/final de una pantalla.
+- La interfaz puede reajustarse por KeyboardAvoidingView / resize nativo, pero solo lo necesario para el teclado.
+- No se ejecuta blur ni cierre programático del teclado por el mero hecho de enfocar un campo.
+- Acciones explícitas como Guardar, Cancelar o cerrar un modal sí pueden cerrar el teclado.
+- Arrastrar una pantalla con `keyboardDismissMode="on-drag"` sigue permitiendo cerrar el teclado manualmente.
 
 ## Scope
 
-- Eliminar `scrollToEnd()` y callbacks de foco asociados en `app/food.tsx` y `app/week.tsx`.
-- Simplificar props de `ImportantEventCard` eliminando `onTitleFocus`.
-- Mantener el focus natural del TextInput; no introducir `blur()` ni cierre programático del teclado al enfocarlo.
-- Actualizar regresiones estructurales para prohibir `scrollToEnd()` forzado en estos formularios.
-- Añadir cobertura estructural para Food.
+- Eliminar focus-driven `scrollToEnd()` de Food, Semana/Eventos, Corregir hora y Move Feedback.
+- Eliminar callbacks/refs que existían solo para esos scrolls.
+- Mantener KeyboardAvoidingView donde ya existe.
+- Añadir regresión global que recorra todos los TSX con TextInput y prohíba `scrollToEnd()`/helpers de scroll conectados al focus.
+- Mantener regresiones específicas de Food y Semana.
 - Bump 0.4.2.
 
 ## Non-goals
 
+- Reescribir todos los TextInput con un componente visual nuevo.
 - Rediseñar formularios.
-- Cambiar KeyboardAvoidingView global.
-- Cambiar notificaciones o lógica de recordatorios.
-- Cambiar contenido de Food/Prep.
+- Cambiar lógica de negocio, recordatorios, Food, Move o persistencia.
+- Prohibir que Guardar/Cancelar cierren el teclado.
 
 ## Acceptance criteria
 
-- [ ] AC1 — Food no contiene `scrollToEnd()` asociado al foco de inputs y no dispara blur/dismiss al enfocarlos.
-- [ ] AC2 — Semana/Eventos importantes no contiene `scrollToEnd()` asociado al foco y no dispara blur/dismiss al enfocarlos.
-- [ ] AC3 — `ImportantEventCard` ya no recibe ni dispara `onTitleFocus`.
-- [ ] AC4 — Food y Semana conservan `KeyboardAvoidingView`.
-- [ ] AC5 — Ambos conservan `keyboardDismissMode="on-drag"`.
-- [ ] AC6 — TypeScript + regresiones pasan.
-- [ ] AC7 — Android release 0.4.2 genera APK + AAB firmados.
+- [ ] AC1 — Food conserva focus sin salto al fondo.
+- [ ] AC2 — Semana/Eventos importantes conserva focus sin salto al fondo.
+- [ ] AC3 — Corregir hora conserva focus sin salto al fondo.
+- [ ] AC4 — Comentario de Move conserva focus sin salto al fondo.
+- [ ] AC5 — `ImportantEventCard` no recibe ni dispara `onTitleFocus`.
+- [ ] AC6 — Los wrappers con teclado existentes conservan `KeyboardAvoidingView` y cierre manual por drag cuando corresponde.
+- [ ] AC7 — Una regresión global revisa todos los archivos TSX que contienen TextInput y falla si vuelven a usar `scrollToEnd()` en esa vista.
+- [ ] AC8 — TypeScript + regresiones pasan.
+- [ ] AC9 — Android release 0.4.2 genera APK + AAB firmados.
 
 ## Verification result
 
-- AC1–AC7: PENDING
+- AC1–AC9: PENDING
