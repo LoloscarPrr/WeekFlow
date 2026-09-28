@@ -1,4 +1,4 @@
-import { keyboardVisibleOffset } from '../src/presentation/layout/keyboardVisibility';
+import { keyboardOverlapSpacer, keyboardVisibleOffset } from '../src/presentation/layout/keyboardVisibility';
 
 function equal(actual: number, expected: number, message: string) {
   if (actual !== expected) throw new Error(`${message}: expected ${expected}, received ${actual}`);
@@ -20,4 +20,13 @@ equal(keyboardVisibleOffset({ ...viewport, fieldTop: 500, fieldHeight: 44, keybo
 // A second measurement after exactly the requested movement must be a no-op.
 const first = keyboardVisibleOffset({ ...viewport, fieldTop: 500, fieldHeight: 44 });
 equal(keyboardVisibleOffset({ ...viewport, offset: first, fieldTop: 500 - (first - viewport.offset), fieldHeight: 44 }), first, 'No cumulative jump after layout settles');
-console.log('Keyboard visibility geometry: 14 regressions passed.');
+
+// 0.4.4: create scroll range only when the keyboard really overlays the viewport.
+equal(keyboardOverlapSpacer({ viewportTop: 24, viewportHeight: 400, keyboardTop: 424 }), 0, 'Native adjustResize needs no extra spacer');
+equal(keyboardOverlapSpacer({ viewportTop: 24, viewportHeight: 700, keyboardTop: 424 }), 312, 'Overlay adds measured overlap plus visibility gap');
+equal(keyboardOverlapSpacer({ viewportTop: 24, viewportHeight: 700, keyboardTop: 800 }), 0, 'Keyboard below viewport adds no spacer');
+const compact = { viewportTop: 0, viewportHeight: 600, keyboardTop: 360, offset: 0, contentHeight: 600 };
+const overlaySpacer = keyboardOverlapSpacer(compact);
+equal(keyboardVisibleOffset({ ...compact, contentHeight: compact.contentHeight + overlaySpacer, fieldTop: 540, fieldHeight: 44 }), 236, 'Overlay spacer creates the missing range to reveal a bottom field');
+
+console.log('Keyboard visibility geometry: 18 regressions passed.');

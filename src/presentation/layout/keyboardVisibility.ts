@@ -1,4 +1,14 @@
 /** All vertical coordinates are measured in the same native window. */
+export function keyboardOverlapSpacer(input: {
+  viewportTop: number; viewportHeight: number; keyboardTop: number; gap?: number;
+}): number {
+  const { viewportTop, viewportHeight, keyboardTop, gap = 12 } = input;
+  if (![viewportTop, viewportHeight, keyboardTop, gap].every(Number.isFinite) || viewportHeight <= 0) return 0;
+  const overlap = viewportTop + viewportHeight - keyboardTop;
+  if (overlap <= 0) return 0;
+  return overlap + Math.max(0, gap);
+}
+
 export function keyboardVisibleOffset(input: {
   fieldTop: number; fieldHeight: number; viewportTop: number; viewportHeight: number;
   keyboardTop: number; offset: number; contentHeight: number; gap?: number;

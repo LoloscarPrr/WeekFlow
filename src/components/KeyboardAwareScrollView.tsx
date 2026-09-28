@@ -1,6 +1,6 @@
-import { createContext, forwardRef, useCallback, useContext, useEffect, useRef } from 'react';
-import { Keyboard, ScrollView, TextInput, type ScrollViewProps, type TextInputProps } from 'react-native';
-import { keyboardVisibleOffset } from '@/src/presentation/layout/keyboardVisibility';
+import { createContext, forwardRef, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { Keyboard, ScrollView, TextInput, View, type ScrollViewProps, type TextInputProps } from 'react-native';
+import { keyboardOverlapSpacer, keyboardVisibleOffset } from '@/src/presentation/layout/keyboardVisibility';
 
 const FieldContext = createContext<{
   focus: (field: TextInput) => void;
@@ -17,6 +17,8 @@ export const KeyboardAwareScrollView = forwardRef<ScrollView, ScrollViewProps>(
     const keyboardTop = useRef<number | null>(null);
     const pending = useRef<ReturnType<typeof setTimeout> | null>(null);
     const generation = useRef(0);
+    const spacer = useRef(0);
+    const [keyboardSpacer, setKeyboardSpacer] = useState(0);
 
     const cancel = useCallback(() => {
       generation.current += 1;
@@ -24,11 +26,19 @@ export const KeyboardAwareScrollView = forwardRef<ScrollView, ScrollViewProps>(
       pending.current = null;
     }, []);
 
+    const updateSpacer = useCallback((next: number) => {
+      const safe = Number.isFinite(next) ? Math.max(0, next) : 0;
+      if (Math.abs(safe - spacer.current) < 1) return false;
+      spacer.current = safe;
+      setKeyboardSpacer(safe);
+      return true;
+    }, []);
+
     const reveal = useCallback(() => {
       cancel();
       if (!focused.current || keyboardTop.current === null) return;
       const token = generation.current;
-      // Let resize, KeyboardAvoidingView and the bottom navigation finish layout.
+      // Let native resize and the bottom navigation finish layout before measuring.
       pending.current = setTimeout(() => {
         pending.current = null;
         const field = focused.current;
@@ -38,6 +48,14 @@ export const KeyboardAwareScrollView = forwardRef<ScrollView, ScrollViewProps>(
           && scroll.current === view && keyboardTop.current !== null;
         view.getNativeScrollRef()?.measureInWindow((_x, viewportTop, _width, viewportHeight) => {
           if (!valid()) return;
+          const nextSpacer = keyboardOverlapSpacer({
+            viewportTop,
+            viewportHeight,
+            keyboardTop: keyboardTop.current!,
+          });
+          // If the keyboard overlays the viewport instead of resizing it, temporarily
+          // extend the scroll content. A normally resized Android viewport yields 0.
+          if (updateSpacer(nextSpacer)) return;
           field.measureInWindow((_fx, fieldTop, _fw, fieldHeight) => {
             if (!valid()) return;
             const next = keyboardVisibleOffset({
@@ -51,7 +69,7 @@ export const KeyboardAwareScrollView = forwardRef<ScrollView, ScrollViewProps>(
           });
         });
       }, 80);
-    }, [cancel]);
+    }, [cancel, updateSpacer]);
 
     useEffect(() => {
       const show = Keyboard.addListener('keyboardDidShow', (event) => {
@@ -66,9 +84,14 @@ export const KeyboardAwareScrollView = forwardRef<ScrollView, ScrollViewProps>(
       const hide = Keyboard.addListener('keyboardDidHide', () => {
         keyboardTop.current = null;
         cancel();
+        updateSpacer(0);
       });
       return () => { show.remove(); frame.remove(); hide.remove(); cancel(); };
-    }, [cancel, reveal]);
+    }, [cancel, reveal, updateSpacer]);
+
+    useEffect(() => {
+      if (focused.current && keyboardTop.current !== null) reveal();
+    }, [keyboardSpacer, reveal]);
 
     const attach = useCallback((value: ScrollView | null) => {
       scroll.current = value;
@@ -104,6 +127,7 @@ export const KeyboardAwareScrollView = forwardRef<ScrollView, ScrollViewProps>(
           onScrollBeginDrag={(event) => { cancel(); onScrollBeginDrag?.(event); }}
         >
           {children}
+          <View pointerEvents="none" style={{ height: keyboardSpacer }} />
         </ScrollView>
       </FieldContext.Provider>
     );

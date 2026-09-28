@@ -34,3 +34,12 @@ No stored data or schema changes. Test geometry numerically and integration stru
 - AC5 local PASS: npm run quality (TypeScript and full regression suite). CI and signed 0.4.3 artifacts PENDING.
 - AC6 BLOCKED: needs physical re-test on candidate 0.4.3. Source video demonstrates old failure, not success of this change.
 
+## 0.4.4 follow-up — overlay-only scroll range
+Physical follow-up exposed one remaining geometry case: when the IME overlays the measured ScrollView instead of reducing its viewport, the minimum reveal offset can be correct but the content has no remaining scroll extent to reach it. Food can therefore leave the active field or Registrar/Cancelar actions too close to or below the keyboard.
+
+- Measure the actual overlap as `viewportBottom - keyboardTop`.
+- Add a temporary bottom spacer only while that overlap is positive, including the same small visibility gap used by the reveal calculation.
+- When Android `adjustResize` already ends the viewport at the keyboard, overlap is zero and no spacer is added.
+- Removing the keyboard removes the spacer; existing focus ownership, drag cancellation, refresh forwarding and persistence remain unchanged.
+- 0.4.4 adds regressions for native-resize/no-spacer, overlay/spacer and the previously impossible short-content reveal case.
+- Original local candidate `0a1cfe8`: TypeScript and full regression suite PASS before publication. Remote CI/signed artifacts and physical-device acceptance remain pending after integration.
