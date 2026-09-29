@@ -1,44 +1,41 @@
 # TLC Initialization Snapshot
 
 ## Repository and ref
-- Repository: LoloscarPrr/WeekFlow.
-- Main includes WeekFlow 0.4.2 keyboard-focus fix plus Blueprint Maestro v3.4 product decisions and NTF-05.
-- Active QA branch: codex/wf-qa-004-keyboard-visibility.
-- Blueprint Maestro v3.4 approved 2026-09-25.
-- Older uncommitted Move work in another checkout is stale and preserved untouched.
+- Repository: `LoloscarPrr/WeekFlow`.
+- Base: `main` at `65dede6e9359e114d35bbb797efdd905475237d0`.
+- Working branch: `codex/wf-week-004-ritual-completion`.
+- Blueprint Maestro v3.4 remains the current product source of truth.
 
 ## App / build
-- WeekFlow 0.4.2 / source versionCode 84; package com.weekflow.app.
-- Android release #151 PASS on 891499a; workflow assigned versionCode 100151 and generated signed APK + AAB with permanent signing.
-- Main Quality #196 PASS for 0.4.2.
-- Physical Android evidence after 0.4.2 shows an active input can still remain below the visible viewport when the keyboard opens; removing unconditional scrollToEnd fixed the old jump but did not fully guarantee field visibility.
-- Release candidate 0.4.3 addresses measured active-field visibility without adding native dependencies.
+- WeekFlow `0.4.4` / source `versionCode 86`; Android package `com.weekflow.app`.
+- Main Quality #202: PASS.
+- Main Android #153: PASS; signed Standalone APK and Play AAB generated with permanent signing.
+- Physical Android acceptance for the 0.4.4 keyboard correction: PASS from Oscar's device test; focused fields and actions remain usable with the keyboard open.
 
 ## Product context / active scope
-- P0 stability, keyboard accessibility, persistent updates and shared canonical state remain the current execution priority.
-- Commercial boundary is canonical: Free keeps complete manual control of nuclear planning/data; Premium activates WeekFlow Brain/IA, text/voice, automation and advanced adaptation.
-- Notifications may act as Día Vivo controls. Catalog NTF-05 defines “Aún no salgo” / “Voy saliendo” / “Ya voy en camino” as manual quick actions; intelligent impact/replanning is Premium.
-- NTF-05 is PLANIFICADO for 0.8.x. Recording the decision does not authorize skipping current roadmap gates.
+- P0 keyboard/accessibility work is closed enough to move to the next committed product slice: Semana + importación.
+- Blueprint v3.4 requires the 0.2.x flow to end with a human summary and a clear Ritual de la Semana closure after the schedule has been reviewed.
+- `screenshot-first-schedule-import.md` keeps camera/gallery OCR as the real primary path and treats Excel as secondary. The current Blueprint also lists Excel/PDF; this spec does not resolve that historical priority tension and does not remove existing formats.
+- Existing compact Semana decisions remain binding: do not restore the old long ritual block, duplicate explanations, origin panels or verbose confirmation UI.
 
 ## Relevant specs and modules
-- WF-QA-003 keyboard focus stability: code regression PASS; physical acceptance exposed the remaining visibility issue.
-- WF-QA-004 measured keyboard field visibility: active P0 QA correction for 0.4.3.
-- WF-NTF-05 departure notification actions: roadmap only.
-- Canonical commercial decisions D-026 and D-027 from Blueprint Maestro v3.4.
-- Relevant input surfaces: Food, Semana/ImportantEventCard, MoveHome/MovePlan/MoveFeedback, TimeEditModal, RefreshableScrollView and shared keyboard visibility utilities.
+- `WF-WEEK-001` — compact canonical Week screen: DONE; compactness must be preserved.
+- `WF-WEEK-002` — minimal important event: DONE; event capture stays compact and in Semana.
+- `WF-WEEK-003` / `WF-QA-004` — keyboard visibility: DONE enough for physical acceptance of 0.4.4.
+- Existing import modules: `ScheduleImportCard`, `SchedulePdfImportCard`, `scheduleOcr.ts`, `scheduleExcel.ts`, `schedulePdf.ts`.
+- Existing use case `completeWeekRitual(...)` persists `organizedAt` but is currently not connected to the Week UI.
 
 ## Baseline
-- PASS: 0.4.2 Quality #196 and Android #151; signed APK + AAB generated.
-- PASS: WF-QA-004 local TypeScript + regression suite and PR Quality #197 at cadee26.
-- FAIL / physical evidence for 0.4.2: important-event title or Food pantry can remain obscured by the keyboard; repeated open/close can alter visible layout.
-- PENDING: integrate WF-QA-004, generate signed Android 0.4.3 APK/AAB and re-test physically on Android.
-- ROADMAP ONLY: NTF-05 / D-026 / D-027 are documented but not implemented in the app yet.
+- PASS — Quality #202 on `main`.
+- PASS — Android #153 on `main`.
+- PASS — physical 0.4.4 keyboard acceptance on Android.
+- PASS — current import flow requires review before `Confirmar semana` and preserves existing important moments.
+- NOT RUN — local checkout/tests in this execution environment; repository network access is unavailable here, so verification will rely on GitHub Quality/Android plus source-level regression checks added in this change.
 
 ## Next action / constraints
-- Integrate WF-QA-004 only after preserving Blueprint v3.4/NTF-05 documentation.
-- Verify Quality and signed Android 0.4.3 build after merge.
-- Physical re-test must confirm the focused field stays visible in Food pantry/manual entry, Semana important-event title, TimeEditModal fields and Move feedback.
-- Preserve native input focus, saved data, explicit Save/Cancel, manual drag dismissal, refresh behavior and permanent signing.
-- Preserve one source of truth: future notification actions write the same ActualEvent/state used by Ahora/Semana/Brain.
-- Free must remain usable manually if Premium, network or AI services are unavailable.
-- Do not allow autonomous changes to fixed commitments; relevant impact requires confirmation.
+- Proposed active spec: `WF-WEEK-004 — Cierre compacto del Ritual de la Semana`.
+- Connect the existing `completeWeekRitual` use case to Semana instead of inventing a second state model.
+- Keep manual edits immediate; any shift/event edit continues reopening the week (`organizedAt: null`) until the user closes it again.
+- Closing the week must persist a valid timestamp and refresh live reminders.
+- Show only a concise human summary using the existing work-days/free-days/programmed-hours data.
+- Do not change OCR parsing, Excel/PDF parsing, SQLite schema, important-moment model, Free/Premium rules, signing or other modules.
