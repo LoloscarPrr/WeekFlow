@@ -33,6 +33,14 @@ function fixture(names: string[]): OcrTextResult {
   };
 }
 
+function rowEchoOscarFixture(): OcrTextResult {
+  const result = fixture(['OSCAR']);
+  const oscarLine = result.blocks[0].lines[1];
+  oscarLine.text = 'OSCAR 13:00 0:30 22:00 13:00 0:30 22:00';
+  result.text = oscarLine.text;
+  return result;
+}
+
 function compressedOscarFixture(): OcrTextResult {
   const headers = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
     .map((label, day) => element(label, 100 + day * 100, 10));
@@ -82,6 +90,13 @@ const ambiguous = parseScheduleOcr(
   'OSCAR URRUTIA',
 );
 assert(!ambiguous.nameFound, 'no debe elegir silenciosamente entre dos filas compatibles');
+
+const duplicateExact = parseScheduleOcr(fixture(['OSCAR', 'OSCAR']), 'OSCAR');
+assert(!duplicateExact.nameFound, 'dos filas OSCAR distintas deben seguir siendo ambiguas');
+
+const rowEcho = parseScheduleOcr(rowEchoOscarFixture(), 'OSCAR');
+assert(rowEcho.nameFound, 'la línea completa de la misma fila no debe contarse como un segundo OSCAR');
+assert(rowEcho.matchedNameText === 'OSCAR', 'debe preferir la celda atómica del nombre sobre el eco de la fila');
 
 const compressed = parseScheduleOcr(compressedOscarFixture(), 'OSCAR');
 assert(compressed.nameFound, 'debe encontrar OSCAR en la planilla real');
