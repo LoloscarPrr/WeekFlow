@@ -25,11 +25,11 @@ export default function WeekScreen() {
     setBreakMinutes,
     saveImportantMoment,
     deleteImportantMoment,
+    completeRitual,
     openTimePicker,
     applyPickedTime,
     closeTimePicker,
   } = useWeekController();
-
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -44,101 +44,123 @@ export default function WeekScreen() {
           keyboardDismissMode="on-drag"
           onRefreshData={refreshWeek}
         >
-        <Brand />
+          <Brand />
 
-        <View style={styles.hero}>
-          <Text style={styles.title}>Semana</Text>
-        </View>
+          <View style={styles.hero}>
+            <Text style={styles.title}>Semana</Text>
+          </View>
 
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryItem}><Text style={styles.summaryValue}>{summary.workDays}</Text><Text style={styles.summaryLabel}>Jornadas</Text></View>
-          <View style={styles.summaryDivider} />
-          <View style={styles.summaryItem}><Text style={styles.summaryValue}>{summary.freeDays}</Text><Text style={styles.summaryLabel}>Libres</Text></View>
-          <View style={styles.summaryDivider} />
-          <View style={styles.summaryItem}><Text style={styles.summaryValue}>{summary.total}</Text><Text style={styles.summaryLabel}>Programadas</Text></View>
-        </View>
+          <View style={styles.summaryCard}>
+            <View style={styles.summaryItem}><Text style={styles.summaryValue}>{summary.workDays}</Text><Text style={styles.summaryLabel}>Jornadas</Text></View>
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryItem}><Text style={styles.summaryValue}>{summary.freeDays}</Text><Text style={styles.summaryLabel}>Libres</Text></View>
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryItem}><Text style={styles.summaryValue}>{summary.total}</Text><Text style={styles.summaryLabel}>Programadas</Text></View>
+          </View>
 
-        <View style={styles.daysCard}>
-          {week.shifts.map((shift, index) => {
-            const off = shift.type === 'off';
-            const open = editingDay === shift.day;
-            return (
-              <View key={shift.day} style={[styles.dayBlock, index === 6 && styles.dayBlockLast]}>
-                <Pressable style={styles.dayRow} onPress={() => toggleEditingDay(shift.day)}>
-                  <View>
-                    <Text style={styles.day}>{DAYS[shift.day]}</Text>
-                    <Text style={[styles.dayShift, off && styles.dayOff]}>
-                      {shiftSummaryLabel(shift)}
-                    </Text>
-                  </View>
-                  <Text style={[styles.chevron, open && styles.chevronOpen]}>⌄</Text>
-                </Pressable>
-
-                {open ? (
-                  <View style={styles.editor}>
-                    <View style={styles.segmented}>
-                      <Pressable style={[styles.segment, !off && styles.segmentActive]} onPress={() => setWorkDay(shift.day)}>
-                        <Text style={[styles.segmentText, !off && styles.segmentTextActive]}>Trabajo</Text>
-                      </Pressable>
-                      <Pressable style={[styles.segment, off && styles.segmentOffActive]} onPress={() => setFreeDay(shift.day)}>
-                        <Text style={[styles.segmentText, off && styles.segmentTextActive]}>Libre</Text>
-                      </Pressable>
+          <View style={styles.daysCard}>
+            {week.shifts.map((shift, index) => {
+              const off = shift.type === 'off';
+              const open = editingDay === shift.day;
+              return (
+                <View key={shift.day} style={[styles.dayBlock, index === 6 && styles.dayBlockLast]}>
+                  <Pressable style={styles.dayRow} onPress={() => toggleEditingDay(shift.day)}>
+                    <View>
+                      <Text style={styles.day}>{DAYS[shift.day]}</Text>
+                      <Text style={[styles.dayShift, off && styles.dayOff]}>
+                        {shiftSummaryLabel(shift)}
+                      </Text>
                     </View>
+                    <Text style={[styles.chevron, open && styles.chevronOpen]}>⌄</Text>
+                  </Pressable>
 
-                    {!off ? (
-                      <>
-                        <View style={styles.times}>
-                          <Pressable style={styles.timeButton} onPress={() => openTimePicker(shift.day, 'start', shift.start)}>
-                            <Text style={styles.timeLabel}>Entrada</Text>
-                            <Text style={styles.timeValue}>{shift.start}</Text>
-                          </Pressable>
-                          <Text style={styles.timeArrow}>→</Text>
-                          <Pressable style={styles.timeButton} onPress={() => openTimePicker(shift.day, 'end', shift.end)}>
-                            <Text style={styles.timeLabel}>Salida</Text>
-                            <Text style={styles.timeValue}>{shift.end}</Text>
-                          </Pressable>
-                        </View>
-                        <View style={styles.breakRow}>
-                          <View style={{ flex: 1 }}>
-                            <Text style={styles.breakTitle}>Colación</Text>
-                            <Text style={styles.breakCopy}>Duración entre 0 y 180 minutos.</Text>
-                          </View>
-                          <View style={styles.breakInputWrap}>
-                            <TextInput
-                              value={String(shift.breakMinutes ?? 0)}
-                              onChangeText={(value) => {
-                                const digits = value.replace(/\D/g, '').slice(0, 3);
-                                setBreakMinutes(shift.day, Number(digits || 0));
-                              }}
-                              keyboardType="number-pad"
-                              maxLength={3}
-                              selectTextOnFocus
-                              style={styles.breakInput}
-                            />
-                            <Text style={styles.breakUnit}>min</Text>
-                          </View>
-                        </View>
-                      </>
-                    ) : (
-                      <Text style={styles.freeCopy}>Día libre. WeekFlow no programará una jornada aquí.</Text>
-                    )}
-                  </View>
-                ) : null}
-              </View>
-            );
-          })}
-        </View>
+                  {open ? (
+                    <View style={styles.editor}>
+                      <View style={styles.segmented}>
+                        <Pressable style={[styles.segment, !off && styles.segmentActive]} onPress={() => setWorkDay(shift.day)}>
+                          <Text style={[styles.segmentText, !off && styles.segmentTextActive]}>Trabajo</Text>
+                        </Pressable>
+                        <Pressable style={[styles.segment, off && styles.segmentOffActive]} onPress={() => setFreeDay(shift.day)}>
+                          <Text style={[styles.segmentText, off && styles.segmentTextActive]}>Libre</Text>
+                        </Pressable>
+                      </View>
 
-        <Pressable style={styles.importLink} onPress={() => router.push('/import')}>
-          <Text style={styles.importText}>Importar horario</Text>
-          <Text style={styles.importArrow}>→</Text>
-        </Pressable>
+                      {!off ? (
+                        <>
+                          <View style={styles.times}>
+                            <Pressable style={styles.timeButton} onPress={() => openTimePicker(shift.day, 'start', shift.start)}>
+                              <Text style={styles.timeLabel}>Entrada</Text>
+                              <Text style={styles.timeValue}>{shift.start}</Text>
+                            </Pressable>
+                            <Text style={styles.timeArrow}>→</Text>
+                            <Pressable style={styles.timeButton} onPress={() => openTimePicker(shift.day, 'end', shift.end)}>
+                              <Text style={styles.timeLabel}>Salida</Text>
+                              <Text style={styles.timeValue}>{shift.end}</Text>
+                            </Pressable>
+                          </View>
+                          <View style={styles.breakRow}>
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.breakTitle}>Colación</Text>
+                              <Text style={styles.breakCopy}>Duración entre 0 y 180 minutos.</Text>
+                            </View>
+                            <View style={styles.breakInputWrap}>
+                              <TextInput
+                                value={String(shift.breakMinutes ?? 0)}
+                                onChangeText={(value) => {
+                                  const digits = value.replace(/\D/g, '').slice(0, 3);
+                                  setBreakMinutes(shift.day, Number(digits || 0));
+                                }}
+                                keyboardType="number-pad"
+                                maxLength={3}
+                                selectTextOnFocus
+                                style={styles.breakInput}
+                              />
+                              <Text style={styles.breakUnit}>min</Text>
+                            </View>
+                          </View>
+                        </>
+                      ) : (
+                        <Text style={styles.freeCopy}>Día libre. WeekFlow no programará una jornada aquí.</Text>
+                      )}
+                    </View>
+                  ) : null}
+                </View>
+              );
+            })}
+          </View>
+
+          <Pressable style={styles.importLink} onPress={() => router.push('/import')}>
+            <Text style={styles.importText}>Importar horario</Text>
+            <Text style={styles.importArrow}>→</Text>
+          </Pressable>
 
           <ImportantEventCard
             moments={week.importantMoments}
             onSave={saveImportantMoment}
             onDelete={deleteImportantMoment}
           />
+
+          <View style={[styles.ritualCard, week.organizedAt ? styles.ritualCardDone : null]}>
+            <Text style={[styles.ritualEyebrow, week.organizedAt ? styles.ritualEyebrowDone : null]}>
+              {week.organizedAt ? 'SEMANA ORGANIZADA' : 'RITUAL DE LA SEMANA'}
+            </Text>
+            <Text style={styles.ritualTitle}>
+              {week.organizedAt ? 'Listo. Tu semana ya está organizada.' : '¿Todo quedó bien?'}
+            </Text>
+            <Text style={styles.ritualSummary}>
+              {summary.workDays} jornadas · {summary.freeDays} libres · {summary.total} programadas
+            </Text>
+            <Text style={styles.ritualHint}>
+              {week.organizedAt
+                ? 'Si cambias un horario o evento, WeekFlow vuelve a abrir la semana para que la revises.'
+                : 'Revisa horarios y eventos importantes. Cuando esté listo, cierra la organización.'}
+            </Text>
+            {!week.organizedAt ? (
+              <Pressable style={styles.ritualButton} onPress={completeRitual}>
+                <Text style={styles.ritualButtonText}>Listo, organizar semana</Text>
+              </Pressable>
+            ) : null}
+          </View>
         </RefreshableScrollView>
       </KeyboardAvoidingView>
 
@@ -200,4 +222,13 @@ const styles = StyleSheet.create({
   importLink: { marginTop: 12, minHeight: 52, paddingHorizontal: 15, paddingVertical: 10, borderRadius: 16, backgroundColor: '#0D203A', borderWidth: 1, borderColor: '#234A76', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   importText: { color: colors.text, fontSize: 13, fontWeight: '900' },
   importArrow: { color: '#78B7FF', fontSize: 20, fontWeight: '900' },
+  ritualCard: { marginTop: 12, padding: 15, borderRadius: 18, backgroundColor: '#0B1E35', borderWidth: 1, borderColor: '#28558B' },
+  ritualCardDone: { backgroundColor: '#0D251E', borderColor: '#2C6F55' },
+  ritualEyebrow: { color: '#76AFFF', fontWeight: '900', letterSpacing: 1.8, fontSize: 9 },
+  ritualEyebrowDone: { color: '#8EE5B2' },
+  ritualTitle: { color: colors.text, fontWeight: '900', fontSize: 16, marginTop: 6 },
+  ritualSummary: { color: colors.text, fontWeight: '800', fontSize: 12, marginTop: 6 },
+  ritualHint: { color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 5 },
+  ritualButton: { marginTop: 12, minHeight: 48, borderRadius: 15, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
+  ritualButtonText: { color: '#FFFFFF', fontWeight: '900', fontSize: 13 },
 });

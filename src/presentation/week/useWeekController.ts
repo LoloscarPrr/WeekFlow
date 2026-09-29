@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { getWeekSummary } from '@/src/application/useCases/getWeekView';
 import {
+  completeWeekRitual,
   removeImportantMoment,
   setWeekWorkDay,
   upsertImportantMoment,
@@ -96,6 +97,15 @@ export function useWeekController() {
     });
   }, []);
 
+  const completeRitual = useCallback(() => {
+    setWeek((current) => {
+      const next = completeWeekRitual(current, new Date().toISOString());
+      saveWeekState(next);
+      refreshScheduledReminders();
+      return next;
+    });
+  }, []);
+
   const openTimePicker = useCallback((day: number, field: 'start' | 'end', value: string) => {
     setTimePicker({
       day,
@@ -135,6 +145,7 @@ export function useWeekController() {
     setBreakMinutes,
     saveImportantMoment,
     deleteImportantMoment,
+    completeRitual,
     openTimePicker,
     applyPickedTime,
     closeTimePicker,
