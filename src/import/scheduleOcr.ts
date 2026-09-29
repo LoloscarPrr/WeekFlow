@@ -117,8 +117,15 @@ function uniqueNameCandidates(items: PositionedText[], configuredName: string): 
   return unique;
 }
 
-function selectName(items: PositionedText[], configuredName: string) {
-  const ranked = uniqueNameCandidates(items, configuredName);
+function selectName(
+  primaryItems: PositionedText[],
+  fallbackItems: PositionedText[],
+  configuredName: string,
+) {
+  const primaryRanked = uniqueNameCandidates(primaryItems, configuredName);
+  const ranked = primaryRanked.some((candidate) => candidate.score >= 80)
+    ? primaryRanked
+    : uniqueNameCandidates(fallbackItems, configuredName);
   const best = ranked[0] ?? null;
   if (!best) {
     return {
@@ -135,9 +142,10 @@ function selectName(items: PositionedText[], configuredName: string) {
 
   const competing = ranked.find((candidate, index) => (
     index > 0
-    && candidate.normalizedText !== best.normalizedText
     && candidate.score >= 80
     && candidate.score >= best.score - 10
+    && Math.abs(centerY(candidate.item.frame) - centerY(best.item.frame))
+      > Math.max(height(candidate.item.frame), height(best.item.frame))
   ));
   if (competing) {
     return {
@@ -412,9 +420,8 @@ export function parseScheduleOcr(
 ): ParsedSchedule {
   const lines = flattenLines(result).filter((line) => line.text?.trim());
   const atomic = flattenAtomic(result).filter((item) => item.text?.trim());
-  const searchUnits: PositionedText[] = [...lines, ...atomic];
 
-  const selectedName = selectName(searchUnits, configuredName);
+  const selectedName = selectName(atomic, lines, configuredName);
   const best = selectedName.item;
   if (!best) {
     const warning = selectedName.warning ?? 'No pude identificar tu fila con seguridad.';
