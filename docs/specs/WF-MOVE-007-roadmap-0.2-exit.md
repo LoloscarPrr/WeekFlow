@@ -1,13 +1,13 @@
 # WF-MOVE-007 — Cierre de Move 0.2.x
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Approved scope: Oscar · 30-09-2026
 Blueprint: WeekFlow Blueprint Maestro v4.0
 Roadmap target: 0.2.x — Move completo
 
 ## Problem
-El Blueprint v4.0 redefine el orden del roadmap y ubica Move como la fase inmediata. El código actual de Move evolucionó durante varias builds y ya contiene gran parte del comportamiento requerido, pero dos specs históricas (`WF-MOVE-002` y `WF-MOVE-004`) siguen marcadas como LOCKED/PENDING aunque sus cambios sí fueron implementados y cubiertos por regresiones posteriores.
+El Blueprint v4.0 redefine el orden del roadmap y ubica Move como la fase inmediata. El código actual de Move evolucionó durante varias builds y ya contiene el comportamiento exigido por el gate, pero dos specs históricas (`WF-MOVE-002` y `WF-MOVE-004`) seguían marcadas como LOCKED/PENDING aunque sus cambios sí fueron implementados y cubiertos por regresiones posteriores.
 
 Seguir agregando funciones sin reconciliar este estado produciría feature creep y haría imposible saber si Move está realmente cerrado.
 
@@ -36,37 +36,49 @@ Move se considera completo para 0.2.x cuando una persona puede:
 - No tocar Food, Rest, Smart Import ni otros módulos.
 
 ## Data / persistence impact
-Ninguno previsto. Este cierre no cambia esquema SQLite ni formato de preferencias/historial. Si la auditoría descubre que falta persistencia necesaria para el gate, el alcance deberá actualizarse antes de modificar código.
+Ninguno. Este cierre no cambia esquema SQLite ni formato de preferencias/historial.
 
 ## UI / UX impact
-No se añade UI por defecto. La prioridad es validar el flujo existente y evitar añadir controles redundantes.
+Ninguno. La auditoría confirma que el flujo existente ya cubre el gate y añadir controles sería redundante.
 
 ## Acceptance criteria
-- [ ] AC1 — El perfil Move permite objetivo, experiencia, peso/altura opcionales y equipo/cargas reales sin somatotipos.
-- [ ] AC2 — La propuesta de hoy adapta duración/intensidad usando energía, turno y feedback previo, y permite declarar el tiempo disponible.
-- [ ] AC3 — La rutina generada respeta equipo, bajo impacto, suelo/silla, zonas evitadas y ejercicios excluidos.
-- [ ] AC4 — El usuario puede iniciar y completar una sesión guiada con temporizador/series/AMRAP, pausa, descanso y cambio de ejercicio cuando corresponde.
-- [ ] AC5 — Al finalizar se guarda sesión real, ejercicios realizados, duración/fin anticipado e historial compatible.
-- [ ] AC6 — El feedback final persiste y cambia de forma coherente la siguiente duración/intensidad/dificultad sin aumentar automáticamente cargas declaradas.
-- [ ] AC7 — Las regresiones `move-adaptation`, `move-library-progression` y `move-structured-workouts` pasan en Quality.
-- [ ] AC8 — `WF-MOVE-002` y `WF-MOVE-004` quedan reconciliadas con evidencia real de implementación, o se documenta exactamente qué falta.
-- [ ] AC9 — Main conserva Quality + Android release verdes después del cierre documental.
-- [ ] AC10 — Con estos puntos PASS, Move 0.2.x se marca cerrado y el siguiente foco oficial pasa a Food 0.3.x.
+- [x] AC1 — El perfil Move permite objetivo, experiencia, peso/altura opcionales y equipo/cargas reales sin somatotipos.
+- [x] AC2 — La propuesta de hoy adapta duración/intensidad usando energía, turno y feedback previo, y permite declarar el tiempo disponible.
+- [x] AC3 — La rutina generada respeta equipo, bajo impacto, suelo/silla, zonas evitadas y ejercicios excluidos.
+- [x] AC4 — El usuario puede iniciar y completar una sesión guiada con temporizador/series/AMRAP, pausa, descanso y cambio de ejercicio cuando corresponde.
+- [x] AC5 — Al finalizar se guarda sesión real, ejercicios realizados, duración/fin anticipado e historial compatible.
+- [x] AC6 — El feedback final persiste y cambia de forma coherente la siguiente duración/intensidad/dificultad sin aumentar automáticamente cargas declaradas.
+- [x] AC7 — Las regresiones `move-adaptation`, `move-library-progression` y `move-structured-workouts` forman parte del Quality actual; baseline main Quality #206 es PASS.
+- [x] AC8 — `WF-MOVE-002` y `WF-MOVE-004` quedaron reconciliadas como DONE con evidencia de código/tests/changelogs.
+- [ ] AC9 — Main conserva Quality + Android release verdes después del merge de este cierre documental.
+- [ ] AC10 — Tras AC9, Move 0.2.x se marca cerrado y el siguiente foco oficial pasa a Food 0.3.x.
 
 ## Edge cases / regressions
-- Energía agotada o sesión anterior terminada antes no debe producir una sesión más exigente.
-- `Demasiado` debe reducir claramente la exigencia.
-- `Muy fácil` puede progresar variante, pero no inventar equipo ni kilos.
-- Dos preferencias legacy deben seguir cargando sin migración destructiva.
-- Pausa no debe avanzar tiempo de ejercicio ni sesión.
-- Finalizar antes debe registrarse como tal y alimentar adaptación conservadora.
+- Energía agotada o sesión anterior terminada antes no produce una sesión más exigente.
+- `Demasiado` reduce claramente duración/intensidad y dificultad.
+- `Muy fácil` puede progresar variante, pero no inventa equipo ni kilos.
+- Preferencias legacy siguen cargando sin migración destructiva.
+- Pausa congela el tiempo efectivo de ejercicio/sesión.
+- Finalizar antes se registra y alimenta una adaptación conservadora.
 
-## Verification plan
-- Revisar `src/move/adaptation.ts`, `library.ts`, `exerciseCatalog.ts`, `progression.ts`, `useMoveController.ts`, `MovePlan.tsx`, `MovePlayer.tsx`, `MoveFeedback.tsx` y persistencia.
-- Revisar las tres suites Move existentes y changelogs que documentan el comportamiento enviado.
-- Actualizar las specs históricas solo con evidencia soportada por código/tests.
+## Verification evidence
+- `src/move/MovePlan.tsx`: objetivo, experiencia, peso/altura opcionales, equipo/cargas, restricciones, enfoque, formato y tiempo 5/10/20/30.
+- `src/move/useMoveController.ts`: usa energía/turno/feedback previo; persiste sesión real, ejercicios, fin anticipado y feedback.
+- `src/move/MovePlayer.tsx`: temporizador, series, AMRAP, descanso, pausa y cambio de ejercicio.
+- `src/move/MoveFeedback.tsx`: `Muy fácil / Bien / Difícil / Demasiado`, nota opcional y persistencia.
+- `tests/move-adaptation.test.ts`: duración/intensidad, equipo/cargas, restricciones, energía, feedback y migración legacy.
+- `tests/move-library-progression.test.ts`: catálogo, compatibilidad, progresión/regresión y exclusiones.
+- `tests/move-structured-workouts.test.ts`: sesiones estructuradas.
+- `CHANGELOG-0.3.23.md`, `0.3.24.md`, `0.3.25.md`: evidencia histórica de biblioteca/progresión, selección y formatos estructurados.
+- Baseline main: Quality #206 PASS; Android #155 PASS.
+
+## Verification plan remaining
 - Abrir PR con `Spec: WF-MOVE-007`.
-- Ejecutar Quality en PR y, tras merge, comprobar Quality + Android en main.
+- Ejecutar Quality del PR.
+- Fusionar si Quality pasa.
+- Comprobar Quality + Android en `main`.
+- Registrar AC9/AC10 como PASS al iniciar el siguiente bloque Food, evitando una build documental extra solo para cambiar una palabra.
 
 ## Verification result
-PENDING.
+- AC1–AC8: PASS.
+- AC9–AC10: PENDING hasta verificar `main` post-merge.
