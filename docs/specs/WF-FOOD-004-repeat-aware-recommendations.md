@@ -1,13 +1,13 @@
 # WF-FOOD-004 — Recomendaciones sin repetición mecánica
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Approved scope: Oscar · 30-09-2026
 Blueprint: WeekFlow Blueprint Maestro v4.0
 Roadmap target: 0.3.x — Food completo
 
 ## Problem
-Food ya prioriza recetas según despensa, turno/contexto, tiempo, presupuesto y energía, pero ignora completamente el historial local. Como resultado, una receta que fue consumida recientemente puede seguir apareciendo primera todos los días, contradiciendo el criterio del Blueprint v4.0 de evitar repetición.
+Food ya prioriza recetas según despensa, turno/contexto, tiempo, presupuesto y energía, pero ignoraba completamente el historial local. Como resultado, una receta consumida recientemente podía seguir apareciendo primera todos los días, contradiciendo el criterio del Blueprint v4.0 de evitar repetición.
 
 ## Desired behavior
 - Food usa el historial local reciente como una señal adicional de ranking.
@@ -21,7 +21,7 @@ Food ya prioriza recetas según despensa, turno/contexto, tiempo, presupuesto y 
 ## Scope
 - Añadir una señal pura de recencia al ranking de `src/food/recommendations.ts`.
 - Derivar títulos de recetas consumidas desde `food-history`, limitado al historial local ya existente.
-- Integrar esa señal en `app/food.tsx` y refrescarla al registrar una receta.
+- Integrar esa señal en `app/food.tsx` y refrescarla al registrar/corregir/quitar una comida.
 - Añadir regresiones de ranking sin romper pantry/context/time/budget/energy.
 - Bump técnico a 0.4.7 / source Android versionCode 89.
 
@@ -69,12 +69,16 @@ Food ya prioriza recetas según despensa, turno/contexto, tiempo, presupuesto y 
 - Receta eliminada del catálogo: su historial no afecta recetas actuales.
 - Cambio de hora en una comida conserva su semántica de consumo.
 
-## Verification plan
-- Añadir casos puros a `tests/food-core.test.ts` para recencia y no filtrado.
-- Typecheck + suite completa Quality.
-- Revisar diff para confirmar cero migraciones y cero cambios de otros módulos.
-- PR con `Spec: WF-FOOD-004`.
-- Tras merge, verificar Quality + Android firmado.
+## Verification evidence prepared
+- `src/food/recommendations.ts` incorpora `recentFoodRecipeConsumptions` y penalización decreciente con tope.
+- `app/food.tsx` carga `food-history` y lo refresca inmediatamente tras cambios de historial.
+- `tests/food-core.test.ts` cubre ranking base, recencia hoy/antigua, no filtrado, manual ignorado y viabilidad dominante.
+- `CHANGELOG-0.4.7.md`, `package.json` 0.4.7 y source Android versionCode 89 preparados.
+
+## Verification plan remaining
+- Ejecutar TypeScript + suite completa Quality en PR.
+- Si pasa, marcar AC1–AC9 PASS y fusionar.
+- Verificar main Quality + Android firmado 0.4.7 para AC10.
 
 ## Verification result
-PENDING.
+IMPLEMENTED — CI PENDING.
