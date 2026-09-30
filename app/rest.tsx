@@ -51,6 +51,18 @@ export default function RestScreen() {
                 <Text style={styles.planTime}>{content.plan.windDownAt}</Text>
                 <Text style={styles.planCopy}>Referencia calculada desde la próxima entrada. Dejamos 45 min para bajar el ritmo antes de una ventana base de descanso.</Text>
               </View>
+
+              {content.plan.nap ? (
+                <View style={styles.napCard}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.napLabel}>PAUSA OPCIONAL</Text>
+                    <Text style={styles.napTime}>{content.plan.nap.startAt}–{content.plan.nap.endAt}</Text>
+                    <Text style={styles.napCopy}>Tu energía viene baja y todavía hay margen suficiente. Si te sirve, puedes reservar {content.plan.nap.durationMin} min de descanso sin mover el sueño principal.</Text>
+                  </View>
+                  <Text style={styles.napIcon}>😴</Text>
+                </View>
+              ) : null}
+
               <View style={styles.planStats}>
                 <MiniStat label="Descanso" value={content.plan.sleepAt} />
                 <MiniStat label="Despertar" value={content.plan.wakeAt} />
@@ -134,6 +146,11 @@ const styles = StyleSheet.create({
   planLabel: { color: '#82B9FB', fontSize: 10, fontWeight: '900', letterSpacing: 2 },
   planTime: { color: colors.text, fontSize: 25, fontWeight: '900', marginTop: 6 },
   planCopy: { color: '#BCCADD', fontSize: 13, lineHeight: 20, marginTop: 7 },
+  napCard: { marginTop: 12, flexDirection: 'row', gap: 12, alignItems: 'center', borderRadius: 18, borderWidth: 1, borderColor: '#3D638A', backgroundColor: '#132943', padding: 14 },
+  napLabel: { color: '#8FC4FF', fontSize: 9, fontWeight: '900', letterSpacing: 1.6 },
+  napTime: { color: colors.text, fontSize: 18, fontWeight: '900', marginTop: 4 },
+  napCopy: { color: '#B8C8DB', fontSize: 11, lineHeight: 17, marginTop: 5 },
+  napIcon: { fontSize: 25 },
   planStats: { flexDirection: 'row', gap: 8, marginTop: 12 },
   miniStat: { flex: 1, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.line, borderRadius: 15, paddingVertical: 12, alignItems: 'center' },
   miniValue: { color: colors.text, fontSize: 16, fontWeight: '900' },

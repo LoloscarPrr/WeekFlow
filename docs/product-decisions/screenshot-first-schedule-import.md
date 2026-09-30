@@ -1,12 +1,26 @@
-# Semana: la captura es el caso real
+# Semana: importación automática diferida a WeekFlow Brain
 
-Desde 2026-08-18, la ruta principal de importación de Semana es **foto/captura → OCR → revisión → confirmar**.
+## Decisión vigente · 30-09-2026
 
-En el uso real, el horario llega como una captura de una planilla, no como el archivo Excel original. Por eso:
+La importación automática tradicional de horarios queda **congelada** durante las fases actuales.
 
-- XLSX/XLS queda como capacidad secundaria ya implementada; no guía el roadmap.
-- PDF deja de ser requisito para cerrar 0.2.x y se difiere.
-- OCR desde cámara/galería sigue siendo el flujo que debe recibir QA y mejoras.
-- Ninguna lectura automática puede guardar la semana sin revisión.
+Por ahora:
 
-Esta decisión permite abrir 0.3.x Move sin seguir optimizando formatos que no representan el flujo habitual.
+- Semana se organiza manualmente mediante los 7 días editables.
+- `Importar horario` no se muestra en la interfaz principal.
+- OCR, Excel y PDF existentes se conservan en el repositorio, pero no guían el roadmap ni reciben nuevas mejoras salvo una necesidad de compatibilidad crítica.
+- No se invierten nuevas builds en heurísticas, regex o excepciones específicas de planillas.
+
+La importación vuelve más adelante como **Smart Import**, integrada con WeekFlow Brain:
+
+1. el usuario entrega una foto, captura, PDF u otro horario compatible;
+2. Brain interpreta el horario y su contexto;
+3. WeekFlow presenta una propuesta humana y revisable;
+4. ninguna modificación importante se guarda sin confirmación;
+5. tras confirmar, Brain puede reorganizar la semana alrededor de esos turnos.
+
+El objetivo no es tener un OCR perfecto aislado. El objetivo es que el usuario pueda entregar su horario y recibir una semana entendida y reorganizada con la menor carga mental posible.
+
+## Historial
+
+La decisión anterior, vigente desde 2026-08-18, priorizaba **foto/captura → OCR → revisión → confirmar** y mantenía Excel como capacidad secundaria. Esa estrategia queda supersedida por esta decisión y por WeekFlow Blueprint Maestro v4.0.

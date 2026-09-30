@@ -1,5 +1,4 @@
 import { KeyboardAwareTextInput as TextInput } from '@/src/components/KeyboardAwareScrollView';
-import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker from '@expo/ui/community/datetime-picker';
@@ -129,11 +128,6 @@ export default function WeekScreen() {
             })}
           </View>
 
-          <Pressable style={styles.importLink} onPress={() => router.push('/import')}>
-            <Text style={styles.importText}>Importar horario</Text>
-            <Text style={styles.importArrow}>→</Text>
-          </Pressable>
-
           <ImportantEventCard
             moments={week.importantMoments}
             onSave={saveImportantMoment}
@@ -219,9 +213,6 @@ const styles = StyleSheet.create({
   breakInput: { minWidth: 44, color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'right', paddingVertical: 6 },
   breakUnit: { color: colors.muted, fontSize: 10, fontWeight: '800' },
   freeCopy: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 12 },
-  importLink: { marginTop: 12, minHeight: 52, paddingHorizontal: 15, paddingVertical: 10, borderRadius: 16, backgroundColor: '#0D203A', borderWidth: 1, borderColor: '#234A76', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  importText: { color: colors.text, fontSize: 13, fontWeight: '900' },
-  importArrow: { color: '#78B7FF', fontSize: 20, fontWeight: '900' },
   ritualCard: { marginTop: 12, padding: 15, borderRadius: 18, backgroundColor: '#0B1E35', borderWidth: 1, borderColor: '#28558B' },
   ritualCardDone: { backgroundColor: '#0D251E', borderColor: '#2C6F55' },
   ritualEyebrow: { color: '#76AFFF', fontWeight: '900', letterSpacing: 1.8, fontSize: 9 },
