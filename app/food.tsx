@@ -22,6 +22,7 @@ import {
 import {
   matchFoodRecipe,
   rankFoodRecipes,
+  recentFoodRecipeConsumptions,
   type FoodRecipeMatch,
 } from '@/src/food/recommendations';
 import { RECIPES, type FoodRecipe } from '@/src/food/recipes';
@@ -29,6 +30,7 @@ import { contextCopy, contextTitle, foodContextForShift } from '@/src/food/sugge
 import {
   loadDayState,
   loadFoodDay,
+  loadFoodHistory,
   loadFoodPantry,
   loadFoodPreferences,
   loadFoodPrepared,
@@ -69,6 +71,7 @@ export default function FoodScreen() {
   const [dayState, setDayState] = useState<PersistedDayState>(() => loadDayState());
   const [weekState, setWeekState] = useState<PersistedWeekState>(() => loadWeekState());
   const [foodDay, setFoodDay] = useState<FoodDayRecord>(() => loadFoodDay(initialNow));
+  const [foodHistory, setFoodHistory] = useState<FoodDayRecord[]>(() => loadFoodHistory());
   const [pantry, setPantry] = useState<FoodPantryItem[]>(() => loadFoodPantry());
   const [foodPreferences, setFoodPreferences] = useState<FoodPreferences>(() => loadFoodPreferences());
   const [shopping, setShopping] = useState<FoodShoppingItem[]>(() => loadFoodShopping());
@@ -84,9 +87,13 @@ export default function FoodScreen() {
   const todayShift = useMemo(() => shiftForDate(weekState, clockNow), [clockNow, weekState]);
   const context = useMemo(() => foodContextForShift(clockNow, todayShift), [clockNow, todayShift]);
   const lowEnergy = dayState.energy === 'cansado' || dayState.energy === 'agotado';
+  const recentConsumptions = useMemo(
+    () => recentFoodRecipeConsumptions(foodHistory, RECIPES, foodDay.date),
+    [foodDay.date, foodHistory],
+  );
   const rankedRecipes = useMemo(
-    () => rankFoodRecipes(RECIPES, pantry, foodPreferences, { context, lowEnergy }),
-    [context, foodPreferences, lowEnergy, pantry],
+    () => rankFoodRecipes(RECIPES, pantry, foodPreferences, { context, lowEnergy, recentConsumptions }),
+    [context, foodPreferences, lowEnergy, pantry, recentConsumptions],
   );
   const topRecipes = rankedRecipes.slice(0, 3);
   const guidedMatch = useMemo(
@@ -102,6 +109,7 @@ export default function FoodScreen() {
     setDayState(loadDayState());
     setWeekState(loadWeekState());
     setFoodDay(loadFoodDay(now));
+    setFoodHistory(loadFoodHistory());
     setPantry(loadFoodPantry());
     setFoodPreferences(loadFoodPreferences());
     setShopping(loadFoodShopping());
@@ -123,6 +131,7 @@ export default function FoodScreen() {
       source: 'recipe',
     };
     setFoodDay(saveFoodEntry(entry));
+    setFoodHistory(loadFoodHistory());
   }
 
   function addManual() {
@@ -136,20 +145,22 @@ export default function FoodScreen() {
       source: 'manual',
     };
     setFoodDay(saveFoodEntry(entry));
+    setFoodHistory(loadFoodHistory());
     setManualText('');
     setManualOpen(false);
   }
 
   function removeEntry(id: string) {
     setFoodDay(removeFoodEntry(id));
+    setFoodHistory(loadFoodHistory());
   }
 
   function correctEntryTime(time: string) {
     if (!editingEntry) return;
     setFoodDay(updateFoodEntryTime(editingEntry.id, time, foodDay.date));
+    setFoodHistory(loadFoodHistory());
     setEditingEntry(null);
   }
-
 
   function addPantryText() {
     const incoming = parseFoodPantryInput(pantryText);
