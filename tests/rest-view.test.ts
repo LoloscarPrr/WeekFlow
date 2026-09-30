@@ -40,7 +40,7 @@ const futureRestWindow: RestWindow = {
   wakeAt: new Date(2026, 8, 11, 11, 0),
   sleepAt: new Date(2026, 8, 11, 3, 0),
   windDownAt: new Date(2026, 8, 11, 2, 15),
-  shift: { day: 4, start: '14:00', end: '22:00', type: 'afternoon', breakMinutes: 30 },
+  shift: { start: '14:00', end: '22:00', type: 'afternoon', breakMinutes: 30 },
 };
 
 const tiredNap = contextualNapSuggestion(
