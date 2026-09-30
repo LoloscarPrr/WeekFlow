@@ -54,7 +54,9 @@ export function recentFoodRecipeConsumptions(
   const referenceMs = dateKeyUtcMs(referenceDateKey);
   if (referenceMs === null || maxDays < 0) return [];
 
-  const recipeTitles = new Set(recipes.map((recipe) => normalizeRecipeTitle(recipe.title)));
+  const recipeTitles = new Map(
+    recipes.map((recipe) => [normalizeRecipeTitle(recipe.title), recipe.title] as const),
+  );
   const result: FoodRecentConsumption[] = [];
 
   for (const day of history) {
@@ -65,9 +67,10 @@ export function recentFoodRecipeConsumptions(
 
     for (const entry of day.entries) {
       if (entry.source === 'manual') continue;
-      const title = normalizeRecipeTitle(entry.title);
-      if (!recipeTitles.has(title)) continue;
-      result.push({ title, daysAgo });
+      const normalizedTitle = normalizeRecipeTitle(entry.title);
+      const canonicalTitle = recipeTitles.get(normalizedTitle);
+      if (!canonicalTitle) continue;
+      result.push({ title: canonicalTitle, daysAgo });
     }
   }
 
