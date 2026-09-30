@@ -1,6 +1,10 @@
 import type { DayState } from '../../domain/entities/DailyState';
 import type { WeekSchedule } from '../../domain/entities/Shift';
-import { addDateMinutes, restWindowForShift } from '../../domain/services/restPlanning';
+import {
+  addDateMinutes,
+  contextualNapSuggestion,
+  restWindowForShift,
+} from '../../domain/services/restPlanning';
 import {
   isNightShift,
   nextWorkingShift,
@@ -19,6 +23,11 @@ export type RestPlanContent = {
   sleepAt: string;
   wakeAt: string;
   nextStart: string;
+  nap: {
+    startAt: string;
+    endAt: string;
+    durationMin: number;
+  } | null;
 };
 
 export type RestContent =
@@ -95,6 +104,9 @@ export function getRestView(dayState: DayState, weekState: WeekSchedule, now = n
   const nextShift = nextWorkingShift(weekState, now);
   const nextRest = nextShift
     ? restWindowForShift(dayState, nextShift.shift, new Date(nextShift.startAt))
+    : null;
+  const napSuggestion = nextRest
+    ? contextualNapSuggestion(dayState, nextRest, now)
     : null;
 
   let heroTitle = 'Tu descanso se adapta a tu semana.';
@@ -177,6 +189,11 @@ export function getRestView(dayState: DayState, weekState: WeekSchedule, now = n
           sleepAt: formatHm(nextRest.sleepAt),
           wakeAt: formatHm(nextRest.wakeAt),
           nextStart: formatHm(nextRest.nextStart),
+          nap: napSuggestion ? {
+            startAt: formatHm(napSuggestion.startAt),
+            endAt: formatHm(napSuggestion.endAt),
+            durationMin: napSuggestion.durationMin,
+          } : null,
         },
       },
     };
