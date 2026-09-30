@@ -82,4 +82,23 @@ const duringMainSleep = contextualNapSuggestion(
 );
 equal(duringMainSleep, null, 'no reemplaza ventana principal de sueño con siesta corta');
 
-console.log('✓ Rest calcula salida, regreso, recuperación nocturna y pausas contextuales sin contradicciones');
+const activeShiftWeek: WeekSchedule = {
+  ...defaultWeekState,
+  shifts: defaultWeekState.shifts.map((shift) => {
+    if (shift.day === 2) return { day: 2, start: '13:00', end: '21:30', type: 'afternoon', breakMinutes: 30 };
+    if (shift.day === 3) return { day: 3, start: '13:00', end: '21:30', type: 'afternoon', breakMinutes: 30 };
+    return { ...shift, type: 'off', start: '00:00', end: '00:00' };
+  }),
+};
+const activeShiftView = getRestView(
+  { ...defaultDayState, energy: 'cansado' },
+  activeShiftWeek,
+  new Date(2026, 8, 30, 16, 5),
+);
+if (activeShiftView.content.kind !== 'plan') {
+  throw new Error(`jornada activa diurna debería conservar plan futuro, recibí ${activeShiftView.content.kind}`);
+}
+equal(activeShiftView.contextTitle, 'Jornada en curso', 'Rest reconoce jornada activa');
+equal(activeShiftView.content.plan.nap, null, 'Rest no propone pausa mientras el usuario sigue trabajando');
+
+console.log('✓ Rest calcula salida, recuperación y pausas contextuales sin sugerir siestas dentro de una jornada activa');
