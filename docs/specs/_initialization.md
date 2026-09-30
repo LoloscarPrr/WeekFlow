@@ -2,39 +2,39 @@
 
 ## Repository and ref
 - Repository: `LoloscarPrr/WeekFlow`.
-- Base: `main` at `080e5f2b072421ef6d8e79c0d492d92a14634b79`.
-- Working branch: `codex/wf-week-005-ocr-row-dedup`.
-- Blueprint Maestro v3.4 remains the current product source of truth.
+- Base: `main` at `cc401d4fcc909f2504ebb2d93ae976506dc8c5f9`.
+- Working branch: `codex/wf-move-007-roadmap-exit`.
+- Product source of truth: `WeekFlow Blueprint Maestro v4.0` (30-09-2026).
 
 ## App / build
-- WeekFlow `0.4.5` / source `versionCode 87`; Android package `com.weekflow.app`.
-- Main Quality #204: PASS.
-- Android #154 for 0.4.5 is still running at the signed APK build step at the moment this snapshot is refreshed; no failure has been reported.
-- Physical Android evidence from Oscar shows a reproducible OCR false ambiguity when the same `OSCAR` row is returned both as an atomic name cell and as a wider OCR line containing the row hours.
+- Technical app version: `0.4.6`; source Android `versionCode 88`; package `com.weekflow.app`.
+- Main Quality #206: PASS.
+- Main Android #155: PASS; signed APK/AAB generated and release published.
+- Technical build numbering is independent from the v4.0 product-roadmap stages.
 
 ## Product context / active scope
-- Current focus remains Semana + importación.
-- Camera/gallery OCR is the primary real-world import path; Excel/PDF remain existing secondary paths and are outside this fix.
-- Import must never silently choose between genuinely ambiguous people, but it also must not treat two OCR representations of the same physical row as two people.
-- Existing review-before-save behavior remains mandatory.
+- Blueprint v4.0 freezes classic OCR/Excel/PDF import work. Smart Import moves to 0.8.x as a multimodal Brain capability.
+- Manual Semana remains canonical and permanently supported.
+- Immediate roadmap focus is `0.2.x — Move completo` after the reliable Core/Semana gate.
+- Move exit criterion: start an appropriate session for energy/time/equipment, complete it end-to-end, give feedback, and obtain coherent adaptation next time.
 
-## Relevant specs and modules
-- `WF-WEEK-001` — compact canonical Week screen: DONE.
-- `WF-WEEK-002` — minimal important event: DONE.
-- `WF-WEEK-003` / `WF-QA-004` — keyboard visibility: physically accepted.
-- `WF-WEEK-004` — compact Ritual completion: merged in 0.4.5; physical acceptance still pending.
-- Active parsing module: `src/import/scheduleOcr.ts`.
-- Regression suite: `tests/ocr-confidence.test.ts`.
+## Relevant Move state
+- `WF-MOVE-001`: DONE — avoid areas.
+- `WF-MOVE-003`: DONE — adaptive profile + real equipment/loads.
+- `WF-MOVE-005`: DONE — manual exercise selection.
+- `WF-MOVE-006`: DONE — structured real workouts.
+- `WF-MOVE-002` and `WF-MOVE-004` remain historically marked LOCKED/PENDING even though their shipped behavior is present in current code and later changelogs/tests.
+- Current Move runtime includes adaptive duration/intensity, 100+ exercise library, progression/regression from feedback, guided player, pause/rest/timers, exercise replacement, persistent history and final feedback.
 
 ## Baseline
-- PASS — Quality #204 on `main`.
-- PASS — current OCR regressions for exact name, weak partial match, distinct compatible names, night shifts and compressed rows.
-- FAIL — physical capture: one actual `OSCAR` row is reported as two compatible candidates because both atomic and line-level OCR text are searched together.
-- NOT RUN locally — this execution environment has no direct repository network checkout; GitHub Quality is the executable verification gate.
+- PASS — Quality #206 on current `main`.
+- PASS — Android #155 on current `main`.
+- PASS — `move-adaptation`, `move-library-progression` and `move-structured-workouts` are part of the Quality suite.
+- PASS — current source shows profile, energy-derived recommendation, selectable available time, equipment/cargas, guided session and feedback persistence.
+- Historical physical Move tests exist for the 0.3.22–0.3.25 work; final v4.0 roadmap closure still requires a concise acceptance pass against the new criterion.
 
 ## Next action / constraints
-- Active spec: `WF-WEEK-005 — OCR: distinguir nombre real de eco de fila`.
-- Prefer atomic OCR elements for name identity and use whole lines only as fallback.
-- Preserve ambiguity blocking for two physically distinct rows, including identical names.
-- Do not alter shift parsing, confidence thresholds, Excel/PDF, SQLite, Ritual, signing or other modules.
-- Publish the fix as 0.4.6 / source versionCode 88, run Quality, then generate signed APK/AAB and retest the exact physical capture.
+- Active spec: `WF-MOVE-007 — Cierre de Move 0.2.x`.
+- Reconcile stale Move specs against current shipped behavior and executable regressions before adding any new Move feature.
+- Do not expand the exercise library, add AI/voice, health diagnosis, periodized bodybuilding plans or unrelated UX.
+- If the current implementation already satisfies the v4.0 exit criterion, close Move instead of creating feature creep and advance to Food.
