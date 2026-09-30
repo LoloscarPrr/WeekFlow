@@ -31,6 +31,7 @@ assert(weekScreen.includes('summary.workDays'), 'Ritual must reuse the existing 
 assert(weekScreen.includes('summary.freeDays'), 'Ritual must reuse the existing free-day summary');
 assert(weekScreen.includes('summary.total'), 'Ritual must reuse the existing programmed-time summary');
 assert(weekScreen.indexOf('<ImportantEventCard') < weekScreen.indexOf('RITUAL DE LA SEMANA'), 'Ritual closure must remain after the compact important-event control');
-assert(weekScreen.includes('Importar horario'), 'Week import entry point must remain intact');
+assert(!weekScreen.includes('Importar horario'), 'Legacy schedule import entry must stay hidden until Brain smart import returns');
+assert(!weekScreen.includes("router.push('/import')"), 'Semana must not route users into the frozen legacy import flow');
 
 console.log('week ritual flow regression: PASS');
