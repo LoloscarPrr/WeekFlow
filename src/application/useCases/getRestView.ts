@@ -105,7 +105,7 @@ export function getRestView(dayState: DayState, weekState: WeekSchedule, now = n
   const nextRest = nextShift
     ? restWindowForShift(dayState, nextShift.shift, new Date(nextShift.startAt))
     : null;
-  const napSuggestion = nextRest
+  const napSuggestion = nextRest && !shiftActive
     ? contextualNapSuggestion(dayState, nextRest, now)
     : null;
 
