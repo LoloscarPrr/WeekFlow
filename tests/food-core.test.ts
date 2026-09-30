@@ -11,11 +11,13 @@ import {
 import {
   matchFoodRecipe,
   rankFoodRecipes,
+  recentFoodRecipeConsumptions,
 } from '../src/food/recommendations';
 import {
   RECIPES,
   type FoodRecipe,
 } from '../src/food/recipes';
+import type { FoodDayRecord } from '../src/food/history';
 
 function ok(value: unknown, message: string) {
   if (!value) throw new Error(message);
@@ -107,6 +109,80 @@ const tenMinutes: FoodPreferences = { ...DEFAULT_FOOD_PREFERENCES, maxMinutes: 1
 const fastScore = matchFoodRecipe(fastRecipe, fullPantry, tenMinutes, { context: 'free', lowEnergy: false }).score;
 const slowScore = matchFoodRecipe(slowRecipe, fullPantry, tenMinutes, { context: 'free', lowEnergy: false }).score;
 ok(fastScore > slowScore, 'tiempo máximo reduce prioridad de receta larga');
+
+const equalA: FoodRecipe = { ...baseRecipe, id: 'equal-a', title: 'Arroz A' };
+const equalB: FoodRecipe = { ...baseRecipe, id: 'equal-b', title: 'Arroz B' };
+const withoutHistory = rankFoodRecipes(
+  [equalA, equalB],
+  fullPantry,
+  DEFAULT_FOOD_PREFERENCES,
+  { context: 'free', lowEnergy: false },
+);
+equal(withoutHistory[0].recipe.id, 'equal-a', 'sin historial conserva desempate base por título');
+
+const recentToday = [{ title: 'Arroz A', daysAgo: 0 }];
+const withRecentToday = rankFoodRecipes(
+  [equalA, equalB],
+  fullPantry,
+  DEFAULT_FOOD_PREFERENCES,
+  { context: 'free', lowEnergy: false, recentConsumptions: recentToday },
+);
+equal(withRecentToday[0].recipe.id, 'equal-b', 'receta consumida hoy baja frente a alternativa comparable');
+equal(withRecentToday.length, 2, 'repetición baja prioridad pero no oculta recetas');
+
+const todayPenaltyScore = matchFoodRecipe(equalA, fullPantry, DEFAULT_FOOD_PREFERENCES, {
+  context: 'free', lowEnergy: false, recentConsumptions: [{ title: 'Arroz A', daysAgo: 0 }],
+}).score;
+const oldPenaltyScore = matchFoodRecipe(equalA, fullPantry, DEFAULT_FOOD_PREFERENCES, {
+  context: 'free', lowEnergy: false, recentConsumptions: [{ title: 'Arroz A', daysAgo: 5 }],
+}).score;
+ok(oldPenaltyScore > todayPenaltyScore, 'consumo antiguo penaliza menos que consumo de hoy');
+
+const clearlyViable: FoodRecipe = { ...baseRecipe, id: 'clear', title: 'Clara' };
+const poorAlternative: FoodRecipe = {
+  ...baseRecipe,
+  id: 'poor',
+  title: 'Alternativa',
+  ingredients: [
+    { key: 'arroz', name: 'Arroz', amount: '1 taza' },
+    { key: 'pollo', name: 'Pollo', amount: '1' },
+    { key: 'tomate', name: 'Tomate', amount: '1' },
+  ],
+};
+const viabilityWins = rankFoodRecipes(
+  [clearlyViable, poorAlternative],
+  fullPantry,
+  DEFAULT_FOOD_PREFERENCES,
+  { context: 'free', lowEnergy: false, recentConsumptions: [{ title: 'Clara', daysAgo: 0 }] },
+);
+equal(viabilityWins[0].recipe.id, 'clear', 'ventaja clara de despensa puede superar penalización de repetición');
+
+const history: FoodDayRecord[] = [
+  {
+    date: '2026-09-30',
+    entries: [
+      { id: 'r1', at: '2026-09-30T12:00:00.000Z', title: equalA.title, kind: 'meal', source: 'recipe' },
+      { id: 'm1', at: '2026-09-30T13:00:00.000Z', title: equalB.title, kind: 'other', source: 'manual' },
+    ],
+  },
+  {
+    date: '2026-09-28',
+    entries: [
+      { id: 'p1', at: '2026-09-28T12:00:00.000Z', title: equalB.title, kind: 'meal', source: 'prepared' },
+    ],
+  },
+  {
+    date: '2026-09-20',
+    entries: [
+      { id: 'old', at: '2026-09-20T12:00:00.000Z', title: equalA.title, kind: 'meal', source: 'suggestion' },
+    ],
+  },
+];
+const recent = recentFoodRecipeConsumptions(history, [equalA, equalB], '2026-09-30');
+equal(recent.length, 2, 'solo consumos no manuales dentro de siete días alimentan recencia');
+ok(recent.some((item) => item.title === equalA.title && item.daysAgo === 0), 'receta de hoy se conserva como recencia 0');
+ok(recent.some((item) => item.title === equalB.title && item.daysAgo === 2), 'porción preparada también alimenta recencia');
+ok(!recent.some((item) => item.title === equalB.title && item.daysAgo === 0), 'entrada manual con mismo título no penaliza receta');
 
 const shoppingOnce = addShoppingItems([], [
   { key: 'tomate', name: 'Tomate' },

@@ -1,8 +1,14 @@
+import type { FoodDayRecord } from './history';
 import type { FoodContext } from './suggestions';
 import type { FoodPantryItem, FoodPreferences } from './pantry';
 import type { FoodRecipe, FoodRecipeIngredient } from './recipes';
 
 export type FoodRecipeFit = 'listo' | 'casi' | 'compras';
+
+export type FoodRecentConsumption = {
+  title: string;
+  daysAgo: number;
+};
 
 export type FoodRecipeMatch = {
   recipe: FoodRecipe;
@@ -13,6 +19,79 @@ export type FoodRecipeMatch = {
   estimatedFit: FoodRecipeFit;
   score: number;
 };
+
+function normalizeRecipeTitle(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('es')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function dateKeyUtcMs(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const ms = Date.UTC(year, month - 1, day);
+  const date = new Date(ms);
+  if (
+    date.getUTCFullYear() !== year
+    || date.getUTCMonth() !== month - 1
+    || date.getUTCDate() !== day
+  ) return null;
+  return ms;
+}
+
+export function recentFoodRecipeConsumptions(
+  history: FoodDayRecord[],
+  recipes: FoodRecipe[],
+  referenceDateKey: string,
+  maxDays = 7,
+): FoodRecentConsumption[] {
+  const referenceMs = dateKeyUtcMs(referenceDateKey);
+  if (referenceMs === null || maxDays < 0) return [];
+
+  const recipeTitles = new Map(
+    recipes.map((recipe) => [normalizeRecipeTitle(recipe.title), recipe.title] as const),
+  );
+  const result: FoodRecentConsumption[] = [];
+
+  for (const day of history) {
+    const dayMs = dateKeyUtcMs(day.date);
+    if (dayMs === null) continue;
+    const daysAgo = Math.round((referenceMs - dayMs) / 86_400_000);
+    if (daysAgo < 0 || daysAgo > maxDays) continue;
+
+    for (const entry of day.entries) {
+      if (entry.source === 'manual') continue;
+      const normalizedTitle = normalizeRecipeTitle(entry.title);
+      const canonicalTitle = recipeTitles.get(normalizedTitle);
+      if (!canonicalTitle) continue;
+      result.push({ title: canonicalTitle, daysAgo });
+    }
+  }
+
+  return result;
+}
+
+function recentRepeatPenalty(recipe: FoodRecipe, recent: FoodRecentConsumption[] = []) {
+  const recipeTitle = normalizeRecipeTitle(recipe.title);
+  let penalty = 0;
+  for (const item of recent) {
+    if (normalizeRecipeTitle(item.title) !== recipeTitle) continue;
+    const daysAgo = Number.isFinite(item.daysAgo) ? Math.max(0, Math.floor(item.daysAgo)) : 99;
+    if (daysAgo === 0) penalty += 32;
+    else if (daysAgo === 1) penalty += 24;
+    else if (daysAgo === 2) penalty += 16;
+    else if (daysAgo === 3) penalty += 10;
+    else if (daysAgo <= 5) penalty += 6;
+    else if (daysAgo <= 7) penalty += 2;
+  }
+  return Math.min(48, penalty);
+}
 
 function budgetPenalty(recipe: FoodRecipe, preferences: FoodPreferences) {
   if (preferences.budget === 'flexible') return 0;
@@ -29,7 +108,7 @@ export function matchFoodRecipe(
   recipe: FoodRecipe,
   pantry: FoodPantryItem[],
   preferences: FoodPreferences,
-  options: { context: FoodContext; lowEnergy: boolean },
+  options: { context: FoodContext; lowEnergy: boolean; recentConsumptions?: FoodRecentConsumption[] },
 ): FoodRecipeMatch {
   const pantryKeys = new Set(pantry.map((item) => item.key));
   const owned: FoodRecipeIngredient[] = [];
@@ -68,6 +147,7 @@ export function matchFoodRecipe(
   }
 
   score -= budgetPenalty(recipe, preferences);
+  score -= recentRepeatPenalty(recipe, options.recentConsumptions);
   if (recipe.portable && (options.context === 'before' || options.context === 'working')) score += 8;
 
   return {
@@ -85,7 +165,7 @@ export function rankFoodRecipes(
   recipes: FoodRecipe[],
   pantry: FoodPantryItem[],
   preferences: FoodPreferences,
-  options: { context: FoodContext; lowEnergy: boolean },
+  options: { context: FoodContext; lowEnergy: boolean; recentConsumptions?: FoodRecentConsumption[] },
 ) {
   return recipes
     .map((recipe) => matchFoodRecipe(recipe, pantry, preferences, options))
