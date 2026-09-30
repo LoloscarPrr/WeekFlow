@@ -7,7 +7,13 @@
 - Mantiene prioridad de recuperación post-turno nocturno.
 - El plan principal de cierre, sueño, despertar y entrada sigue visible.
 
+## Semana
+- Oculta temporalmente `Importar horario` de la interfaz.
+- La edición manual de los 7 días sigue siendo el flujo oficial por ahora.
+- El código OCR/Excel/PDF se conserva, pero queda fuera de la experiencia hasta Smart Import con WeekFlow Brain.
+
 ## QA
 - Nuevas regresiones Rest para energía, margen, sueño principal y recuperación nocturna.
+- Regresión estructural para impedir que Semana vuelva a exponer el importador heredado antes de tiempo.
 - Sin cambios de esquema ni migraciones.
 - Android source versionCode 90.
