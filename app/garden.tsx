@@ -132,10 +132,12 @@ export default function GardenScreen() {
               maxLength={80}
               returnKeyType="next"
             />
+
+            <Text style={styles.fieldLabel}>Mini-versión (opcional)</Text>
             <TextInput
               value={miniVersion}
               onChangeText={setMiniVersion}
-              placeholder="Mini-versión opcional · Ej. leer 2 páginas"
+              placeholder="Ej. leer 2 páginas"
               placeholderTextColor={colors.muted}
               style={styles.input}
               maxLength={120}
@@ -264,6 +266,7 @@ const styles = StyleSheet.create({
   formTitle: { color: colors.text, fontSize: 19, fontWeight: '900' },
   formCopy: { color: colors.muted, fontSize: 13, lineHeight: 18 },
   input: { minHeight: 50, borderWidth: 1, borderColor: '#285785', backgroundColor: colors.surface2, borderRadius: 15, color: colors.text, paddingHorizontal: 14, fontSize: 15 },
+  fieldLabel: { color: '#A9C8F2', fontSize: 12, lineHeight: 17, fontWeight: '800', marginTop: 2 },
   smallLabel: { color: '#9EC5FF', fontSize: 12, fontWeight: '800', letterSpacing: 1.4, marginTop: 2 },
   frequencyRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   frequencyChip: { minWidth: 45, minHeight: 42, borderRadius: 14, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 },
