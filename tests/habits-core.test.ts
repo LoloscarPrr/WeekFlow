@@ -67,4 +67,6 @@ const sanitized = sanitizeHabitsState({
 equal(sanitized.habits.length, 1, 'descarta hábitos corruptos');
 equal(sanitized.habits[0].targetPerWeek, 1, 'sanea frecuencia mínima');
 equal(sanitized.completions.length, 1, 'descarta registros de hábitos inexistentes');
-ok(sanitized.completions[0].completedAt, 'rellena timestamp faltante sin romper carga');\nconsole.log('✓ Habits soporta frecuencia flexible, mini-versiones, edición, undo y persistencia saneable');
+ok(sanitized.completions[0].completedAt, 'rellena timestamp faltante sin romper carga');
+
+console.log('✓ Habits soporta frecuencia flexible, mini-versiones, edición, undo y persistencia saneable');
