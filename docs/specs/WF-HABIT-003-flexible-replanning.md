@@ -1,6 +1,6 @@
 # WF-HABIT-003 — Reprogramación flexible sin culpa
 
-Status: LOCKED
+Status: VERIFYING
 
 ## Problem
 Habits ya permite frecuencia semanal, mini-versiones y registro diario, pero todavía no permite expresar una realidad común: “hoy no cabe, lo dejo para otro día”. El Blueprint Maestro v4.0 exige reprogramar cuando cambie la realidad sin convertir el hábito en una obligación rígida ni castigar una racha rota.
@@ -27,16 +27,16 @@ Un hábito pendiente puede guardar una `próxima ocasión` preferida dentro de l
 - No cambios a Move, Food, Rest, Semana, Smart Import, Free/Premium o firma Android.
 
 ## Acceptance criteria
-- [ ] AC1 — Un hábito pendiente ofrece `Mover`; si ya tiene una próxima ocasión visible, ofrece `Cambiar día`.
-- [ ] AC2 — El selector inline ofrece exactamente los próximos 7 días locales y no fechas pasadas.
-- [ ] AC3 — Elegir una fecha guarda `plannedFor` y la tarjeta muestra `Próxima ocasión` con una etiqueta humana del día.
-- [ ] AC4 — `plannedFor` es orientativo: `Hecho` y `Versión mini` siguen disponibles antes de esa fecha.
-- [ ] AC5 — `Dejar flexible` elimina `plannedFor` sin tocar frecuencia, mini-versión o historial.
-- [ ] AC6 — Completar full o mini limpia `plannedFor`; deshacer el completion no restaura automáticamente una fecha antigua.
-- [ ] AC7 — Editar nombre/frecuencia/mini-versión conserva `plannedFor`.
-- [ ] AC8 — Datos previos sin `plannedFor` cargan como `null`; fechas inválidas se sanea a `null`.
-- [ ] AC9 — Una fecha guardada que ya quedó en el pasado deja de presentarse como compromiso activo y no genera lenguaje de atraso/fallo.
-- [ ] AC10 — Jardín mantiene ausencia de streaks, puntajes, deuda y lenguaje punitivo; shortcuts y keyboard-aware siguen intactos.
+- [x] AC1 — Un hábito pendiente ofrece `Mover`; si ya tiene una próxima ocasión visible, ofrece `Cambiar día`.
+- [x] AC2 — El selector inline ofrece exactamente los próximos 7 días locales y no fechas pasadas.
+- [x] AC3 — Elegir una fecha guarda `plannedFor` y la tarjeta muestra `Próxima ocasión` con una etiqueta humana del día.
+- [x] AC4 — `plannedFor` es orientativo: `Hecho` y `Versión mini` siguen disponibles antes de esa fecha.
+- [x] AC5 — `Dejar flexible` elimina `plannedFor` sin tocar frecuencia, mini-versión o historial.
+- [x] AC6 — Completar full o mini limpia `plannedFor`; deshacer el completion no restaura automáticamente una fecha antigua.
+- [x] AC7 — Editar nombre/frecuencia/mini-versión conserva `plannedFor`.
+- [x] AC8 — Datos previos sin `plannedFor` cargan como `null`; fechas inválidas se sanea a `null`.
+- [x] AC9 — Una fecha guardada que ya quedó en el pasado deja de presentarse como compromiso activo y no genera lenguaje de atraso/fallo.
+- [x] AC10 — Jardín mantiene ausencia de streaks, puntajes, deuda y lenguaje punitivo; shortcuts y keyboard-aware siguen intactos.
 - [ ] AC11 — Typecheck + regresiones + Android release pipeline pasan para la versión técnica 0.5.2.
 
 ## Data / persistence impact
@@ -55,10 +55,10 @@ Cada tarjeta pendiente mantiene primero las acciones de cumplimiento. Debajo apa
 - Cambio de día local se resuelve por date-key local, no UTC.
 
 ## Verification plan
-- Extender `habits-core.test.ts` con replan, rechazo de pasado, clear, edit-preserves-plan y completion-clears-plan.
-- Extender la regresión estructural de Jardín para `Mover`, `Cambiar día`, siete opciones, `Dejar flexible` y ausencia de copy punitivo.
-- `npm run quality` en PR.
-- Android APK/AAB firmado en `main`.
-- Prueba física: crear hábito → mover a otro día → cerrar/reabrir → confirmar fecha → completar antes/ese día → comprobar que la fecha desaparece.
+- [x] Extender `habits-core.test.ts` con replan, rechazo de pasado, clear, edit-preserves-plan y completion-clears-plan.
+- [x] Extender la regresión estructural de Jardín para `Mover`, `Cambiar día`, siete opciones, `Dejar flexible` y ausencia de copy punitivo.
+- [ ] `npm run quality` en PR.
+- [ ] Android APK/AAB firmado en `main`.
+- [ ] Prueba física: crear hábito → mover a otro día → cerrar/reabrir → confirmar fecha → completar antes/ese día → comprobar que la fecha desaparece.
 
 Spec: WF-HABIT-003
