@@ -5,6 +5,7 @@ export type Habit = {
   name: string;
   miniVersion: string | null;
   targetPerWeek: number;
+  plannedFor: string | null;
   createdAt: string;
   updatedAt: string;
   active: boolean;
@@ -45,6 +46,17 @@ function isMode(value: unknown): value is HabitCompletionMode {
   return value === 'full' || value === 'mini';
 }
 
+function isLocalDateKey(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day, 12, 0, 0, 0);
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
+}
+
 export function localHabitDateKey(date = new Date()) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -59,6 +71,24 @@ function mondayStart(date: Date) {
   const offset = day === 0 ? -6 : 1 - day;
   result.setDate(result.getDate() + offset);
   return result;
+}
+
+export function nextHabitPlanDates(date = new Date(), count = 7) {
+  const numericCount = Number.isFinite(count) ? Math.floor(count) : 7;
+  const safeCount = Math.min(7, Math.max(1, numericCount));
+  const cursor = new Date(date);
+  cursor.setHours(12, 0, 0, 0);
+  const dates: string[] = [];
+  for (let index = 0; index < safeCount; index += 1) {
+    cursor.setDate(cursor.getDate() + 1);
+    dates.push(localHabitDateKey(cursor));
+  }
+  return dates;
+}
+
+export function visibleHabitPlan(habit: Habit, date = new Date()) {
+  if (!habit.plannedFor || !isLocalDateKey(habit.plannedFor)) return null;
+  return habit.plannedFor >= localHabitDateKey(date) ? habit.plannedFor : null;
 }
 
 export function sanitizeHabitsState(value: unknown): HabitsState {
@@ -80,6 +110,7 @@ export function sanitizeHabitsState(value: unknown): HabitsState {
         name,
         miniVersion: mini || null,
         targetPerWeek: clampTarget(source.targetPerWeek),
+        plannedFor: isLocalDateKey(source.plannedFor) ? source.plannedFor : null,
         createdAt,
         updatedAt,
         active: source.active !== false,
@@ -95,7 +126,7 @@ export function sanitizeHabitsState(value: unknown): HabitsState {
       const source = item as Partial<HabitCompletion>;
       const habitId = cleanText(source.habitId, 120);
       const date = cleanText(source.date, 10);
-      if (!validIds.has(habitId) || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !isMode(source.mode)) return [];
+      if (!validIds.has(habitId) || !isLocalDateKey(date) || !isMode(source.mode)) return [];
       const uniqueKey = `${habitId}:${date}`;
       if (seen.has(uniqueKey)) return [];
       seen.add(uniqueKey);
@@ -142,11 +173,48 @@ export function upsertHabit(
     name,
     miniVersion,
     targetPerWeek: clampTarget(draft.targetPerWeek),
+    plannedFor: null,
     createdAt: stamp,
     updatedAt: stamp,
     active: true,
   };
   return { ...state, habits: [...state.habits, habit] };
+}
+
+export function replanHabit(
+  state: HabitsState,
+  habitId: string,
+  targetDate: string,
+  now = new Date(),
+): HabitsState {
+  if (!isLocalDateKey(targetDate) || targetDate < localHabitDateKey(now)) return state;
+  const existing = state.habits.find((habit) => habit.id === habitId);
+  if (!existing) return state;
+  return {
+    ...state,
+    habits: state.habits.map((habit) => habit.id === habitId ? {
+      ...habit,
+      plannedFor: targetDate,
+      updatedAt: now.toISOString(),
+    } : habit),
+  };
+}
+
+export function clearHabitPlan(
+  state: HabitsState,
+  habitId: string,
+  now = new Date(),
+): HabitsState {
+  const existing = state.habits.find((habit) => habit.id === habitId);
+  if (!existing || existing.plannedFor === null) return state;
+  return {
+    ...state,
+    habits: state.habits.map((habit) => habit.id === habitId ? {
+      ...habit,
+      plannedFor: null,
+      updatedAt: now.toISOString(),
+    } : habit),
+  };
 }
 
 export function completionForDate(
@@ -174,6 +242,11 @@ export function completeHabit(
   };
   return {
     ...state,
+    habits: state.habits.map((habit) => habit.id === habitId && habit.plannedFor ? {
+      ...habit,
+      plannedFor: null,
+      updatedAt: date.toISOString(),
+    } : habit),
     completions: [
       ...state.completions.filter((item) => !(item.habitId === habitId && item.date === key)),
       completion,

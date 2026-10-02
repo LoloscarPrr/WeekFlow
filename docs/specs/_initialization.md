@@ -2,27 +2,37 @@
 
 ## Repository and ref
 - Repository: `LoloscarPrr/WeekFlow`.
-- Base: `main` at `cc5455a4f41e5dd29bdb866bfc41a6e5c7dc7dd0`.
-- Working branch: `codex/wf-habit-002-mini-field-layout`.
+- Base: `main` at `628083b7cbe2f35073e41021c1235e3311550cda`.
+- Working branch: `codex/wf-habit-003-flexible-replanning`.
 - Product source of truth: `WeekFlow Blueprint Maestro v4.0`.
 
 ## App / build
-- Technical app version on main: `0.5.0`; Android source `versionCode 92`; package `com.weekflow.app`.
-- `WF-HABIT-001` is merged and Habits/Jardín core exists in main.
-- User physical QA found a UI defect in the mini-version field: the long placeholder wraps/clips on Android.
+- Technical app version: `0.5.1`; source Android `versionCode 93`; package `com.weekflow.app`.
+- Main Quality #226: PASS.
+- Android #160: PASS; signed APK/AAB release pipeline completed.
 
 ## Product context / active scope
-- Current roadmap focus: `0.5.x — Habits + Jardín`.
-- This session is a narrow bug fix inside the active module.
-- Smart Import remains frozen until 0.8.x.
+- Current roadmap focus remains `Habits + Jardín`.
+- v4.0 requires weekly frequency, viable reprogramming when reality changes, mini-versions, and a non-punitive Garden representation.
+- `WF-HABIT-001` delivered the flexible habit core; `WF-HABIT-002` fixed mini-version field readability on small Android screens.
+- Smart Import remains frozen until the Brain block and is out of scope.
+
+## Habits / Garden audit
+- Habits persist locally in `habits-state` through the existing `SQLiteStateStore`.
+- Current model supports name, optional mini-version, weekly target, full/mini daily completion and undo.
+- Current model has no concept of a preferred next day and Garden cannot express “hoy no cabe; lo hago otro día”.
+- A strict weekday schedule would contradict the flexible-frequency principle, so replanning must remain an optional next-occasion preference rather than a deadline.
 
 ## Baseline
-- PASS — `WF-HABIT-001` PR Quality passed before merge.
-- PASS — main 0.5.0 contains flexible habits runtime and persistence.
-- FAIL (physical UI QA) — long mini-version placeholder clips into a second line inside a fixed-height input.
+- PASS — main Quality #226.
+- PASS — Android #160 signed release pipeline.
+- PASS — Habits core + Garden structural regressions.
+- FAIL (product gate) — Habits cannot yet be reprogrammed when the week changes.
 
 ## Next action / constraints
-- Active spec: `WF-HABIT-002 — Campo de mini-versión legible`.
-- Keep the fix presentation-only; no habit data/model/persistence changes.
-- Preserve keyboard-aware behavior and existing form actions.
-- Publish technical 0.5.1 / source Android versionCode 93 if Quality and release pipeline pass.
+- Active spec: `WF-HABIT-003 — Reprogramación flexible sin culpa`.
+- Add one optional `plannedFor` local date per habit.
+- Keep completion possible before that date; it is guidance, not a lock.
+- No automatic Brain scheduling, no notifications, no penalties, no streaks.
+- Preserve existing habit history and persistence without SQLite migration.
+- Publish as technical `0.5.2` / source Android `versionCode 94` if verification passes.

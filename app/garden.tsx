@@ -5,11 +5,15 @@ import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } fro
 import { Brand } from '@/src/components/Brand';
 import { KeyboardAwareScrollView, KeyboardAwareTextInput as TextInput } from '@/src/components/KeyboardAwareScrollView';
 import {
+  clearHabitPlan,
   completeHabit,
   completionForDate,
   completionsThisWeek,
+  nextHabitPlanDates,
+  replanHabit,
   undoHabitCompletion,
   upsertHabit,
+  visibleHabitPlan,
   type Habit,
   type HabitsState,
 } from '@/src/habits/core';
@@ -38,9 +42,25 @@ const areas = [
 ] as const;
 
 const frequencyOptions = [1, 2, 3, 4, 5, 7] as const;
+const shortDays = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'] as const;
 
 function targetCopy(target: number) {
   return `${target} ${target === 1 ? 'vez' : 'veces'} por semana`;
+}
+
+function dateFromKey(key: string) {
+  const [year, month, day] = key.split('-').map(Number);
+  return new Date(year, month - 1, day, 12, 0, 0, 0);
+}
+
+function planDateLabel(key: string, now = new Date()) {
+  const date = dateFromKey(key);
+  const tomorrow = new Date(now);
+  tomorrow.setHours(12, 0, 0, 0);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowKey = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+  if (key === tomorrowKey) return `Mañana · ${shortDays[date.getDay()]} ${date.getDate()}`;
+  return `${shortDays[date.getDay()]} ${date.getDate()}`;
 }
 
 export default function GardenScreen() {
@@ -49,11 +69,13 @@ export default function GardenScreen() {
   const [miniVersion, setMiniVersion] = useState('');
   const [targetPerWeek, setTargetPerWeek] = useState(3);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [replanningId, setReplanningId] = useState<string | null>(null);
 
   const habits = useMemo(
     () => habitsState.habits.filter((habit) => habit.active),
     [habitsState.habits],
   );
+  const replanOptions = nextHabitPlanDates(new Date(), 7);
 
   const refresh = useCallback(() => {
     setHabitsState(loadHabitsState());
@@ -96,10 +118,21 @@ export default function GardenScreen() {
 
   function markHabit(habitId: string, mode: 'full' | 'mini') {
     persist(completeHabit(habitsState, habitId, mode));
+    if (replanningId === habitId) setReplanningId(null);
   }
 
   function undoToday(habitId: string) {
     persist(undoHabitCompletion(habitsState, habitId));
+  }
+
+  function moveHabit(habitId: string, dateKey: string) {
+    persist(replanHabit(habitsState, habitId, dateKey));
+    setReplanningId(null);
+  }
+
+  function makeFlexible(habitId: string) {
+    persist(clearHabitPlan(habitsState, habitId));
+    setReplanningId(null);
   }
 
   return (
@@ -186,6 +219,8 @@ export default function GardenScreen() {
               {habits.map((habit) => {
                 const today = completionForDate(habitsState, habit.id);
                 const weekDone = completionsThisWeek(habitsState, habit.id);
+                const activePlan = visibleHabitPlan(habit);
+                const isReplanning = replanningId === habit.id;
                 return (
                   <View key={habit.id} style={styles.habitCard}>
                     <View style={styles.habitHeader}>
@@ -206,6 +241,13 @@ export default function GardenScreen() {
                       </Pressable>
                     </View>
 
+                    {activePlan && !today ? (
+                      <View style={styles.planNote}>
+                        <Text style={styles.planLabel}>PRÓXIMA OCASIÓN</Text>
+                        <Text style={styles.planCopy}>{planDateLabel(activePlan)}. Es una referencia, no una obligación.</Text>
+                      </View>
+                    ) : null}
+
                     {today ? (
                       <View style={styles.todayRow}>
                         <View style={styles.todayStatus}>
@@ -217,16 +259,49 @@ export default function GardenScreen() {
                         </Pressable>
                       </View>
                     ) : (
-                      <View style={styles.completionActions}>
-                        <Pressable style={styles.completeButton} onPress={() => markHabit(habit.id, 'full')}>
-                          <Text style={styles.completeButtonText}>Hecho</Text>
-                        </Pressable>
-                        {habit.miniVersion ? (
-                          <Pressable style={styles.miniButton} onPress={() => markHabit(habit.id, 'mini')}>
-                            <Text style={styles.miniButtonText}>Versión mini</Text>
+                      <>
+                        <View style={styles.completionActions}>
+                          <Pressable style={styles.completeButton} onPress={() => markHabit(habit.id, 'full')}>
+                            <Text style={styles.completeButtonText}>Hecho</Text>
                           </Pressable>
+                          {habit.miniVersion ? (
+                            <Pressable style={styles.miniButton} onPress={() => markHabit(habit.id, 'mini')}>
+                              <Text style={styles.miniButtonText}>Versión mini</Text>
+                            </Pressable>
+                          ) : null}
+                        </View>
+
+                        <Pressable
+                          style={styles.replanButton}
+                          onPress={() => setReplanningId(isReplanning ? null : habit.id)}
+                        >
+                          <Text style={styles.replanButtonText}>{activePlan ? 'Cambiar día' : 'Mover'}</Text>
+                        </Pressable>
+
+                        {isReplanning ? (
+                          <View style={styles.replanPanel}>
+                            <Text style={styles.replanTitle}>Si hoy no cabe, muévelo sin perder nada.</Text>
+                            <View style={styles.replanOptions}>
+                              {replanOptions.map((dateKey) => (
+                                <Pressable
+                                  key={dateKey}
+                                  style={[styles.replanChip, activePlan === dateKey && styles.replanChipActive]}
+                                  onPress={() => moveHabit(habit.id, dateKey)}
+                                >
+                                  <Text style={[styles.replanChipText, activePlan === dateKey && styles.replanChipTextActive]}>
+                                    {planDateLabel(dateKey)}
+                                  </Text>
+                                </Pressable>
+                              ))}
+                            </View>
+                            {activePlan ? (
+                              <Pressable style={styles.flexibleButton} onPress={() => makeFlexible(habit.id)}>
+                                <Text style={styles.flexibleButtonText}>Dejar flexible</Text>
+                              </Pressable>
+                            ) : null}
+                          </View>
                         ) : null}
-                      </View>
+                      </>
                     )}
                   </View>
                 );
@@ -291,11 +366,25 @@ const styles = StyleSheet.create({
   miniCopy: { color: '#A9C8F2', fontSize: 12, lineHeight: 17, marginTop: 4 },
   gentleProgress: { color: '#78D6A7', fontSize: 12, lineHeight: 17, marginTop: 6 },
   editText: { color: '#78B1FF', fontWeight: '800', fontSize: 13 },
+  planNote: { borderRadius: 14, borderWidth: 1, borderColor: '#2E5D8A', backgroundColor: colors.surface2, paddingHorizontal: 12, paddingVertical: 10 },
+  planLabel: { color: '#78B1FF', fontSize: 10, fontWeight: '900', letterSpacing: 1.4 },
+  planCopy: { color: '#C1D7F2', fontSize: 12, lineHeight: 17, marginTop: 3 },
   completionActions: { flexDirection: 'row', gap: 9 },
   completeButton: { minHeight: 46, borderRadius: 14, backgroundColor: colors.blue, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center', flex: 1 },
   completeButtonText: { color: '#FFFFFF', fontWeight: '900' },
   miniButton: { minHeight: 46, borderRadius: 14, borderWidth: 1, borderColor: '#3D77AE', backgroundColor: colors.surface2, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center', flex: 1 },
   miniButtonText: { color: '#9EC5FF', fontWeight: '900' },
+  replanButton: { minHeight: 42, borderRadius: 13, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' },
+  replanButtonText: { color: '#A9C8F2', fontWeight: '800', fontSize: 13 },
+  replanPanel: { gap: 9, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 11 },
+  replanTitle: { color: colors.muted, fontSize: 12, lineHeight: 17 },
+  replanOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  replanChip: { minHeight: 42, minWidth: 76, borderRadius: 13, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 },
+  replanChipActive: { borderColor: colors.blue, backgroundColor: '#132B50' },
+  replanChipText: { color: '#A9C8F2', fontSize: 12, fontWeight: '800' },
+  replanChipTextActive: { color: '#8DC0FF' },
+  flexibleButton: { minHeight: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  flexibleButtonText: { color: '#78B1FF', fontSize: 13, fontWeight: '800' },
   todayRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 11 },
   todayStatus: { flex: 1 },
   todayLabel: { color: '#78D6A7', fontSize: 11, fontWeight: '900', letterSpacing: 1.5 },
