@@ -31,8 +31,13 @@ const moveHistory: MoveSessionRecord[] = [
 ];
 
 const foodHistory: FoodDayRecord[] = [
-  { date: '2026-10-01', entries: [{ id: 'a', at: '12:00', label: 'Almuerzo', source: 'manual' }, { id: 'b', at: '20:00', label: 'Cena', source: 'manual' }] },
-  { date: '2026-09-27', entries: [{ id: 'old', at: '12:00', label: 'Almuerzo', source: 'manual' }] },
+  { date: '2026-10-01', entries: [
+    { id: 'a', at: new Date(2026, 9, 1, 12, 0).toISOString(), title: 'Almuerzo', kind: 'meal', source: 'manual' },
+    { id: 'b', at: new Date(2026, 9, 1, 20, 0).toISOString(), title: 'Cena', kind: 'meal', source: 'manual' },
+  ] },
+  { date: '2026-09-27', entries: [
+    { id: 'old', at: new Date(2026, 8, 27, 12, 0).toISOString(), title: 'Almuerzo', kind: 'meal', source: 'manual' },
+  ] },
 ];
 
 equal(moveSessionsThisWeek(moveHistory, now), 1, 'solo cuenta Move de la semana local actual');
