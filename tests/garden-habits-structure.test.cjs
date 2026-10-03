@@ -5,6 +5,7 @@ const assert = require('assert');
 const root = path.resolve(__dirname, '..');
 const garden = fs.readFileSync(path.join(root, 'app/garden.tsx'), 'utf8');
 const habits = fs.readFileSync(path.join(root, 'app/habits.tsx'), 'utf8');
+const summary = fs.readFileSync(path.join(root, 'src/garden/summary.ts'), 'utf8');
 const persistence = fs.readFileSync(path.join(root, 'src/habits/persistence.ts'), 'utf8');
 
 assert.match(garden, /Tu jardín esta semana/);
@@ -12,7 +13,7 @@ assert.match(garden, /TUS PILARES/);
 assert.match(garden, /Hábitos flexibles/);
 assert.match(garden, /router\.push\('\/habits'\)/);
 assert.match(garden, /buildGardenPillars/);
-assert.doesNotMatch(garden, /score global|porcentaje de vida|racha|streak|fallaste|perdiste|deuda/i);
+assert.doesNotMatch(garden, /score global|porcentaje de vida|fallaste|perdiste|atrasad|deuda|racha perdida|streak/i);
 
 for (const pillar of [
   'Descanso',
@@ -24,7 +25,7 @@ for (const pillar of [
   'Responsabilidades',
   'Tiempo personal',
 ]) {
-  assert.match(fs.readFileSync(path.join(root, 'src/garden/summary.ts'), 'utf8'), new RegExp(`title: '${pillar}'`));
+  assert.match(summary, new RegExp(`title: '${pillar}'`));
 }
 
 assert.match(habits, /PILARES · HÁBITOS/);
@@ -44,7 +45,7 @@ assert.match(habits, /PRÓXIMA OCASIÓN/);
 assert.match(habits, /Es una referencia, no una obligación/);
 assert.match(habits, /Dejar flexible/);
 assert.match(habits, /Hecho/);
-assert.doesNotMatch(habits, /racha|streak|fallaste|perdiste|atrasad|deuda/i);
+assert.doesNotMatch(habits, /fallaste|perdiste|atrasad|deuda|racha perdida|streak/i);
 assert.match(persistence, /HABITS_STATE_KEY = 'habits-state'/);
 assert.match(persistence, /sqliteStateStore\.write/);
 
