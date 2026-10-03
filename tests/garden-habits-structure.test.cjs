@@ -4,32 +4,48 @@ const assert = require('assert');
 
 const root = path.resolve(__dirname, '..');
 const garden = fs.readFileSync(path.join(root, 'app/garden.tsx'), 'utf8');
+const habits = fs.readFileSync(path.join(root, 'app/habits.tsx'), 'utf8');
 const persistence = fs.readFileSync(path.join(root, 'src/habits/persistence.ts'), 'utf8');
 
-assert.match(garden, /HÁBITOS FLEXIBLES/);
-assert.match(garden, /Mini-versión \(opcional\)/);
-assert.match(garden, /placeholder="Ej\. leer 2 páginas"/);
-assert.doesNotMatch(garden, /placeholder="Mini-versión opcional/);
-assert.match(garden, /maxLength=\{120\}/);
-assert.match(garden, /Versión mini/);
-assert.match(garden, /Deshacer/);
-assert.match(garden, /KeyboardAwareScrollView/);
-assert.match(garden, /KeyboardAwareTextInput as TextInput/);
-assert.match(garden, /keyboardShouldPersistTaps="handled"/);
-assert.match(garden, /keyboardDismissMode="on-drag"/);
-assert.match(garden, /Equilibrio sin puntajes/);
-assert.match(garden, /nextHabitPlanDates\(new Date\(\), 7\)/);
-assert.match(garden, /'Mover'/);
-assert.match(garden, /'Cambiar día'/);
-assert.match(garden, /PRÓXIMA OCASIÓN/);
-assert.match(garden, /Es una referencia, no una obligación/);
-assert.match(garden, /Dejar flexible/);
-assert.match(garden, /Hecho/);
-assert.doesNotMatch(garden, /racha|streak|fallaste|perdiste|atrasad|deuda/i);
-assert.match(garden, /title: 'Descanso'/);
-assert.match(garden, /title: 'Alimentación'/);
-assert.match(garden, /title: 'Tu semana'/);
+assert.match(garden, /Tu jardín esta semana/);
+assert.match(garden, /TUS PILARES/);
+assert.match(garden, /Hábitos flexibles/);
+assert.match(garden, /router\.push\('\/habits'\)/);
+assert.match(garden, /buildGardenPillars/);
+assert.doesNotMatch(garden, /score global|porcentaje de vida|racha|streak|fallaste|perdiste|deuda/i);
+
+for (const pillar of [
+  'Descanso',
+  'Alimentación',
+  'Movimiento',
+  'Relaciones',
+  'Bienestar',
+  'Hogar',
+  'Responsabilidades',
+  'Tiempo personal',
+]) {
+  assert.match(fs.readFileSync(path.join(root, 'src/garden/summary.ts'), 'utf8'), new RegExp(`title: '${pillar}'`));
+}
+
+assert.match(habits, /PILARES · HÁBITOS/);
+assert.match(habits, /Mini-versión \(opcional\)/);
+assert.match(habits, /placeholder="Ej\. leer 2 páginas"/);
+assert.match(habits, /maxLength=\{120\}/);
+assert.match(habits, /Versión mini/);
+assert.match(habits, /Deshacer/);
+assert.match(habits, /KeyboardAwareScrollView/);
+assert.match(habits, /KeyboardAwareTextInput as TextInput/);
+assert.match(habits, /keyboardShouldPersistTaps="handled"/);
+assert.match(habits, /keyboardDismissMode="on-drag"/);
+assert.match(habits, /nextHabitPlanDates\(new Date\(\), 7\)/);
+assert.match(habits, /'Mover'/);
+assert.match(habits, /'Cambiar día'/);
+assert.match(habits, /PRÓXIMA OCASIÓN/);
+assert.match(habits, /Es una referencia, no una obligación/);
+assert.match(habits, /Dejar flexible/);
+assert.match(habits, /Hecho/);
+assert.doesNotMatch(habits, /racha|streak|fallaste|perdiste|atrasad|deuda/i);
 assert.match(persistence, /HABITS_STATE_KEY = 'habits-state'/);
 assert.match(persistence, /sqliteStateStore\.write/);
 
-console.log('✓ Jardín integra hábitos reprogramables sin castigo, con teclado seguro y shortcuts intactos');
+console.log('✓ Jardín vuelve al catastro de pilares y Hábitos conserva su flujo flexible sin castigo');
