@@ -1,5 +1,5 @@
 import type { RestView } from '@/src/application/useCases/getRestView';
-import { formatGardenDays, type ConfigurableGardenPillarKey, type GardenPreferences } from './preferences';
+import { formatGardenDays, type ConfigurableGardenPillarKey, type GardenPreferences } from './model';
 import type { FoodDayRecord, MoveSessionRecord } from '@/src/state/persistence';
 
 export type GardenStatus = 'Equilibrado' | 'Necesita atención' | 'Planificado' | 'Sin datos';
