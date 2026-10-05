@@ -79,7 +79,7 @@ equal(pillars.find((item) => item.key === 'wellbeing')?.status, 'Sin datos', 'un
 const empty = buildGardenPillars({
   moveHistory: [],
   foodHistory: [],
-  restView: { ...restView, content: { kind: 'empty', sectionTitle: 'SIN PLAN', message: 'Sin datos' } },
+  restView: { ...restView, content: { kind: 'empty', sectionTitle: 'SIN PLAN' } },
   now,
 });
 equal(empty.find((item) => item.key === 'rest')?.status, 'Sin datos', 'Rest sin plan no inventa equilibrio');
