@@ -1,5 +1,5 @@
 import { buildGardenPillars, foodMomentsThisWeek, moveSessionsThisWeek } from '../src/garden/summary';
-import { formatGardenDays, sanitizeGardenPreferences } from '../src/garden/preferences';
+import { formatGardenDays, sanitizeGardenPreferences } from '../src/garden/model';
 import type { RestView } from '../src/application/useCases/getRestView';
 import type { FoodDayRecord, MoveSessionRecord } from '../src/state/persistence';
 
@@ -79,11 +79,11 @@ equal(pillars.find((item) => item.key === 'wellbeing')?.status, 'Sin datos', 'un
 const empty = buildGardenPillars({
   moveHistory: [],
   foodHistory: [],
-  restView: { ...restView, content: { kind: 'empty', sectionTitle: 'PRÓXIMO DESCANSO' } },
+  restView: { ...restView, content: { kind: 'empty', sectionTitle: 'SIN PLAN', message: 'Sin datos' } },
   now,
 });
-equal(empty.find((item) => item.key === 'move')?.status, 'Necesita atención', '0 sesiones se expresa sin score');
-equal(empty.find((item) => item.key === 'food')?.status, 'Necesita atención', '0 registros se expresa sin score');
-equal(empty.find((item) => item.key === 'rest')?.status, 'Sin datos', 'Rest sin plan no inventa descanso');
+equal(empty.find((item) => item.key === 'rest')?.status, 'Sin datos', 'Rest sin plan no inventa equilibrio');
+equal(empty.find((item) => item.key === 'move')?.status, 'Necesita atención', 'Move sin sesiones queda como atención amable');
+equal(empty.find((item) => item.key === 'food')?.status, 'Necesita atención', 'Food sin registros queda como atención amable');
 
-console.log('✓ Jardín resume datos reales y planes personales sin confundir intención con cumplimiento');
+console.log('✓ Jardín resume datos reales y planificación sin puntajes');
