@@ -2,7 +2,7 @@ import * as SQLite from 'expo-sqlite';
 import {
   currentDatabaseVersion,
   pendingDatabaseMigrations,
-} from '@/src/data/migrations/databaseSchema';
+} from '../../migrations/databaseSchema';
 
 export class SQLiteStateStore {
   private readonly db: SQLite.SQLiteDatabase;
@@ -14,7 +14,6 @@ export class SQLiteStateStore {
 
   private ensureSchema() {
     if (this.schemaReady) return;
-
     const row = this.db.getFirstSync<{ user_version: number }>('PRAGMA user_version;');
     const currentVersion = row?.user_version ?? 0;
 

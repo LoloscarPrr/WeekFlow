@@ -1,4 +1,5 @@
 import { buildGardenPillars, foodMomentsThisWeek, moveSessionsThisWeek } from '../src/garden/summary';
+import { formatGardenDays, sanitizeGardenPreferences } from '../src/garden/model';
 import type { RestView } from '../src/application/useCases/getRestView';
 import type { FoodDayRecord, MoveSessionRecord } from '../src/state/persistence';
 
@@ -42,6 +43,11 @@ const foodHistory: FoodDayRecord[] = [
 
 equal(moveSessionsThisWeek(moveHistory, now), 1, 'solo cuenta Move de la semana local actual');
 equal(foodMomentsThisWeek(foodHistory, now), 2, 'solo cuenta momentos Food de la semana local actual');
+equal(formatGardenDays([2, 6]), 'Mar · Sáb', 'formatea días configurados sin convertirlos en score');
+
+const sanitized = sanitizeGardenPreferences({ relationships: { days: [6, 2, 2, 99] }, bogus: { days: [1] } });
+equal(sanitized.relationships?.days.join(','), '2,6', 'sanea y ordena los días configurados');
+equal(Object.keys(sanitized).length, 1, 'ignora pilares desconocidos');
 
 const restView: RestView = {
   heroTitle: 'Descanso',
@@ -55,21 +61,29 @@ const restView: RestView = {
   },
 };
 
-const pillars = buildGardenPillars({ moveHistory, foodHistory, restView, now });
+const pillars = buildGardenPillars({
+  moveHistory,
+  foodHistory,
+  restView,
+  preferences: { relationships: { days: [2, 6] } },
+  now,
+});
 equal(pillars.length, 8, 'Jardín conserva los ocho pilares canónicos');
 equal(pillars.find((item) => item.key === 'move')?.evidence, '1 sesión esta semana.', 'Movimiento muestra evidencia real');
 equal(pillars.find((item) => item.key === 'food')?.evidence, '2 momentos registrados esta semana.', 'Food muestra evidencia real');
 equal(pillars.find((item) => item.key === 'rest')?.status, 'Equilibrado', 'Rest con plan usa estado amable');
-equal(pillars.find((item) => item.key === 'relationships')?.status, 'Sin datos', 'no inventa estado para pilares sin fuente');
+equal(pillars.find((item) => item.key === 'relationships')?.evidence, 'Mar · Sáb', 'Relaciones muestra los días elegidos');
+equal(pillars.find((item) => item.key === 'relationships')?.status, 'Planificado', 'configurar no se presenta como cumplimiento');
+equal(pillars.find((item) => item.key === 'wellbeing')?.status, 'Sin datos', 'un pilar no configurado sigue sin datos');
 
 const empty = buildGardenPillars({
   moveHistory: [],
   foodHistory: [],
-  restView: { ...restView, content: { kind: 'empty', sectionTitle: 'PRÓXIMO DESCANSO' } },
+  restView: { ...restView, content: { kind: 'empty', sectionTitle: 'SIN PLAN' } },
   now,
 });
-equal(empty.find((item) => item.key === 'move')?.status, 'Necesita atención', '0 sesiones se expresa sin score');
-equal(empty.find((item) => item.key === 'food')?.status, 'Necesita atención', '0 registros se expresa sin score');
-equal(empty.find((item) => item.key === 'rest')?.status, 'Sin datos', 'Rest sin plan no inventa descanso');
+equal(empty.find((item) => item.key === 'rest')?.status, 'Sin datos', 'Rest sin plan no inventa equilibrio');
+equal(empty.find((item) => item.key === 'move')?.status, 'Necesita atención', 'Move sin sesiones queda como atención amable');
+equal(empty.find((item) => item.key === 'food')?.status, 'Necesita atención', 'Food sin registros queda como atención amable');
 
-console.log('✓ Jardín resume pilares con evidencia real, sin score ni datos inventados');
+console.log('✓ Jardín resume datos reales y planificación sin puntajes');
