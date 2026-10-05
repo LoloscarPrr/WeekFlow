@@ -2,39 +2,36 @@
 
 ## Repository and ref
 - Repository: `LoloscarPrr/WeekFlow`.
-- Base: `main` at `aac1c3f3309443d601a2fa89c44f1edd84e324d7`.
-- Working branch: `codex/wf-garden-001-pillar-catastro`.
+- Base: `main` at `9a06e7f0fd402663467d4311f6d413b778798793`.
+- Working branch: `codex/wf-garden-002-responsive-cards`.
 - Product source of truth: `WeekFlow Blueprint Maestro v4.0`.
 
 ## App / build
-- Technical app version: `0.5.2`; source Android `versionCode 94`; package `com.weekflow.app`.
-- Main Quality #228: PASS.
-- Android #161: PASS; signed APK/AAB release pipeline completed.
+- Technical app version: `0.5.3`; source Android `versionCode 95`; package `com.weekflow.app`.
+- Main Quality #231: PASS.
+- Android #162: PASS; signed APK/AAB release pipeline completed.
 
 ## Product context / active scope
 - Current roadmap focus remains `Habits + Jardín`.
-- v4.0 defines Jardín as a non-punitive representation of balance between the eight pillars, never a life score.
-- `WF-HABIT-001` through `WF-HABIT-003` delivered flexible habits, readable mini-version input and non-punitive replanning.
-- Current `app/garden.tsx` is dominated by habit creation/completion, so the Garden no longer reads primarily as the intended pillar overview.
-- Smart Import remains frozen and is out of scope.
+- `WF-GARDEN-001` restored Jardín as the non-punitive catastro of the eight canonical pillars and moved Habits management to its own route.
+- Physical Redmi QA exposed a small-screen layout defect: `Alimentación` can split as `Alimentaci / ón` because the lateral status chip steals title width.
+- Smart Import remains frozen and out of scope.
 
-## Garden audit
-- Real local data already exists for Move history, Food history, Rest planning and Habits.
-- The canonical eight pillars are Descanso, Alimentación, Movimiento, Relaciones, Bienestar, Hogar, Responsabilidades and Tiempo personal. Habits is a supporting module, not a ninth pillar.
-- Move, Food and Rest can expose real, current evidence without introducing a new schema.
-- Relationships, Wellbeing, Home, Responsibilities and Personal time do not yet have reliable persisted signals; Garden must say `Sin datos` rather than inventing metrics.
-- Existing habit data must remain accessible and preserved while Garden is restored as the overview.
+## Garden responsive audit
+- Current pillar cards place icon, title/evidence body, status chip and optional arrow in one horizontal row.
+- `Necesita atención` is materially wider than the other states and can squeeze long titles on narrow devices or with larger system text.
+- Unsupported pillars correctly show `Sin datos`; their cards can be slightly more compact without changing product semantics.
+- Data sources, routes, status semantics and Habits persistence are already correct and must not change.
 
 ## Baseline
-- PASS — main Quality #228.
-- PASS — Android #161 signed release pipeline.
-- PASS — Habits core + flexible replanning regressions.
-- FAIL (product gate) — Garden is currently a habits screen rather than the canonical pillar catastro.
+- PASS — main Quality #231.
+- PASS — Android #162 signed release pipeline.
+- PASS — Garden data/source regressions.
+- FAIL (physical UX gate) — long pillar titles can wrap inside words on narrow Android layouts.
 
 ## Next action / constraints
-- Active spec: `WF-GARDEN-001 — Catastro visual no punitivo de pilares`.
-- Move Habits management to its own route without changing its stored data or behavior.
-- Garden shows all eight pillars, real evidence for Move/Food/Rest, and `Sin datos` for unsupported pillars.
-- No numeric life score, streak, ranking, arbitrary perfection percentage or invented data.
-- Preserve existing routes/data and keep critical small-screen scrolling/navigation behavior.
-- Target technical release: `0.5.3` / source Android `versionCode 95` if verification passes.
+- Active spec: `WF-GARDEN-002 — Tarjetas de Jardín responsivas`.
+- Give the title its own row with the navigation arrow; move evidence/status to a flexible wrapping row.
+- Compact `Sin datos` cards while preserving readability.
+- No data, persistence, routes, scores, status semantics or Habits behavior changes.
+- Target technical release: `0.5.4` / source Android `versionCode 96` if verification passes.
