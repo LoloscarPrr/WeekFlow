@@ -66,22 +66,31 @@ export default function GardenScreen() {
         <View style={styles.list}>
           {pillars.map((pillar) => {
             const interactive = Boolean(pillar.route);
+            const noData = pillar.status === 'Sin datos';
             return (
               <Pressable
                 key={pillar.key}
-                style={({ pressed }) => [styles.pillarCard, pressed && interactive && styles.cardPressed]}
+                style={({ pressed }) => [
+                  styles.pillarCard,
+                  noData && styles.pillarCardCompact,
+                  pressed && interactive && styles.cardPressed,
+                ]}
                 onPress={() => openPillar(pillar.route)}
                 disabled={!interactive}
               >
                 <View style={styles.iconWrap}><Text style={styles.icon}>{pillar.icon}</Text></View>
-                <View style={styles.cardBody}>
-                  <Text style={styles.cardTitle}>{pillar.title}</Text>
-                  <Text style={styles.cardCopy}>{pillar.evidence}</Text>
+                <View style={styles.pillarContent}>
+                  <View style={styles.pillarHeader}>
+                    <Text style={styles.cardTitle}>{pillar.title}</Text>
+                    {interactive ? <Text style={styles.arrow}>›</Text> : null}
+                  </View>
+                  <View style={styles.pillarMetaRow}>
+                    <Text style={styles.cardCopy}>{pillar.evidence}</Text>
+                    <View style={[styles.statusPill, statusStyle(pillar.status)]}>
+                      <Text style={[styles.statusText, statusTextStyle(pillar.status)]}>{pillar.status}</Text>
+                    </View>
+                  </View>
                 </View>
-                <View style={[styles.statusPill, statusStyle(pillar.status)]}>
-                  <Text style={[styles.statusText, statusTextStyle(pillar.status)]}>{pillar.status}</Text>
-                </View>
-                {interactive ? <Text style={styles.arrow}>›</Text> : null}
               </Pressable>
             );
           })}
@@ -119,14 +128,18 @@ const styles = StyleSheet.create({
   focusCopy: { color: '#B8C9DE', fontSize: 13, lineHeight: 19, marginTop: 5 },
   section: { color: '#76AFFF', fontWeight: '800', letterSpacing: 3, fontSize: 13, marginTop: 26, marginBottom: 12 },
   list: { gap: 10 },
-  pillarCard: { minHeight: 92, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 20, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 11 },
+  pillarCard: { minHeight: 96, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 20, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  pillarCardCompact: { minHeight: 82, paddingVertical: 11 },
   cardPressed: { opacity: 0.78 },
-  iconWrap: { width: 52, height: 52, borderRadius: 17, backgroundColor: colors.surface2, borderWidth: 1, borderColor: '#285785', alignItems: 'center', justifyContent: 'center' },
+  iconWrap: { width: 52, height: 52, borderRadius: 17, backgroundColor: colors.surface2, borderWidth: 1, borderColor: '#285785', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   icon: { fontSize: 25 },
+  pillarContent: { flex: 1, minWidth: 0, gap: 4 },
+  pillarHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  pillarMetaRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   cardBody: { flex: 1, minWidth: 0 },
-  cardTitle: { color: colors.text, fontWeight: '900', fontSize: 16 },
-  cardCopy: { color: colors.muted, fontSize: 12, lineHeight: 17, marginTop: 3 },
-  statusPill: { minHeight: 34, borderRadius: 18, borderWidth: 1, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center', maxWidth: 128 },
+  cardTitle: { color: colors.text, fontWeight: '900', fontSize: 16, flex: 1, flexShrink: 1 },
+  cardCopy: { color: colors.muted, fontSize: 12, lineHeight: 17, marginTop: 3, flexGrow: 1, flexShrink: 1, minWidth: 140 },
+  statusPill: { minHeight: 32, borderRadius: 17, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5, alignItems: 'center', justifyContent: 'center', flexShrink: 0, maxWidth: '100%' },
   statusBalanced: { borderColor: '#2B7FA0', backgroundColor: '#0D2C43' },
   statusAttention: { borderColor: '#8B6A2D', backgroundColor: '#2B2414' },
   statusNoData: { borderColor: colors.line, backgroundColor: colors.surface2 },
@@ -134,7 +147,7 @@ const styles = StyleSheet.create({
   statusTextBalanced: { color: '#8FD7EE' },
   statusTextAttention: { color: '#F2C66D' },
   statusTextNoData: { color: colors.muted },
-  arrow: { color: colors.blue, fontWeight: '900', fontSize: 25 },
+  arrow: { color: colors.blue, fontWeight: '900', fontSize: 25, flexShrink: 0 },
   toolCard: { minHeight: 86, backgroundColor: colors.surface, borderWidth: 1, borderColor: '#285785', borderRadius: 20, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 11 },
   toolIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#102E36', borderWidth: 1, borderColor: '#2F726F', alignItems: 'center', justifyContent: 'center' },
   footerCopy: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 18, textAlign: 'center' },
