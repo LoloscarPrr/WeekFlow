@@ -15,6 +15,14 @@ assert.match(garden, /router\.push\('\/habits'\)/);
 assert.match(garden, /buildGardenPillars/);
 assert.doesNotMatch(garden, /score global|porcentaje de vida|fallaste|perdiste|atrasad|deuda|racha perdida|streak/i);
 
+// Responsive hierarchy: the title/arrow no longer share the horizontal row with the status chip.
+assert.match(garden, /styles\.pillarHeader/);
+assert.match(garden, /styles\.pillarMetaRow/);
+assert.match(garden, /flexWrap: 'wrap'/);
+assert.match(garden, /noData && styles\.pillarCardCompact/);
+assert.match(garden, /pillarCardCompact: \{ minHeight: 82/);
+assert.match(garden, /flexShrink: 0/);
+
 for (const pillar of [
   'Descanso',
   'Alimentación',
@@ -49,4 +57,4 @@ assert.doesNotMatch(habits, /fallaste|perdiste|atrasad|deuda|racha perdida|strea
 assert.match(persistence, /HABITS_STATE_KEY = 'habits-state'/);
 assert.match(persistence, /sqliteStateStore\.write/);
 
-console.log('✓ Jardín vuelve al catastro de pilares y Hábitos conserva su flujo flexible sin castigo');
+console.log('✓ Jardín mantiene títulos respirables en pantallas angostas y Hábitos conserva su flujo flexible');
