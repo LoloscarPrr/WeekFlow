@@ -1,15 +1,18 @@
 import type { RestView } from '@/src/application/useCases/getRestView';
+import { formatGardenDays, type ConfigurableGardenPillarKey, type GardenPreferences } from '@/src/garden/preferences';
 import type { FoodDayRecord, MoveSessionRecord } from '@/src/state/persistence';
 
-export type GardenStatus = 'Equilibrado' | 'Necesita atención' | 'Sin datos';
+export type GardenStatus = 'Equilibrado' | 'Necesita atención' | 'Planificado' | 'Sin datos';
 
 export type GardenPillarSummary = {
-  key: 'rest' | 'food' | 'move' | 'relationships' | 'wellbeing' | 'home' | 'responsibilities' | 'personal';
+  key: 'rest' | 'food' | 'move' | ConfigurableGardenPillarKey;
   icon: string;
   title: string;
   evidence: string;
   status: GardenStatus;
   route: '/rest' | '/food' | '/pillars' | null;
+  configurable?: boolean;
+  planDays?: number[];
 };
 
 function mondayStart(date: Date) {
@@ -50,16 +53,37 @@ export function foodMomentsThisWeek(records: FoodDayRecord[], now = new Date()) 
   }, 0);
 }
 
+function plannedPillar(
+  key: ConfigurableGardenPillarKey,
+  icon: string,
+  title: string,
+  preferences: GardenPreferences,
+): GardenPillarSummary {
+  const plan = preferences[key];
+  return {
+    key,
+    icon,
+    title,
+    evidence: plan ? formatGardenDays(plan.days) : 'Aún sin datos.',
+    status: plan ? 'Planificado' : 'Sin datos',
+    route: null,
+    configurable: true,
+    planDays: plan?.days,
+  };
+}
+
 export function buildGardenPillars(input: {
   moveHistory: MoveSessionRecord[];
   foodHistory: FoodDayRecord[];
   restView: RestView;
+  preferences?: GardenPreferences;
   now?: Date;
 }): GardenPillarSummary[] {
   const now = input.now ?? new Date();
   const moveCount = moveSessionsThisWeek(input.moveHistory, now);
   const foodCount = foodMomentsThisWeek(input.foodHistory, now);
   const hasRestPlan = input.restView.content.kind !== 'empty';
+  const preferences = input.preferences ?? {};
 
   return [
     {
@@ -86,10 +110,10 @@ export function buildGardenPillars(input: {
       status: foodCount > 0 ? 'Equilibrado' : 'Necesita atención',
       route: '/food',
     },
-    { key: 'relationships', icon: '🫶', title: 'Relaciones', evidence: 'Aún sin datos.', status: 'Sin datos', route: null },
-    { key: 'wellbeing', icon: '🌿', title: 'Bienestar', evidence: 'Aún sin datos.', status: 'Sin datos', route: null },
-    { key: 'home', icon: '🏠', title: 'Hogar', evidence: 'Aún sin datos.', status: 'Sin datos', route: null },
-    { key: 'responsibilities', icon: '🧭', title: 'Responsabilidades', evidence: 'Aún sin datos.', status: 'Sin datos', route: null },
-    { key: 'personal', icon: '☀️', title: 'Tiempo personal', evidence: 'Aún sin datos.', status: 'Sin datos', route: null },
+    plannedPillar('relationships', '🫶', 'Relaciones', preferences),
+    plannedPillar('wellbeing', '🌿', 'Bienestar', preferences),
+    plannedPillar('home', '🏠', 'Hogar', preferences),
+    plannedPillar('responsibilities', '🧭', 'Responsabilidades', preferences),
+    plannedPillar('personal', '☀️', 'Tiempo personal', preferences),
   ];
 }
