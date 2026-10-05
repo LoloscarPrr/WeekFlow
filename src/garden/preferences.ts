@@ -1,4 +1,4 @@
-import { sqliteStateStore } from '@/src/data/local/sqlite/SQLiteStateStore';
+import { sqliteStateStore } from '../data/local/sqlite/SQLiteStateStore';
 
 export type ConfigurableGardenPillarKey = 'relationships' | 'wellbeing' | 'home' | 'responsibilities' | 'personal';
 
