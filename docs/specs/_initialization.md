@@ -2,36 +2,36 @@
 
 ## Repository and ref
 - Repository: `LoloscarPrr/WeekFlow`.
-- Base: `main` at `9a06e7f0fd402663467d4311f6d413b778798793`.
-- Working branch: `codex/wf-garden-002-responsive-cards`.
+- Base: `main` at `12add23161179cfb3bcc9bf47b2d3448967af136`.
+- Working branch: `council/wf-council-2026-10-06`.
 - Product source of truth: `WeekFlow Blueprint Maestro v4.0`.
 
 ## App / build
-- Technical app version: `0.5.3`; source Android `versionCode 95`; package `com.weekflow.app`.
-- Main Quality #231: PASS.
-- Android #162: PASS; signed APK/AAB release pipeline completed.
+- Technical app version: `0.5.4`; source Android `versionCode 96`; package `com.weekflow.app`.
+- Latest main commit is a non-code asset commit and has no workflow run associated through the available connector.
+- Local `npm run quality`: UNAVAILABLE in this session because the execution container has no network access to install repository dependencies.
 
 ## Product context / active scope
-- Current roadmap focus remains `Habits + Jardín`.
-- `WF-GARDEN-001` restored Jardín as the non-punitive catastro of the eight canonical pillars and moved Habits management to its own route.
-- Physical Redmi QA exposed a small-screen layout defect: `Alimentación` can split as `Alimentaci / ón` because the lateral status chip steals title width.
-- Smart Import remains frozen and out of scope.
+- Blueprint v4.0 defines Ahora as a single-priority surface and Move as adaptive to real time, energy, objective, feedback and equipment.
+- `WF-MOVE-007` marks the canonical Move 0.2.x exit gate as DONE; this session is a small post-gate refinement, not a reopening of Move architecture.
+- Existing Food, Rest, Habits, Jardín and Brain work is out of scope for this implementation batch.
+- Smart Import remains frozen/out of scope.
 
-## Garden responsive audit
-- Current pillar cards place icon, title/evidence body, status chip and optional arrow in one horizontal row.
-- `Necesita atención` is materially wider than the other states and can squeeze long titles on narrow devices or with larger system text.
-- Unsupported pillars correctly show `Sin datos`; their cards can be slightly more compact without changing product semantics.
-- Data sources, routes, status semantics and Habits persistence are already correct and must not change.
+## Relevant repository state
+- Move already supports profile, goals, experience, equipment/cargas, intensity adaptation, progression, guided sessions and feedback.
+- Ahora already computes a live priority card, but current visual order places summary/energy controls before that priority.
+- TLC exists, but the spec template does not yet require an explicit roadmap-phase admission decision.
 
 ## Baseline
-- PASS — main Quality #231.
-- PASS — Android #162 signed release pipeline.
-- PASS — Garden data/source regressions.
-- FAIL (physical UX gate) — long pillar titles can wrap inside words on narrow Android layouts.
+- PASS — repository metadata, branch and current version inspected.
+- PASS — relevant Move/Now source and regression tests inspected.
+- NOT RUN — current branch Quality/Android workflows (no changes committed yet).
+- UNAVAILABLE — local dependency-backed typecheck/tests.
 
 ## Next action / constraints
-- Active spec: `WF-GARDEN-002 — Tarjetas de Jardín responsivas`.
-- Give the title its own row with the navigation arrow; move evidence/status to a flexible wrapping row.
-- Compact `Sin datos` cards while preserving readability.
-- No data, persistence, routes, scores, status semantics or Habits behavior changes.
-- Target technical release: `0.5.4` / source Android `versionCode 96` if verification passes.
+- `WF-CORE-007 — Gate de fase obligatorio en specs`.
+- `WF-NOW-001 — Prioridad viva primero en Ahora`.
+- `WF-MOVE-008 — Versión más corta de la sesión`.
+- Preserve persistence schemas and existing state semantics.
+- Do not add Food, Rest, Brain, Insights or Smart Import behavior in this batch.
+- Target technical release: `0.5.5` / source Android `versionCode 97` if verification passes.
