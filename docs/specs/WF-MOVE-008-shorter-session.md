@@ -1,6 +1,6 @@
 # WF-MOVE-008 — Versión más corta de la sesión
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Approved scope: Oscar · 06-10-2026
 Blueprint: WeekFlow Blueprint Maestro v4.0
@@ -53,3 +53,15 @@ Nueva acción secundaria bajo el selector de duración.
 - Añadir test de `shorterMoveDuration`.
 - Ejecutar Quality CI.
 - Ejecutar Android build en main tras merge.
+
+## Verification result
+
+- AC1: PASS — regresiones verifican 30→20, 20→10 y 10→5.
+- AC2: PASS — regresiones verifican 15→10, 7→5 y 5→5.
+- AC3: PASS — UI solo renderiza la acción cuando `duration > 5`.
+- AC4: PASS — la acción solo cambia `duration`; preview y `startSession` siguen reutilizando preferencias, intensidad adaptativa, progresión, equipo y restricciones existentes.
+- AC5: PASS — copy: “Mantiene tu objetivo, energía, equipo y restricciones. Solo reduce el volumen...”.
+- AC6: PASS — no hay cambios de esquema ni migración.
+
+Quality #245: PASS — typecheck + regresiones completas, incluida la escalera de duración en `move-adaptation.test.ts`.
+Android release: pendiente del workflow post-merge de `main`.
