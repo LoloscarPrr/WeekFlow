@@ -4,6 +4,7 @@ import {
   recommendMoveIntensity,
   recommendMoveMinutes,
   sanitizeMovePreferences,
+  shorterMoveDuration,
   type MovePreferences,
 } from '../src/move/adaptation';
 import {
@@ -44,6 +45,13 @@ equal(recommendMoveMinutes('cansado', null, workShift), 10, 'cansado en jornada'
 equal(recommendMoveMinutes('vigoroso', 'Difícil', offShift), 20, 'feedback difícil reduce duración');
 equal(recommendMoveMinutes('vigoroso', 'Demasiado', offShift), 10, 'feedback demasiado reduce más');
 equal(recommendMoveMinutes('bien', null, offShift, true), 10, 'terminar antes reduce la siguiente propuesta sin castigo');
+
+equal(shorterMoveDuration(30), 20, '30 min ofrece versión de 20 min');
+equal(shorterMoveDuration(20), 10, '20 min ofrece versión de 10 min');
+equal(shorterMoveDuration(15), 10, 'duración intermedia baja al peldaño seguro inferior');
+equal(shorterMoveDuration(10), 5, '10 min ofrece versión mínima de 5 min');
+equal(shorterMoveDuration(7), 5, 'duración corta intermedia baja a 5 min');
+equal(shorterMoveDuration(5), 5, 'la versión mínima nunca baja de 5 min');
 
 equal(recommendMoveIntensity('agotado', 'avanzado', null), 'recuperacion', 'agotado usa recuperación');
 equal(recommendMoveIntensity('cansado', 'avanzado', null), 'suave', 'cansado usa intensidad suave');
