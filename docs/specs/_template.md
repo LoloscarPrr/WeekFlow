@@ -9,6 +9,10 @@ Describe the concrete user/product problem.
 ## Desired behavior
 Describe what must be true after this change.
 
+## Roadmap fit
+- Phase decision: NOW | BACKLOG
+- Reason: Explain why this belongs now or why it must wait.
+
 ## Scope
 - In scope:
 - Affected screens/modules:
