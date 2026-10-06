@@ -1,6 +1,6 @@
 # WF-CORE-007 — Gate de fase obligatorio en specs
 
-Status: LOCKED
+Status: DONE
 Owner: WeekFlow
 Approved scope: Oscar · 06-10-2026
 Blueprint: WeekFlow Blueprint Maestro v4.0
@@ -40,3 +40,12 @@ NONE.
 ## Verification plan
 - Revisar diff del skill y template.
 - Confirmar que no se tocaron módulos de producto.
+
+## Verification result
+
+- AC1: PASS — `.agents/skills/tlc-spec-driven/SKILL.md` exige Roadmap fit + `Phase decision: NOW | BACKLOG` antes de Code.
+- AC2: PASS — el gate prohíbe llevar una spec BACKLOG a Code hasta actualizarla a NOW y volver a revisar/bloquear alcance y ACs.
+- AC3: PASS — `docs/specs/_template.md` incluye decisión y razón.
+- AC4: PASS — este cambio solo modifica documentación/proceso.
+
+Quality #245: PASS — typecheck + regresiones completas.
