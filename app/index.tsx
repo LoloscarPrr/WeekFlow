@@ -66,40 +66,12 @@ export default function NowScreen() {
       <RefreshableScrollView contentContainerStyle={styles.content} onRefreshData={refreshNow}>
         <View style={styles.top}>
           <Brand />
-          <View style={styles.build}><Text style={styles.buildText}>Alpha 0.3.17</Text></View>
+          <View style={styles.build}><Text style={styles.buildText}>Alpha 0.5.5</Text></View>
         </View>
 
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>AHORA</Text>
-          <Text style={styles.title}>Tu día de hoy</Text>
-        </View>
-
-        <View style={styles.card}>
-          <View style={styles.cardHead}>
-            <View style={styles.brainIcon}><Text style={styles.emoji}>🧠</Text></View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>WeekFlow Brain</Text>
-              <Text style={styles.muted}>{phase === 'working' && !hasActualExit ? 'Tu jornada está en curso. El resto del día se mantiene en espera.' : plan.summary}</Text>
-            </View>
-          </View>
-          <View style={styles.stats}>
-            <Stat value={jornadaLabel} label="Hoy" />
-            <Stat value={`${snapshot.commuteOutMin}/${snapshot.commuteBackMin}`} label="Ida / vuelta" />
-            <Stat value={energyLabel(dayState.energy)} label="Energía" />
-          </View>
-        </View>
-
-        <Text style={styles.section}>¿CÓMO LLEGAS HOY?</Text>
-        <View style={styles.energyGrid}>
-          {energyOptions.map((item) => {
-            const active = item.value === dayState.energy;
-            return (
-              <Pressable key={item.value} style={[styles.energyButton, active && styles.energyButtonActive]} onPress={() => updateEnergy(item.value)}>
-                <Text style={styles.energyIcon}>{item.icon}</Text>
-                <Text style={[styles.energyText, active && styles.energyTextActive]}>{item.label}</Text>
-              </Pressable>
-            );
-          })}
+          <Text style={styles.title}>Qué importa ahora</Text>
         </View>
 
         <Text style={styles.section}>DÍA VIVO</Text>
@@ -158,6 +130,34 @@ export default function NowScreen() {
               </Pressable>
             </View>
           ) : null}
+        </View>
+
+        <View style={styles.card}>
+          <View style={styles.cardHead}>
+            <View style={styles.brainIcon}><Text style={styles.emoji}>🧠</Text></View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>WeekFlow Brain</Text>
+              <Text style={styles.muted}>{phase === 'working' && !hasActualExit ? 'Tu jornada está en curso. El resto del día se mantiene en espera.' : plan.summary}</Text>
+            </View>
+          </View>
+          <View style={styles.stats}>
+            <Stat value={jornadaLabel} label="Hoy" />
+            <Stat value={`${snapshot.commuteOutMin}/${snapshot.commuteBackMin}`} label="Ida / vuelta" />
+            <Stat value={energyLabel(dayState.energy)} label="Energía" />
+          </View>
+        </View>
+
+        <Text style={styles.section}>¿CÓMO LLEGAS HOY?</Text>
+        <View style={styles.energyGrid}>
+          {energyOptions.map((item) => {
+            const active = item.value === dayState.energy;
+            return (
+              <Pressable key={item.value} style={[styles.energyButton, active && styles.energyButtonActive]} onPress={() => updateEnergy(item.value)}>
+                <Text style={styles.energyIcon}>{item.icon}</Text>
+                <Text style={[styles.energyText, active && styles.energyTextActive]}>{item.label}</Text>
+              </Pressable>
+            );
+          })}
         </View>
 
         <Text style={styles.section}>LO QUE VIENE</Text>
