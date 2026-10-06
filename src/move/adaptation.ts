@@ -159,6 +159,13 @@ function previousDuration(value: number) {
   return 5;
 }
 
+export function shorterMoveDuration(value: number) {
+  if (!Number.isFinite(value) || value <= 5) return 5;
+  if (value <= 10) return 5;
+  if (value <= 20) return 10;
+  return 20;
+}
+
 function previousIntensity(value: MoveIntensity): MoveIntensity {
   if (value === 'alta') return 'moderada';
   if (value === 'moderada') return 'suave';

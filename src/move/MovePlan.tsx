@@ -111,6 +111,8 @@ export function MovePlan({ move }: { move: MoveController }) {
     preview,
     routine,
     doneToday,
+    shorterDuration,
+    useShorterVersion,
     startSession,
   } = move;
 
@@ -345,6 +347,15 @@ export function MovePlan({ move }: { move: MoveController }) {
                 </Pressable>
               ))}
             </View>
+
+            {duration > 5 ? (
+              <>
+                <Pressable style={styles.recommendUseButton} onPress={useShorterVersion}>
+                  <Text style={styles.recommendUseText}>Dame una versión más corta · {shorterDuration} min</Text>
+                </Pressable>
+                <Text style={styles.profileHint}>Mantiene tu objetivo, energía, equipo y restricciones. Solo reduce el volumen para que la sesión quepa de verdad.</Text>
+              </>
+            ) : null}
 
             <Pressable style={styles.primaryButton} onPress={startSession}><Text style={styles.primaryButtonText}>Empezar sesión guiada</Text></Pressable>
           </View>

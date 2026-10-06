@@ -54,12 +54,20 @@ A locked spec must contain:
 - Spec ID and status.
 - Problem statement.
 - Desired behavior.
+- Roadmap fit with a `Phase decision: NOW | BACKLOG` and a short reason.
 - Scope and non-goals.
 - Acceptance criteria written as observable outcomes.
 - Data/persistence impact.
 - UI/UX impact.
 - Edge cases and regressions to check.
 - Verification plan.
+
+### Roadmap admission gate
+Before Code, every behavior/product spec must explicitly declare whether the work belongs to the current roadmap phase:
+- `NOW` — admitted to implementation in the active phase.
+- `BACKLOG` — documented for later; do not implement it yet.
+
+A `BACKLOG` spec cannot move to Code until the spec is updated to `NOW`, its scope and acceptance criteria are reviewed again, and the change is re-locked. This gate applies even when the idea is valuable or technically easy.
 
 Do not silently broaden a locked spec. If scope changes materially, update the spec first and record the change.
 

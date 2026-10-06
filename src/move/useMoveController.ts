@@ -20,6 +20,7 @@ import {
   recommendMoveIntensity,
   recommendMoveMinutes,
   sanitizeMovePreferences,
+  shorterMoveDuration,
   type MoveAvoidArea,
   type MoveExperience,
   type MoveFocus,
@@ -257,8 +258,14 @@ export function useMoveController() {
     });
   }
 
+  const shorterDuration = shorterMoveDuration(duration);
+
   function useRecommendation() {
     setDuration(recommended);
+  }
+
+  function useShorterVersion() {
+    if (duration > 5) setDuration(shorterDuration);
   }
 
   function startSession() {
@@ -471,6 +478,8 @@ export function useMoveController() {
     sessionIntensity,
     recommendationCopy,
     useRecommendation,
+    shorterDuration,
+    useShorterVersion,
     todayShift,
     sessionDuration,
     routine,
