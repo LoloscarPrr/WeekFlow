@@ -1,6 +1,6 @@
 # WF-NOW-001 — Prioridad viva primero en Ahora
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Approved scope: Oscar · 06-10-2026
 Blueprint: WeekFlow Blueprint Maestro v4.0
@@ -49,3 +49,14 @@ Reorden visual deliberado; sin datos nuevos.
 - Typecheck + regresiones automáticas.
 - Revisión estructural del JSX.
 - Android build.
+
+## Verification result
+
+- AC1: PASS — prueba estructural y revisión de fuente confirman DÍA VIVO antes de Brain y energía.
+- AC2: PASS — encabezado visible: “Qué importa ahora”.
+- AC3: PASS — `markActualExit`, `confirmExitReplan` y `correctActualExitTime` conservan los handlers originales.
+- AC4: PASS — selector de energía y timeline siguen presentes.
+- AC5: PASS — no se modificaron dominio ni persistencia.
+
+Quality #245: PASS — typecheck + regresiones completas, incluida `now-priority-structure.test.cjs`.
+Android release: pendiente del workflow post-merge de `main`; no existe trigger pre-merge automático para este workflow.
