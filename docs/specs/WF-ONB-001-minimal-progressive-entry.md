@@ -1,6 +1,6 @@
 # WF-ONB-001 — Entrada mínima y progresiva
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Approved scope: Oscar · 07-10-2026
 Blueprint: WeekFlow Blueprint Maestro v4.0
@@ -91,3 +91,21 @@ El nombre sigue almacenado únicamente en `user-profile`.
 - Fusionar solo con Quality verde.
 - Ejecutar Android firmado post-merge y confirmar APK/AAB.
 - Prueba física de primera instalación/teclado queda como gate manual si no hay dispositivo disponible.
+
+
+## Verification result
+
+- AC1: PASS — RootLayout resuelve `shouldShowOnboarding()` y redirige fresh installs a `/onboarding`.
+- AC2: PASS — onboarding es una sola pantalla lógica y no integra Auth.
+- AC3: PASS — nombre opcional reutiliza `UserProfile.name`; vacío no bloquea.
+- AC4: PASS — “Configurar mi semana” completa y navega a `/week`.
+- AC5: PASS — “Entrar a WeekFlow” completa y navega a `/`.
+- AC6: PASS — RootLayout no renderiza BottomNav en `/onboarding`.
+- AC7: PASS — detección legacy cubre perfil, semana, Move, Food y hábitos.
+- AC8: PASS — `onboarding-state` persiste `completed` en el store existente.
+- AC9: PASS — no se modificó schema/migrations SQLite.
+- AC10: PARTIAL — Quality #248 PASS; Android firmado pendiente post-merge.
+
+Additional:
+- PASS — recordatorios no se sincronizan mientras onboarding esté pendiente, evitando pedir permiso antes del paso de notificaciones.
+- BLOCKED — primera instalación real, teclado y actualización física requieren teléfono/dispositivo y se validarán con el APK candidato.
