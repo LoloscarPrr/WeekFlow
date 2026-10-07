@@ -2,36 +2,39 @@
 
 ## Repository and ref
 - Repository: `LoloscarPrr/WeekFlow`.
-- Base: `main` at `12add23161179cfb3bcc9bf47b2d3448967af136`.
-- Working branch: `council/wf-council-2026-10-06`.
+- Base: `main` at `742fa0586f996dae02a2154828b448fd4fa564a0`.
+- Working branch: `onboarding/wf-onb-001-minimal`.
 - Product source of truth: `WeekFlow Blueprint Maestro v4.0`.
 
 ## App / build
-- Technical app version: `0.5.4`; source Android `versionCode 96`; package `com.weekflow.app`.
-- Latest main commit is a non-code asset commit and has no workflow run associated through the available connector.
-- Local `npm run quality`: UNAVAILABLE in this session because the execution container has no network access to install repository dependencies.
+- Technical app version: `0.5.5`; source Android `versionCode 97`; package `com.weekflow.app`.
+- Main Quality #247: PASS.
+- Main Android #164: PASS; signed APK + AAB published as WeekFlow Alpha v0.5.5.
+- Local dependency-backed quality: UNAVAILABLE in this session; GitHub Actions is the verification runner.
 
 ## Product context / active scope
-- Blueprint v4.0 defines Ahora as a single-priority surface and Move as adaptive to real time, energy, objective, feedback and equipment.
-- `WF-MOVE-007` marks the canonical Move 0.2.x exit gate as DONE; this session is a small post-gate refinement, not a reopening of Move architecture.
-- Existing Food, Rest, Habits, Jardín and Brain work is out of scope for this implementation batch.
-- Smart Import remains frozen/out of scope.
+- Current canonical phase: `0.6.x — Onboarding + notifications`.
+- This batch implements only the first step: minimal progressive onboarding.
+- Existing account/Auth remains optional and must not become an entry wall.
+- Notifications, smart silence, Brain/Assistant expansion and Smart Import are out of scope.
 
 ## Relevant repository state
-- Move already supports profile, goals, experience, equipment/cargas, intensity adaptation, progression, guided sessions and feedback.
-- Ahora already computes a live priority card, but current visual order places summary/energy controls before that priority.
-- TLC exists, but the spec template does not yet require an explicit roadmap-phase admission decision.
+- Existing `UserProfile` already persists `name` and `scheduleName`; onboarding must reuse it.
+- RootLayout currently opens directly into the app and always renders BottomNav.
+- Existing users may already have week/profile/Move/Food/Habits data; an update must not treat them as fresh installs.
+- SQLite key/value state can store onboarding completion without a schema migration.
 
 ## Baseline
-- PASS — repository metadata, branch and current version inspected.
-- PASS — relevant Move/Now source and regression tests inspected.
-- NOT RUN — current branch Quality/Android workflows (no changes committed yet).
-- UNAVAILABLE — local dependency-backed typecheck/tests.
+- PASS — current main/version/release inspected.
+- PASS — UserProfile, SQLite state store, RootLayout and BottomNav inspected.
+- PASS — prior 0.5.5 Android release/signing/update configuration verified.
+- NOT RUN — branch Quality/Android (no code committed yet).
 
 ## Next action / constraints
-- `WF-CORE-007 — Gate de fase obligatorio en specs`.
-- `WF-NOW-001 — Prioridad viva primero en Ahora`.
-- `WF-MOVE-008 — Versión más corta de la sesión`.
-- Preserve persistence schemas and existing state semantics.
-- Do not add Food, Rest, Brain, Insights or Smart Import behavior in this batch.
-- Target technical release: `0.5.5` / source Android `versionCode 97` if verification passes.
+- `WF-ONB-001 — Entrada mínima y progresiva`.
+- One screen only.
+- Name is optional and saved through existing UserProfile.
+- Offer configure-week-now or enter-app-now.
+- Existing installations with meaningful WeekFlow data auto-complete onboarding silently.
+- No notification permission prompt in this spec.
+- Target technical release: `0.5.6` / source Android `versionCode 98` if verification passes.
