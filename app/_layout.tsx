@@ -1,18 +1,39 @@
-import { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { router, Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppState, StyleSheet, View } from 'react-native';
 import { BottomNav } from '@/src/components/BottomNav';
 import { useAdaptiveLayout } from '@/src/presentation/layout/useAdaptiveLayout';
 import { syncLivePlanReminders } from '@/src/services/notifications';
+import { shouldShowOnboarding } from '@/src/onboarding/persistence';
 import { syncCrashReportingConsent } from '@/src/privacy/crashReporting';
 import { colors } from '@/src/theme/colors';
 
 export default function RootLayout() {
   const { isWide, stageMaxWidth } = useAdaptiveLayout();
+  const pathname = usePathname();
+  const [onboardingRequired, setOnboardingRequired] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const required = shouldShowOnboarding();
+    setOnboardingRequired(required);
+
+    if (required && pathname !== '/onboarding') {
+      router.replace('/onboarding');
+      return;
+    }
+
+    if (!required && pathname === '/onboarding') {
+      router.replace('/');
+    }
+  }, [pathname]);
 
   useEffect(() => {
     void syncCrashReportingConsent();
+  }, []);
+
+  useEffect(() => {
+    if (onboardingRequired !== false) return;
 
     void syncLivePlanReminders().catch((error) => {
       console.warn('Could not sync WeekFlow reminders', error);
@@ -26,7 +47,7 @@ export default function RootLayout() {
     });
 
     return () => subscription.remove();
-  }, []);
+  }, [onboardingRequired]);
 
   return (
     <View style={styles.root}>
@@ -37,9 +58,11 @@ export default function RootLayout() {
         </View>
       </View>
 
-      <View style={styles.navLayer}>
-        <BottomNav />
-      </View>
+      {onboardingRequired === false && pathname !== '/onboarding' ? (
+        <View style={styles.navLayer}>
+          <BottomNav />
+        </View>
+      ) : null}
     </View>
   );
 }
