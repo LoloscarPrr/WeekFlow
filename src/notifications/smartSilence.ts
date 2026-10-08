@@ -1,8 +1,8 @@
-import type { DayState } from '@/src/domain/entities/DailyState';
-import type { Shift, WeekSchedule } from '@/src/domain/entities/Shift';
-import { localDateKey } from '@/src/domain/services/shiftSchedule';
-import { restWindowForShift } from '@/src/domain/services/restPlanning';
-import type { NotificationPreferences } from '@/src/notifications/core';
+import type { DayState } from '../domain/entities/DailyState';
+import type { Shift, WeekSchedule } from '../domain/entities/Shift';
+import { localDateKey } from '../domain/services/shiftSchedule';
+import { restWindowForShift } from '../domain/services/restPlanning';
+import type { NotificationPreferences } from './core';
 
 export type SmartSilenceReminderKind =
   | 'important'
