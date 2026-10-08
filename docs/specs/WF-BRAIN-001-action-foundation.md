@@ -1,6 +1,6 @@
 # WF-BRAIN-001 — Brain Action Foundation
 
-Status: VERIFYING
+Status: DONE
 Owner: WeekFlow
 Approved scope: Oscar · 08-10-2026
 Blueprint: WeekFlow Blueprint Maestro v4.0
@@ -96,7 +96,7 @@ No hay UI nueva en 0.7.1. El contrato define el copy mínimo que futuras interfa
 - AC7: PASS — undo detecta conflicto y conserva cambios posteriores.
 - AC8: PASS — test estructural confirma ausencia de SQLite/save state en el foundation.
 - AC9: PASS — no se modificaron Brain plan, Ahora, Semana ni persistencia existente.
-- AC10: PARTIAL — Quality #260 PASS; Android firmado pendiente post-merge.
+- AC10: PASS — Quality #260/#261/#262 PASS y Android #168 generó APK + AAB firmados.
 
 Incident resolved before merge:
 - Quality #259 detectó fixtures de test con discriminated union ambiguo; corregido sin casts ni debilitamiento de tipos.
