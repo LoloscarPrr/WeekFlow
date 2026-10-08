@@ -5,6 +5,7 @@ export type NotificationPreferences = {
   departure: boolean;
   important: boolean;
   rest: boolean;
+  smartSilence: boolean;
 };
 
 export const LEGACY_NOTIFICATION_PREFERENCES: NotificationPreferences = {
@@ -12,6 +13,7 @@ export const LEGACY_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   departure: true,
   important: true,
   rest: true,
+  smartSilence: true,
 };
 
 export const FRESH_NOTIFICATION_PREFERENCES: NotificationPreferences = {
@@ -19,6 +21,7 @@ export const FRESH_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   departure: true,
   important: true,
   rest: true,
+  smartSilence: true,
 };
 
 export function sanitizeNotificationPreferences(
@@ -32,6 +35,7 @@ export function sanitizeNotificationPreferences(
     departure: typeof raw.departure === 'boolean' ? raw.departure : fallback.departure,
     important: typeof raw.important === 'boolean' ? raw.important : fallback.important,
     rest: typeof raw.rest === 'boolean' ? raw.rest : fallback.rest,
+    smartSilence: typeof raw.smartSilence === 'boolean' ? raw.smartSilence : fallback.smartSilence,
   };
 }
 
