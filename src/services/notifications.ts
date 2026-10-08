@@ -131,7 +131,7 @@ async function performLivePlanReminderSync(now: Date): Promise<number> {
   const allowed = await initializeNotifications();
   if (!allowed) return 0;
 
-  const allReminders: WeekFlowReminder[] = buildLivePlanReminders(
+  const allReminders = buildLivePlanReminders(
     loadDayState(),
     loadWeekState(),
     now,
