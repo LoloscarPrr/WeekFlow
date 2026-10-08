@@ -8,8 +8,10 @@ function ok(value, message) {
   if (!value) throw new Error(message);
 }
 
-ok(context.includes('getNowView'), 'contexto debe reutilizar getNowView');
-ok(context.includes('getRestView'), 'contexto debe reutilizar getRestView');
+ok(controller.includes('getNowView'), 'controller debe reutilizar getNowView');
+ok(controller.includes('getRestView'), 'controller debe reutilizar getRestView');
+ok(!context.includes('getNowView'), 'builder puro no debe depender de getNowView');
+ok(!context.includes('getRestView'), 'builder puro no debe depender de getRestView');
 ok(controller.includes('loadDayState'), 'controller debe leer DayState canónico');
 ok(controller.includes('loadWeekState'), 'controller debe leer Semana canónica');
 ok(controller.includes('loadMoveHistory'), 'controller debe leer Move real');
