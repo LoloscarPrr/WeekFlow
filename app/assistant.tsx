@@ -12,6 +12,12 @@ const controls = [
     path: '/account',
   },
   {
+    icon: '🔔',
+    title: 'Notificaciones',
+    body: 'Elige qué momentos pueden avisarte.',
+    path: '/notifications',
+  },
+  {
     icon: '🔒',
     title: 'Privacidad y datos',
     body: 'Datos locales e informes de fallos.',
