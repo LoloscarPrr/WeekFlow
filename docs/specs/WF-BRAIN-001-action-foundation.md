@@ -1,6 +1,6 @@
 # WF-BRAIN-001 — Brain Action Foundation
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Approved scope: Oscar · 08-10-2026
 Blueprint: WeekFlow Blueprint Maestro v4.0
@@ -83,3 +83,21 @@ No hay UI nueva en 0.7.1. El contrato define el copy mínimo que futuras interfa
 ## Implementation notes
 - La comparación de conflicto será determinista sobre el target afectado, no sobre todo el estado global.
 - El recibo guarda snapshots del target para permitir undo sin depender de una cola persistente.
+
+
+## Verification result
+
+- AC1: PASS — proposal incluye id, kind, title, explanation, payload, createdAt y requiresConfirmation.
+- AC2: PASS — `confirmation-required` conserva el estado y no genera receipt.
+- AC3: PASS — `set-energy` delega en `updateNowEnergy`.
+- AC4: PASS — `update-week-shift` delega en `updateWeekShift`.
+- AC5: PASS — aplicación genera receipt con before/after y appliedAt.
+- AC6: PASS — undo válido revierte el target al snapshot anterior.
+- AC7: PASS — undo detecta conflicto y conserva cambios posteriores.
+- AC8: PASS — test estructural confirma ausencia de SQLite/save state en el foundation.
+- AC9: PASS — no se modificaron Brain plan, Ahora, Semana ni persistencia existente.
+- AC10: PARTIAL — Quality #260 PASS; Android firmado pendiente post-merge.
+
+Incident resolved before merge:
+- Quality #259 detectó fixtures de test con discriminated union ambiguo; corregido sin casts ni debilitamiento de tipos.
+- Quality #260: PASS.
