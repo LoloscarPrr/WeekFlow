@@ -7,7 +7,9 @@ import {
   saveNotificationPreferences,
 } from '@/src/notifications/persistence';
 import type { NotificationPreferences } from '@/src/notifications/core';
+import { nextProtectedRestWindow } from '@/src/notifications/smartSilence';
 import { syncLivePlanReminders } from '@/src/services/notifications';
+import { loadDayState, loadWeekState } from '@/src/state/persistence';
 import { colors } from '@/src/theme/colors';
 
 type PreferenceKey = 'departure' | 'important' | 'rest';
@@ -38,13 +40,25 @@ const rows: {
   },
 ];
 
+function hm(date: Date) {
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+
+function protectedWindowLabel() {
+  const window = nextProtectedRestWindow(loadDayState(), loadWeekState());
+  if (!window) return 'No hay una ventana de descanso próxima que proteger.';
+  return `Próximo descanso protegido: ${hm(window.startsAt)}–${hm(window.endsAt)}.`;
+}
+
 export default function NotificationPreferencesScreen() {
   const [preferences, setPreferences] = useState(() => loadNotificationPreferences());
   const [status, setStatus] = useState('Los cambios se guardan en este teléfono.');
+  const [restProtectionLabel, setRestProtectionLabel] = useState(() => protectedWindowLabel());
 
   function apply(next: NotificationPreferences) {
     const saved = saveNotificationPreferences(next);
     setPreferences(saved);
+    setRestProtectionLabel(protectedWindowLabel());
     setStatus(saved.enabled ? 'Actualizando recordatorios…' : 'Recordatorios de WeekFlow apagados.');
 
     void syncLivePlanReminders()
@@ -113,13 +127,31 @@ export default function NotificationPreferencesScreen() {
           ))}
         </View>
 
+        <Text style={styles.section}>DESCANSO PROTEGIDO</Text>
+
+        <View style={styles.masterCard}>
+          <View style={styles.rowCopy}>
+            <Text style={styles.cardTitle}>Proteger mi descanso</Text>
+            <Text style={styles.cardBody}>
+              Durante tu ventana principal de sueño, WeekFlow silencia avisos secundarios. Salida al trabajo, Rest y momentos importantes siguen permitidos.
+            </Text>
+            <Text style={styles.protectedWindow}>{restProtectionLabel}</Text>
+          </View>
+          <Switch
+            value={preferences.smartSilence}
+            onValueChange={(smartSilence) => apply({ ...preferences, smartSilence })}
+            disabled={!preferences.enabled}
+            accessibilityLabel="Proteger mi descanso"
+          />
+        </View>
+
         <View style={styles.statusCard}>
           <Text style={styles.statusTitle}>Estado</Text>
           <Text style={styles.statusBody}>{status}</Text>
         </View>
 
         <Text style={styles.footer}>
-          El silencio inteligente vendrá después. Por ahora, estas preferencias solo deciden qué tipos de recordatorio puede programar WeekFlow.
+          Esta protección usa tu plan Rest y tus turnos. Es una regla visible y reversible; no aprende ni cambia tus preferencias por su cuenta.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -183,5 +215,6 @@ const styles = StyleSheet.create({
   },
   statusTitle: { color: '#8BBEFF', fontWeight: '900', fontSize: 12 },
   statusBody: { color: colors.text, fontSize: 12, lineHeight: 18, marginTop: 4 },
+  protectedWindow: { color: '#8BBEFF', fontSize: 12, lineHeight: 18, fontWeight: '800', marginTop: 8 },
   footer: { color: '#7187A6', fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 18 },
 });

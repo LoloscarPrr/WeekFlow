@@ -34,6 +34,7 @@ const onlyRest = enabledReminderKinds({
   departure: false,
   important: false,
   rest: true,
+  smartSilence: true,
 });
 equal(onlyRest.length, 1, 'solo una categoría activa');
 equal(onlyRest[0], 'rest', 'Rest queda activa');

@@ -3,6 +3,11 @@ import * as Notifications from 'expo-notifications';
 import { buildLivePlanReminders } from '@/src/domain/services/reminderPlan';
 import { isReminderKindEnabled } from '@/src/notifications/core';
 import { loadNotificationPreferences } from '@/src/notifications/persistence';
+import {
+  buildProtectedRestWindows,
+  interruptionDecision,
+  type SmartSilenceReminderKind,
+} from '@/src/notifications/smartSilence';
 import { loadDayState, loadWeekState } from '@/src/state/persistence';
 
 export const WEEKFLOW_NOTIFICATION_CHANNEL = 'weekflow-reminders-v2';
@@ -103,6 +108,17 @@ export async function scheduleReminder(reminder: WeekFlowReminder): Promise<stri
     && !isReminderKindEnabled(preferences, reminder.kind)
   ) return null;
 
+  const dayState = loadDayState();
+  const weekState = loadWeekState();
+  const windows = buildProtectedRestWindows(dayState, weekState);
+  const decision = interruptionDecision(
+    preferences,
+    (reminder.kind ?? 'general') as SmartSilenceReminderKind,
+    reminder.at,
+    windows,
+  );
+  if (!decision.allowed) return null;
+
   const allowed = await initializeNotifications();
   if (!allowed) return null;
   return scheduleAllowedReminder(reminder);
@@ -131,13 +147,17 @@ async function performLivePlanReminderSync(now: Date): Promise<number> {
   const allowed = await initializeNotifications();
   if (!allowed) return 0;
 
+  const dayState = loadDayState();
+  const weekState = loadWeekState();
   const allReminders = buildLivePlanReminders(
-    loadDayState(),
-    loadWeekState(),
+    dayState,
+    weekState,
     now,
   );
+  const windows = buildProtectedRestWindows(dayState, weekState, now);
   const reminders = allReminders.filter((reminder) =>
-    isReminderKindEnabled(preferences, reminder.kind),
+    isReminderKindEnabled(preferences, reminder.kind)
+    && interruptionDecision(preferences, reminder.kind, reminder.at, windows).allowed,
   );
 
   const desiredIds = new Set(reminders.map((reminder) => reminder.id));

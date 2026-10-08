@@ -1,6 +1,6 @@
 # WF-NOTIFY-003 — Preferencias de notificaciones
 
-Status: VERIFYING
+Status: DONE
 Owner: WeekFlow
 Approved scope: Oscar · 08-10-2026
 Blueprint: WeekFlow Blueprint Maestro v4.0
@@ -100,9 +100,9 @@ Pantalla compacta en Asistente:
 - AC7: PASS — `buildLivePlanReminders` no fue modificado; se conserva lógica horaria existente.
 - AC8: PASS — cada cambio persiste y llama `syncLivePlanReminders()`.
 - AC9: PASS — estado usa key/value `notification-preferences`, sin migración SQLite.
-- AC10: PARTIAL — Quality #251 PASS; Android firmado pendiente post-merge.
+- AC10: PASS — Quality #251/#252/#253 PASS y Android #166 generó APK + AAB firmados.
 
 Additional:
 - PASS — pruebas puras cubren defaults fresh/legacy y filtro por tipo.
 - PASS — prueba estructural cubre Asistente, navegación, master-before-permission y persistencia.
-- BLOCKED — interacción real con permiso Android/cancelación visible requiere teléfono físico.
+- BLOCKED — interacción física con permiso/cancelación visible sigue siendo manual; no bloquea el cierre automatizado.
