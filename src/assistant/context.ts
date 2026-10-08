@@ -1,7 +1,4 @@
-import { getNowView } from '../application/useCases/getNowView';
-import { getRestView } from '../application/useCases/getRestView';
 import type { DayState, Energy } from '../domain/entities/DailyState';
-import type { WeekSchedule } from '../domain/entities/Shift';
 import type { UserProfile } from '../domain/entities/UserProfile';
 import { localDateKey } from '../domain/services/shiftSchedule';
 import type { FoodDayRecord } from '../food/history';
@@ -10,12 +7,27 @@ export type AssistantMoveRecord = {
   finishedAt: string;
 };
 
+export type AssistantNowContext = {
+  live: {
+    title: string;
+    blue: string;
+  };
+  jornadaLabel: string;
+  phase: string;
+};
+
+export type AssistantRestContext = {
+  contextTitle: string;
+  contextMeta: string;
+};
+
 export type AssistantRealStateInput = {
   profile: UserProfile;
   dayState: DayState;
-  weekState: WeekSchedule;
   moveHistory: AssistantMoveRecord[];
   foodDay: FoodDayRecord;
+  nowView: AssistantNowContext;
+  restView: AssistantRestContext;
   now: Date;
 };
 
@@ -66,19 +78,13 @@ function lastFoodTitle(foodDay: FoodDayRecord) {
 export function buildAssistantRealState({
   profile,
   dayState,
-  weekState,
   moveHistory,
   foodDay,
+  nowView,
+  restView,
   now,
 }: AssistantRealStateInput): AssistantRealState {
   const moveDone = moveDoneToday(moveHistory, now);
-  const nowView = getNowView({
-    dayState,
-    weekState,
-    moveDoneToday: moveDone,
-    now,
-  });
-  const restView = getRestView(dayState, weekState, now);
   const lastFood = lastFoodTitle(foodDay);
   const count = foodDay.entries.length;
 
