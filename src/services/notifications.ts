@@ -1,6 +1,8 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { buildLivePlanReminders } from '@/src/domain/services/reminderPlan';
+import { isReminderKindEnabled } from '@/src/notifications/core';
+import { loadNotificationPreferences } from '@/src/notifications/persistence';
 import { loadDayState, loadWeekState } from '@/src/state/persistence';
 
 export const WEEKFLOW_NOTIFICATION_CHANNEL = 'weekflow-reminders-v2';
@@ -94,6 +96,13 @@ async function scheduleAllowedReminder(reminder: WeekFlowReminder): Promise<stri
 }
 
 export async function scheduleReminder(reminder: WeekFlowReminder): Promise<string | null> {
+  const preferences = loadNotificationPreferences();
+  if (!preferences.enabled) return null;
+  if (
+    (reminder.kind === 'departure' || reminder.kind === 'important' || reminder.kind === 'rest')
+    && !isReminderKindEnabled(preferences, reminder.kind)
+  ) return null;
+
   const allowed = await initializeNotifications();
   if (!allowed) return null;
   return scheduleAllowedReminder(reminder);
@@ -113,13 +122,22 @@ export async function getScheduledReminders() {
 }
 
 async function performLivePlanReminderSync(now: Date): Promise<number> {
+  const preferences = loadNotificationPreferences();
+  if (!preferences.enabled) {
+    await cancelAllWeekFlowReminders();
+    return 0;
+  }
+
   const allowed = await initializeNotifications();
   if (!allowed) return 0;
 
-  const reminders: WeekFlowReminder[] = buildLivePlanReminders(
+  const allReminders: WeekFlowReminder[] = buildLivePlanReminders(
     loadDayState(),
     loadWeekState(),
     now,
+  );
+  const reminders = allReminders.filter((reminder) =>
+    isReminderKindEnabled(preferences, reminder.kind),
   );
 
   const desiredIds = new Set(reminders.map((reminder) => reminder.id));
@@ -129,7 +147,7 @@ async function performLivePlanReminderSync(now: Date): Promise<number> {
       .filter((notification) => {
         const id = logicalReminderId(notification);
         if (id !== null) return !desiredIds.has(id);
-        return reminders.some((reminder) => isLegacyEquivalent(notification, reminder));
+        return allReminders.some((reminder) => isLegacyEquivalent(notification, reminder));
       })
       .map((notification) => Notifications.cancelScheduledNotificationAsync(notification.identifier)),
   );
