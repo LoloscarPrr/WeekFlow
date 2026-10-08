@@ -1,6 +1,6 @@
 # WF-NOTIFY-004 — Silencio inteligente y descanso protegido
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Approved scope: Oscar · 08-10-2026
 Blueprint: WeekFlow Blueprint Maestro v4.0
@@ -80,3 +80,25 @@ La pantalla Notificaciones agrega una sección:
 - Merge solo en verde.
 - Android firmado post-merge.
 - Prueba física de comportamiento del sistema queda manual.
+
+
+## Verification result
+
+- AC1: PASS — `smartSilence` forma parte de preferencias y defaults fresh/legacy.
+- AC2: PASS — ventanas protegidas reutilizan `restWindowForShift`.
+- AC3: PASS — food/move/general se suprimen dentro de descanso protegido.
+- AC4: PASS — important/departure/rest se conservan como prioridad explícita.
+- AC5: PASS — smartSilence=false deja pasar recordatorios por política.
+- AC6: PASS — UI expone “Proteger mi descanso”.
+- AC7: PASS — UI muestra próxima ventana protegida cuando existe.
+- AC8: PASS — tests puros + estructurales pasan en Quality #256.
+- AC9: PASS — no se modificó schema SQLite.
+- AC10: PARTIAL — Quality #256 PASS; Android firmado pendiente post-merge.
+
+Incidents resolved before merge:
+- Quality #254 detectó fixture antiguo sin `smartSilence`; corregido.
+- Quality #255 detectó alias incompatible con runner Node del test puro; imports relativos corregidos.
+- Quality #256: PASS.
+
+Physical:
+- BLOCKED — comportamiento visible del sistema durante una ventana real de sueño requiere prueba en teléfono.
