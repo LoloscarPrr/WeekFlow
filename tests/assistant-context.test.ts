@@ -1,5 +1,5 @@
 import { buildAssistantRealState } from '../src/assistant/context';
-import { defaultDayState, defaultUserProfile, defaultWeekState } from '../src/domain/defaults';
+import { defaultDayState, defaultUserProfile } from '../src/domain/defaults';
 
 function equal<T>(actual: T, expected: T, message: string) {
   if (!Object.is(actual, expected)) {
@@ -17,15 +17,6 @@ const base = buildAssistantRealState({
   dayState: defaultDayState,
   moveHistory: [],
   foodDay: { date: '2026-10-08', entries: [] },
-  nowView: {
-    live: { title: 'Día despejado', blue: 'Sin pendientes inmediatos' },
-    jornadaLabel: 'Libre',
-    phase: 'off',
-  },
-  restView: {
-    contextTitle: 'Día abierto',
-    contextMeta: 'Sin presión por completar una rutina.',
-  },
   nowView: {
     live: { title: 'Día despejado', blue: 'Sin pendientes inmediatos' },
     jornadaLabel: 'Libre',
@@ -64,6 +55,15 @@ const enriched = buildAssistantRealState({
       { id: '1', at: foodAt2.toISOString(), title: 'Yogur', kind: 'snack', source: 'manual' },
       { id: '2', at: foodAt1.toISOString(), title: 'Desayuno', kind: 'meal', source: 'manual' },
     ],
+  },
+  nowView: {
+    live: { title: 'Día despejado', blue: 'Sin pendientes inmediatos' },
+    jornadaLabel: 'Libre',
+    phase: 'off',
+  },
+  restView: {
+    contextTitle: 'Día abierto',
+    contextMeta: 'Sin presión por completar una rutina.',
   },
   now,
 });
