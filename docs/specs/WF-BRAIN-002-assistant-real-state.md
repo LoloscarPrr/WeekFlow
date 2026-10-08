@@ -1,6 +1,6 @@
 # WF-BRAIN-002 — Asistente conectado al estado real
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Approved scope: Oscar · 08-10-2026
 Blueprint: WeekFlow Blueprint Maestro v4.0
@@ -79,3 +79,22 @@ None. El controller solo lee persistencia existente.
 - Quality en PR.
 - Merge solo con Quality verde.
 - Android firmado post-merge.
+
+
+## Verification result
+
+- AC1: PASS — controller lee perfil, DayState, WeekSchedule, Move y Food desde persistencia canónica.
+- AC2: PASS — controller deriva Ahora mediante `getNowView`.
+- AC3: PASS — controller deriva Rest mediante `getRestView`.
+- AC4: PASS — builder detecta sesión Move terminada en la fecha local actual.
+- AC5: PASS — builder cuenta Food de hoy y selecciona el último registro cronológico.
+- AC6: PASS — Asistente muestra estado vivo, energía, jornada, Move, Food y Rest.
+- AC7: PASS — `useFocusEffect` vuelve a leer las fuentes al recuperar foco.
+- AC8: PASS — builder/controller no guardan estado ni usan nuevas claves SQLite.
+- AC9: PASS — Cuenta, Notificaciones, Privacidad, Horario e Importar se conservan.
+- AC10: PARTIAL — Quality #266 PASS; Android firmado pendiente post-merge.
+
+Incident resolved before merge:
+- Quality #263 detectó que el test puro arrastraba aliases Expo desde `getNowView`.
+- Se corrigió la frontera: controller deriva Now/Rest; builder puro recibe esas vistas canónicas.
+- Quality #266: PASS.
