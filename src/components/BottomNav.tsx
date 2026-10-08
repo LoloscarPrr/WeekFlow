@@ -46,7 +46,7 @@ export function BottomNav() {
             : pathname === item.path
               || pathname.startsWith(`${item.path}/`)
               || (item.path === '/week' && pathname === '/import')
-              || (item.path === '/assistant' && ['/privacy', '/account'].includes(pathname))
+              || (item.path === '/assistant' && ['/privacy', '/account', '/notifications'].includes(pathname))
               || (item.path === '/pillars' && ['/food', '/food-library', '/food-shopping', '/food-prep', '/rest', '/move-library'].includes(pathname));
           return (
             <Pressable
