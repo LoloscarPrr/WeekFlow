@@ -88,8 +88,12 @@ equal(weekApplied.state.weekState.shifts[0].type, 'morning', 'turno conserva cla
 equal(weekApplied.state.weekState.source, 'manual', 'cambio de turno usa semántica Week existente');
 
 const noOpProposal: BrainActionProposal = {
-  ...energyProposal,
   id: 'energy-noop',
+  kind: 'set-energy',
+  title: 'Mantener energía del día',
+  explanation: 'La energía registrada ya coincide con la propuesta.',
+  createdAt: '2026-10-08T12:10:00.000Z',
+  requiresConfirmation: true,
   payload: { energy: 'bien' },
 };
 const noOp = applyBrainAction(initialState(), noOpProposal, { confirmed: true });
@@ -99,8 +103,12 @@ equal(noOp.message, 'El estado ya estaba como proponía WeekFlow.', 'no-op se ex
 let invalidDayRejected = false;
 try {
   createBrainActionProposal({
-    ...shiftProposal,
     id: 'invalid-day',
+    kind: 'update-week-shift',
+    title: 'Turno inválido',
+    explanation: 'Esta propuesta debe rechazarse por día fuera de rango.',
+    createdAt: '2026-10-08T12:15:00.000Z',
+    requiresConfirmation: true,
     payload: { day: 9, patch: { start: '09:00' } },
   });
 } catch {
