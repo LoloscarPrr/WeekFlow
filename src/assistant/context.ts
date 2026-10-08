@@ -60,7 +60,7 @@ function moveDoneToday(moveHistory: AssistantMoveRecord[], now: Date) {
 
 function lastFoodTitle(foodDay: FoodDayRecord) {
   const sorted = [...foodDay.entries].sort((a, b) => a.at.localeCompare(b.at));
-  return sorted.at(-1)?.title ?? null;
+  return sorted.length > 0 ? sorted[sorted.length - 1].title : null;
 }
 
 export function buildAssistantRealState({
