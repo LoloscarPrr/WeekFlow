@@ -15,9 +15,26 @@ const now = new Date(2026, 9, 8, 10, 0, 0, 0);
 const base = buildAssistantRealState({
   profile: defaultUserProfile,
   dayState: defaultDayState,
-  weekState: defaultWeekState,
   moveHistory: [],
   foodDay: { date: '2026-10-08', entries: [] },
+  nowView: {
+    live: { title: 'Día despejado', blue: 'Sin pendientes inmediatos' },
+    jornadaLabel: 'Libre',
+    phase: 'off',
+  },
+  restView: {
+    contextTitle: 'Día abierto',
+    contextMeta: 'Sin presión por completar una rutina.',
+  },
+  nowView: {
+    live: { title: 'Día despejado', blue: 'Sin pendientes inmediatos' },
+    jornadaLabel: 'Libre',
+    phase: 'off',
+  },
+  restView: {
+    contextTitle: 'Día abierto',
+    contextMeta: 'Sin presión por completar una rutina.',
+  },
   now,
 });
 
@@ -40,7 +57,6 @@ foodAt2.setHours(9, 30, 0, 0);
 const enriched = buildAssistantRealState({
   profile: { name: 'Oscar', scheduleName: '' },
   dayState: { ...defaultDayState, energy: 'cansado' },
-  weekState: defaultWeekState,
   moveHistory: [{ finishedAt: moveAt.toISOString() }],
   foodDay: {
     date: '2026-10-08',
