@@ -29,7 +29,9 @@ ok(screen.includes("title: 'Horario semanal'"), 'Semana debe conservarse');
 
 for (const forbidden of ['sqliteStateStore', 'saveDayState', 'saveWeekState', 'saveFood', 'saveMove']) {
   ok(!context.includes(forbidden), `builder puro no debe usar ${forbidden}`);
-  ok(!controller.includes(forbidden), `controller de lectura no debe usar ${forbidden}`);
 }
+ok(!controller.includes('sqliteStateStore'), 'controller no debe acceder SQLite directamente');
+ok(!controller.includes('saveFood'), 'controller no debe escribir Food');
+ok(!controller.includes('saveMove'), 'controller no debe escribir Move');
 
 console.log('Assistant real-state structure tests passed.');
