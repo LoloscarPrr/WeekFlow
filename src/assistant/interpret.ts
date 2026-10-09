@@ -27,7 +27,7 @@ function mondayBasedDay(date: Date) {
 function parseEnergy(text: string) {
   if (/\b(agotado|agotada|muerto|muerta)\b/.test(text)) return 'agotado' as const;
   if (/\b(cansado|cansada|poca energia|poca energía)\b/.test(text)) return 'cansado' as const;
-  if (/\b(vigoroso|vigorosa|harta energia|harta energía|mucha energia|mucha energía)\b/.test(text)) return 'vigoroso' as const;
+  if (/\b(vigoroso|vigorosa|harta energia|harta energía|mucha energia|mucha energía|con energia|con energía)\b/.test(text)) return 'vigoroso' as const;
   if (/\b(estoy bien|ando bien|me siento bien)\b/.test(text)) return 'bien' as const;
   return null;
 }
