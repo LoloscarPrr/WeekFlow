@@ -1,6 +1,6 @@
 # WF-BRAIN-002 — Asistente conectado al estado real
 
-Status: VERIFYING
+Status: DONE
 Owner: WeekFlow
 Approved scope: Oscar · 08-10-2026
 Blueprint: WeekFlow Blueprint Maestro v4.0
@@ -92,7 +92,7 @@ None. El controller solo lee persistencia existente.
 - AC7: PASS — `useFocusEffect` vuelve a leer las fuentes al recuperar foco.
 - AC8: PASS — builder/controller no guardan estado ni usan nuevas claves SQLite.
 - AC9: PASS — Cuenta, Notificaciones, Privacidad, Horario e Importar se conservan.
-- AC10: PARTIAL — Quality #266 PASS; Android firmado pendiente post-merge.
+- AC10: PASS — Quality #266/#267/#268 PASS y Android #169 generó APK + AAB firmados.
 
 Incident resolved before merge:
 - Quality #263 detectó que el test puro arrastraba aliases Expo desde `getNowView`.
