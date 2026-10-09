@@ -1,6 +1,6 @@
 # WF-BRAIN-003 — Primeras acciones conversacionales
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Approved scope: Oscar · 09-10-2026
 Blueprint: WeekFlow Blueprint Maestro v4.0
@@ -74,3 +74,22 @@ Nueva sección “CUÉNTAME QUÉ CAMBIÓ” sobre Estado real. Input multiline b
 - Quality PR.
 - Merge solo en verde.
 - Android firmado post-merge.
+
+
+## Verification result
+
+- AC1: PASS — frases de energía generan propuestas `set-energy`.
+- AC2: PASS — “mañana entro/salgo a las HH[:MM]” genera `update-week-shift` sobre el día correspondiente.
+- AC3: PASS — lunes–domingo se resuelven a índices 0–6.
+- AC4: PASS — horas inválidas, entrada+salida simultáneas y frases fuera de alcance no generan propuesta.
+- AC5: PASS — toda propuesta conversacional usa `requiresConfirmation: true`.
+- AC6: PASS — confirmar pasa por `applyBrainAction` y persiste solo DayState o WeekSchedule según el target.
+- AC7: PASS — cancelar elimina la propuesta y no escribe estado.
+- AC8: PASS — después de aplicar se reconstruye Estado real y se resincronizan recordatorios.
+- AC9: PASS — input multiline, teclado persistente en ScrollView y controles existentes conservados.
+- AC10: PARTIAL — Quality #270 PASS; Android firmado pendiente post-merge.
+
+Incident resolved before merge:
+- Quality #269 falló porque la regresión de 0.7.2 exigía controller estrictamente read-only.
+- Guard actualizado: builder sigue puro y el controller solo puede escribir DayState/WeekSchedule tras confirmación.
+- Quality #270: PASS.
