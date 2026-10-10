@@ -5,6 +5,7 @@ import DateTimePicker from '@expo/ui/community/datetime-picker';
 import { Brand } from '@/src/components/Brand';
 import { RefreshableScrollView } from '@/src/components/AppRefresh';
 import { ImportantEventCard } from '@/src/components/ImportantEventCard';
+import { WeeklyPlannerPreview } from '@/src/components/WeeklyPlannerPreview';
 import { useWeekController } from '@/src/presentation/week/useWeekController';
 import { shiftSummaryLabel } from '@/src/domain/services/weekPresentation';
 import { colors } from '@/src/theme/colors';
@@ -133,6 +134,8 @@ export default function WeekScreen() {
             onSave={saveImportantMoment}
             onDelete={deleteImportantMoment}
           />
+
+          <WeeklyPlannerPreview week={week} />
 
           <View style={[styles.ritualCard, week.organizedAt ? styles.ritualCardDone : null]}>
             <Text style={[styles.ritualEyebrow, week.organizedAt ? styles.ritualEyebrowDone : null]}>
