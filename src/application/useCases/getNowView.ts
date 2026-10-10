@@ -6,7 +6,7 @@ import type { Shift, WeekSchedule } from '@/src/domain/entities/Shift';
 import { longLocalDateLabel, shortLocalDateLabel } from '@/src/domain/services/calendarDate';
 import { importantMomentsForDate } from '@/src/domain/services/importantMoments';
 import { IMPORTANT_MOMENT_ICON, timelineAfterFeaturedMoment } from '@/src/domain/services/nowTimeline';
-import { nextWorkingShift, shiftContextForDate, type ShiftContext } from '@/src/domain/services/shiftSchedule';
+import { shiftContextForDate, type ShiftContext } from '@/src/domain/services/shiftSchedule';
 
 export type DayPhase = 'off' | 'before' | 'commuting' | 'working' | 'after';
 
@@ -206,7 +206,17 @@ function liveCard(
 
 export function getNowView({ dayState, weekState, moveDoneToday, now }: GetNowViewInput): NowView {
   const postShiftCarryMin = dayState.settings.commuteBackMin + dayState.settings.recoveryMin + 30;
-  const shiftContext = shiftContextForDate(weekState, now, postShiftCarryMin);
+  // On a day off following an overnight shift, keep the prior shift as the
+  // active planning context while its main sleep window is protected. Otherwise
+  // the free-day template incorrectly schedules activity during post-shift sleep.
+  // Never extend this carry over a workday's own scheduled shift.
+  const regularContext = shiftContextForDate(weekState, now, postShiftCarryMin);
+  const extendedContext = regularContext.overnightCarry || regularContext.shift.type === 'off'
+    ? shiftContextForDate(weekState, now, postShiftCarryMin + 8 * 60)
+    : regularContext;
+  const shiftContext = extendedContext.overnightCarry && extendedContext.shift.type === 'night'
+    ? extendedContext
+    : regularContext;
   const todayShift = shiftContext.shift;
   const snapshot: BrainSnapshot = {
     ...dayState.settings,
@@ -277,16 +287,9 @@ export function getNowView({ dayState, weekState, moveDoneToday, now }: GetNowVi
       });
     }
 
-    const nextShift = nextWorkingShift(weekState, now);
-    if (nextShift) {
-      const nextSnapshot: BrainSnapshot = {
-        ...dayState.settings,
-        shift: nextShift.shift,
-        energy: dayState.energy,
-      };
-      const nextPlan = buildBrainPlan(nextSnapshot);
-      extraRealityMoments.push(...datedPlanMoments(nextPlan.moments, nextShift.startAt, now));
-    }
+    // Do not append the next workday's pre-shift routine while recovering.
+    // A Monday wake-up must not appear in Saturday's immediate timeline.
+
   }
 
   const upcomingMoments = [
