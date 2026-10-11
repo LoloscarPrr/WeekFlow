@@ -19,9 +19,15 @@ export function loadConfirmedWeeklyPlan(): ConfirmedWeeklyPlan | null {
  */
 export function confirmWeeklyProposal(proposal: WeeklyProposal): { ok: boolean; reason?: string; plan?: ConfirmedWeeklyPlan } {
   const day = loadDayState();
+  const currentMonday = new Date();
+  currentMonday.setHours(0, 0, 0, 0);
+  currentMonday.setDate(currentMonday.getDate() - (currentMonday.getDay() + 6) % 7);
+  const nextMonday = new Date(currentMonday);
+  nextMonday.setDate(nextMonday.getDate() + 7);
+  const nextKey = `${nextMonday.getFullYear()}-${String(nextMonday.getMonth() + 1).padStart(2, '0')}-${String(nextMonday.getDate()).padStart(2, '0')}`;
   const current = proposeWeeklyPlan({
     week: loadWeekState(), habits: loadHabitsState(), settings: day.settings,
-    energy: day.energy, now: new Date(),
+    energy: day.energy, now: new Date(), weekOffset: proposal.weekStart === nextKey ? 1 : 0,
   });
   const signature = (p: WeeklyProposal) => JSON.stringify({
     weekStart: p.weekStart,
