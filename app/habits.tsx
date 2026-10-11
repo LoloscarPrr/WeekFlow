@@ -19,6 +19,7 @@ import {
 } from '@/src/habits/core';
 import { loadHabitsState, saveHabitsState } from '@/src/habits/persistence';
 import { colors } from '@/src/theme/colors';
+import { loadConfirmedWeeklyPlan, type ConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
 
 const frequencyOptions = [1, 2, 3, 4, 5, 7] as const;
 const shortDays = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'] as const;
@@ -44,6 +45,7 @@ function planDateLabel(key: string, now = new Date()) {
 
 export default function HabitsScreen() {
   const [habitsState, setHabitsState] = useState<HabitsState>(() => loadHabitsState());
+  const [confirmedPlan, setConfirmedPlan] = useState<ConfirmedWeeklyPlan | null>(() => loadConfirmedWeeklyPlan());
   const [name, setName] = useState('');
   const [miniVersion, setMiniVersion] = useState('');
   const [targetPerWeek, setTargetPerWeek] = useState(3);
@@ -53,7 +55,7 @@ export default function HabitsScreen() {
   const habits = useMemo(() => habitsState.habits.filter((habit) => habit.active), [habitsState.habits]);
   const replanOptions = nextHabitPlanDates(new Date(), 7);
 
-  const refresh = useCallback(() => setHabitsState(loadHabitsState()), []);
+  const refresh = useCallback(() => { setHabitsState(loadHabitsState()); setConfirmedPlan(loadConfirmedWeeklyPlan()); }, []);
   useFocusEffect(useCallback(() => refresh(), [refresh]));
 
   function persist(next: HabitsState) {
@@ -140,6 +142,7 @@ export default function HabitsScreen() {
                 const today = completionForDate(habitsState, habit.id);
                 const weekDone = completionsThisWeek(habitsState, habit.id);
                 const activePlan = visibleHabitPlan(habit);
+                const confirmedSlots = (confirmedPlan?.slots ?? []).filter(s => s.habitId === habit.id && s.date >= new Date().toLocaleDateString('en-CA') && !habitsState.completions.some(done => done.habitId === habit.id && done.date === s.date));
                 const isReplanning = replanningId === habit.id;
                 return (
                   <View key={habit.id} style={styles.habitCard}>
@@ -152,6 +155,13 @@ export default function HabitsScreen() {
                       </View>
                       <Pressable onPress={() => startEditing(habit)} hitSlop={8}><Text style={styles.editText}>Editar</Text></Pressable>
                     </View>
+
+                    {confirmedSlots.length > 0 ? (
+                      <View style={styles.planNote}>
+                        <Text style={styles.planLabel}>SESIONES DE SEMANA CONFIRMADA</Text>
+                        {confirmedSlots.map(s => <Text key={s.id} style={styles.planCopy}>{planDateLabel(s.date)} · {s.start}–{s.end}{s.variant === 'mini' ? ' · Mini' : ''}</Text>)}
+                      </View>
+                    ) : null}
 
                     {activePlan && !today ? (
                       <View style={styles.planNote}>
