@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Alert } from 'react-native';
+import { confirmWeeklyProposal, loadConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { WeekSchedule } from '@/src/domain/entities/Shift';
 import { loadDayState } from '@/src/state/persistence';
@@ -14,6 +16,19 @@ function label(dateKey: string) {
 }
 export function WeeklyPlannerPreview({ week }: { week: WeekSchedule }) {
   const [proposal, setProposal] = useState<WeeklyProposal | null>(null);
+  const [confirmed, setConfirmed] = useState(() => loadConfirmedWeeklyPlan());
+  function confirm() {
+    if (!proposal) return;
+    const result = confirmWeeklyProposal(proposal);
+    if (!result.ok) {
+      Alert.alert('Propuesta desactualizada', result.reason || 'Vuelve a calcular la semana.');
+      setProposal(null);
+      return;
+    }
+    setConfirmed(result.plan || null);
+    setProposal(null);
+    Alert.alert('Semana confirmada', 'Las sesiones quedaron guardadas sin borrar tus hábitos ni el historial.');
+  }
   function preview() {
     const day = loadDayState();
     setProposal(proposeWeeklyPlan({
@@ -28,7 +43,8 @@ export function WeeklyPlannerPreview({ week }: { week: WeekSchedule }) {
     <View style={styles.card}>
       <Text style={styles.eyebrow}>WEEKFLOW BRAIN · VISTA PREVIA</Text>
       <Text style={styles.title}>Reorganizar tus hábitos</Text>
-      <Text style={styles.copy}>Calcula una propuesta con tus hábitos guardados y los turnos de esta semana. No se guarda ningún cambio.</Text>
+      <Text style={styles.copy}>Calcula una propuesta con tus hábitos y turnos. Solo se guarda cuando confirmes.</Text>
+      {confirmed ? <Text style={styles.heading}>Plan confirmado: semana del {label(confirmed.weekStart)} · {confirmed.slots.length} sesiones</Text> : null}
       <Pressable accessibilityRole="button" style={styles.button} onPress={preview}>
         <Text style={styles.buttonText}>{proposal ? 'Volver a calcular' : 'Ver propuesta semanal'}</Text>
       </Pressable>
@@ -49,7 +65,10 @@ export function WeeklyPlannerPreview({ week }: { week: WeekSchedule }) {
           {proposal.warnings.map((warning, index) => (
             <Text key={index} style={styles.warning}>• {warning}</Text>
           ))}
-          <Text style={styles.foot}>Solo vista previa. Confirmar y guardar la propuesta estará disponible en la siguiente etapa, cuando se verifiquen la persistencia y los recordatorios.</Text>
+          <Text style={styles.foot}>Revisa toda la propuesta. Confirmar guarda únicamente las sesiones semanales en un registro separado; no cambia tus turnos ni tus hábitos originales.</Text>
+          <Pressable accessibilityRole="button" style={styles.button} onPress={confirm}>
+            <Text style={styles.buttonText}>Confirmar y guardar semana</Text>
+          </Pressable>
           <Pressable accessibilityRole="button" style={styles.discard} onPress={() => setProposal(null)}>
             <Text style={styles.discardText}>Descartar propuesta</Text>
           </Pressable>
