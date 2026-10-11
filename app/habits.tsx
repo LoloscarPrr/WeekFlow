@@ -6,6 +6,7 @@ import { Brand } from '@/src/components/Brand';
 import { KeyboardAwareScrollView, KeyboardAwareTextInput as TextInput } from '@/src/components/KeyboardAwareScrollView';
 import {
   clearHabitPlan,
+  localHabitDateKey,
   completeHabit,
   completionForDate,
   completionsThisWeek,
@@ -142,7 +143,7 @@ export default function HabitsScreen() {
                 const today = completionForDate(habitsState, habit.id);
                 const weekDone = completionsThisWeek(habitsState, habit.id);
                 const activePlan = visibleHabitPlan(habit);
-                const confirmedSlots = (confirmedPlan?.slots ?? []).filter(s => s.habitId === habit.id && s.date >= new Date().toLocaleDateString('en-CA') && !habitsState.completions.some(done => done.habitId === habit.id && done.date === s.date));
+                const confirmedSlots = (confirmedPlan?.slots ?? []).filter(s => s.habitId === habit.id && s.date >= localHabitDateKey() && !habitsState.completions.some(done => done.habitId === habit.id && done.date === s.date));
                 const isReplanning = replanningId === habit.id;
                 return (
                   <View key={habit.id} style={styles.habitCard}>
