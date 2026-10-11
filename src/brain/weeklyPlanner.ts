@@ -31,6 +31,7 @@ export type PlannerInput = {
   energy: Energy;
   now: Date;
   durationByHabit?: Record<string, number>;
+  weekOffset?: 0 | 1;
 };
 
 const MINUTE = 60000;
@@ -110,6 +111,7 @@ function durationFor(habit: Habit, input: PlannerInput) {
 }
 export function proposeWeeklyPlan(input: PlannerInput): WeeklyProposal {
   const monday = getMonday(input.now);
+  if (input.weekOffset === 1) monday.setDate(monday.getDate() + 7);
   const dates = Array.from({ length: 7 }, (_, i) => {
     const date = new Date(monday);
     date.setDate(date.getDate() + i);
@@ -123,7 +125,7 @@ export function proposeWeeklyPlan(input: PlannerInput): WeeklyProposal {
   const completedByHabit = new Map<string, number>();
   // Spread scarce targets before packing more occurrences of the same habit.
   const needs = active.flatMap(h => {
-    const completed = completionsThisWeek(input.habits, h.id, input.now);
+    const completed = input.weekOffset === 1 ? 0 : completionsThisWeek(input.habits, h.id, input.now);
     completedByHabit.set(h.id, completed);
     const remaining = Math.max(0, h.targetPerWeek - completed);
     return Array.from({ length: remaining }, (_, index) => ({ habit: h, index }));
@@ -140,7 +142,7 @@ export function proposeWeeklyPlan(input: PlannerInput): WeeklyProposal {
       if (slots.some(s => s.habitId === habit.id && s.date === key)) continue;
       const dayCount = slots.filter(s => s.date === key).length;
       if (dayCount >= (input.energy === 'agotado' ? 1 : 2)) continue;
-      // Daily planning horizon is intentionally limited; don't infer a wake-up time.
+      // Only use future time. Daily planning does not infer a wake-up time.
       for (let minute = 10 * 60; minute <= 20 * 60 - duration; minute += 30) {
         const start = dayAt(day, minute);
         const end = new Date(start.getTime() + duration * MINUTE);
@@ -169,6 +171,7 @@ export function proposeWeeklyPlan(input: PlannerInput): WeeklyProposal {
     const scheduled = scheduledByHabit.get(h.id) || 0;
     return completed + scheduled < h.targetPerWeek ? [{ habitId: h.id, title: h.name, requested: h.targetPerWeek, scheduled, completed }] : [];
   });
+  if (input.weekOffset === 0 && input.now.getDay() === 0) warnings.push('Queda poco de la semana actual: puedes seleccionar la próxima semana para distribuir tus hábitos.');
   if (shortfalls.length) warnings.push('No hay espacios seguros suficientes para todos los objetivos; no se recorta el descanso para completarlos.');
   if (input.week.importantMoments.length) warnings.push('Los eventos actuales no tienen duración guardada: se reservan 60 minutos como protección provisional.');
   warnings.push('El descanso principal no tiene registro de hora real de despertar: no se generan alarmas ni cambios de sueño.');
