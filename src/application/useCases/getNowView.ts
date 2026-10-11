@@ -1,3 +1,6 @@
+import { confirmedMomentsForNow } from '@/src/brain/confirmedPlanMoments';
+import { loadConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
+import { loadHabitsState } from '@/src/habits/persistence';
 import { buildBrainPlan, replanAfterActualExit } from '@/src/brain/engine';
 import { assessExitReplanImpact, type ExitReplanImpact } from '@/src/brain/exitImpact';
 import type { DayState } from '@/src/domain/entities/DailyState';
@@ -296,6 +299,7 @@ export function getNowView({ dayState, weekState, moveDoneToday, now }: GetNowVi
     ...datedPlanMoments(plan.moments, shiftContext.startAt, now),
     ...extraRealityMoments,
     ...datedImportantMoments,
+    ...confirmedMomentsForNow(loadConfirmedWeeklyPlan(), loadHabitsState(), now),
   ]
     .filter(({ item, at }) => {
       if (moveDoneToday && item.type === 'move') return false;
