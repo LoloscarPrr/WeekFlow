@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
+import { recordDailyEnergy } from '@/src/brain/energyHistory';
 import { getNowView } from '@/src/application/useCases/getNowView';
 import {
   correctActualExitTime as correctActualExitTimeUseCase,
@@ -56,6 +57,7 @@ export function useNowController() {
   );
 
   const updateEnergy = useCallback((energy: Energy) => {
+    recordDailyEnergy(energy);
     setDayState((current) => updateNowEnergy(current, energy));
   }, []);
 
