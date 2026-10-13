@@ -3,6 +3,7 @@ import { Alert } from 'react-native';
 import { confirmWeeklyProposal, loadConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { WeekSchedule } from '@/src/domain/entities/Shift';
+import { loadDailyEnergy } from '@/src/brain/energyHistory';
 import { loadDayState } from '@/src/state/persistence';
 import { loadHabitsState } from '@/src/habits/persistence';
 import { proposeWeeklyPlan, type WeeklyProposal } from '@/src/brain/weeklyPlanner';
@@ -37,6 +38,7 @@ export function WeeklyPlannerPreview({ week }: { week: WeekSchedule }) {
       habits: loadHabitsState(),
       settings: day.settings,
       energy: day.energy,
+      energyByDate: loadDailyEnergy(),
       now: new Date(),
       weekOffset,
     }));
