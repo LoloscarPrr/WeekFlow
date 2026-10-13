@@ -1,3 +1,4 @@
+import { loadDailyEnergy } from './energyHistory';
 import { sqliteStateStore } from '../data/local/sqlite/SQLiteStateStore';
 import { loadWeekState, loadDayState } from '../state/persistence';
 import { loadHabitsState } from '../habits/persistence';
@@ -27,7 +28,7 @@ export function confirmWeeklyProposal(proposal: WeeklyProposal): { ok: boolean; 
   const nextKey = `${nextMonday.getFullYear()}-${String(nextMonday.getMonth() + 1).padStart(2, '0')}-${String(nextMonday.getDate()).padStart(2, '0')}`;
   const current = proposeWeeklyPlan({
     week: loadWeekState(), habits: loadHabitsState(), settings: day.settings,
-    energy: day.energy, now: new Date(), weekOffset: proposal.weekStart === nextKey ? 1 : 0,
+    energy: day.energy, energyByDate: loadDailyEnergy(), now: new Date(), weekOffset: proposal.weekStart === nextKey ? 1 : 0,
   });
   const signature = (p: WeeklyProposal) => JSON.stringify({
     weekStart: p.weekStart,
