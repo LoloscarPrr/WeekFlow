@@ -118,6 +118,22 @@ export function proposeWeeklyPlan(input: PlannerInput): WeeklyProposal {
     return date;
   });
   const protectedTimes = protectedIntervals(input.week, monday, input.settings);
+  // Days following overnight work are recovery days, even when some time remains unblocked.
+  const recoveryDates = new Set<string>();
+  for (let i = -1; i < 7; i++) {
+    const date = new Date(monday);
+    date.setDate(date.getDate() + i);
+    const shift = input.week.shifts.find(s => s.day === (date.getDay() + 6) % 7);
+    if (!shift || shift.type === 'off') continue;
+    const start = minuteOf(shift.start);
+    const end = minuteOf(shift.end);
+    if (start === null || end === null) continue;
+    if (end <= start || start >= 19 * 60) {
+      const following = new Date(date);
+      following.setDate(following.getDate() + 1);
+      recoveryDates.add(localHabitDateKey(following));
+    }
+  }
   const slots: WeeklySlot[] = [];
   const warnings: string[] = [];
   const active = input.habits.habits.filter(h => h.active);
@@ -141,7 +157,10 @@ export function proposeWeeklyPlan(input: PlannerInput): WeeklyProposal {
       if (input.habits.completions.some(c => c.habitId === habit.id && c.date === key)) continue;
       if (slots.some(s => s.habitId === habit.id && s.date === key)) continue;
       const dayCount = slots.filter(s => s.date === key).length;
-      if (dayCount >= (input.energy === 'agotado' ? 1 : 2)) continue;
+      const isRecoveryDay = recoveryDates.has(key);
+      // Recovery is non-negotiable. Never stack activities after a night shift.
+      const maxDaily = isRecoveryDay || input.energy === 'agotado' ? 1 : 2;
+      if (dayCount >= maxDaily) continue;
       // Only use future time. Daily planning does not infer a wake-up time.
       for (let minute = 10 * 60; minute <= 20 * 60 - duration; minute += 30) {
         const start = dayAt(day, minute);
@@ -150,7 +169,12 @@ export function proposeWeeklyPlan(input: PlannerInput): WeeklyProposal {
         if (protectedTimes.some(p => overlaps(start, end, p.start, p.end))) continue;
         if (slots.some(s => overlaps(start, end, new Date(s.date + 'T' + s.start + ':00'), new Date(s.date + 'T' + s.end + ':00')))) continue;
         // Strongly prefer different days and avoid stacking all habits on Sunday.
-        const score = dayCount * 100 + Math.abs(i - (need.index * 7 / Math.max(1, habit.targetPerWeek))) * 9 + Math.abs(minute - 15 * 60) / 60;
+        const sameHabitDays = slots.filter(s => s.habitId === habit.id).map(s => dates.findIndex(d => localHabitDateKey(d) === s.date));
+        const separationPenalty = sameHabitDays.reduce((total, usedDay) => total + (Math.abs(usedDay - i) === 1 ? 110 : Math.abs(usedDay - i) === 2 ? 25 : 0), 0);
+        const plannedPosition = need.index * 7 / Math.max(1, habit.targetPerWeek);
+        // Prefer spreading sessions, while reserving a lighter recovery day.
+        const score = dayCount * 120 + separationPenalty + (isRecoveryDay ? 95 : 0)
+          + Math.abs(i - plannedPosition) * 7 + Math.abs(minute - 15 * 60) / 60;
         if (!best || score < best.score) best = { date: day, start, score };
       }
     }
@@ -172,6 +196,7 @@ export function proposeWeeklyPlan(input: PlannerInput): WeeklyProposal {
     return completed + scheduled < h.targetPerWeek ? [{ habitId: h.id, title: h.name, requested: h.targetPerWeek, scheduled, completed }] : [];
   });
   if (input.weekOffset === 0 && input.now.getDay() === 0) warnings.push('Queda poco de la semana actual: puedes seleccionar la próxima semana para distribuir tus hábitos.');
+  if (recoveryDates.size) warnings.push('Se redujo la carga en días posteriores a turnos nocturnos para proteger la recuperación.');
   if (shortfalls.length) warnings.push('No hay espacios seguros suficientes para todos los objetivos; no se recorta el descanso para completarlos.');
   if (input.week.importantMoments.length) warnings.push('Los eventos actuales no tienen duración guardada: se reservan 60 minutos como protección provisional.');
   warnings.push('El descanso principal no tiene registro de hora real de despertar: no se generan alarmas ni cambios de sueño.');
