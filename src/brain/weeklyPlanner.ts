@@ -32,6 +32,8 @@ export type PlannerInput = {
   now: Date;
   durationByHabit?: Record<string, number>;
   weekOffset?: 0 | 1;
+  /** Optional dated energy reports; otherwise use current energy conservatively. */
+  energyByDate?: Record<string, Energy>;
 };
 
 const MINUTE = 60000;
@@ -102,11 +104,11 @@ function protectedIntervals(
   }
   return blocked;
 }
-function durationFor(habit: Habit, input: PlannerInput) {
+function durationFor(habit: Habit, input: PlannerInput, energy: Energy) {
   const configured = input.durationByHabit?.[habit.id];
   const base = Number.isFinite(configured) && configured! > 0 ? configured! : 30;
   const full = Math.min(120, Math.max(10, Math.round(base / 5) * 5));
-  const mini = Boolean(habit.miniVersion) && (input.energy === 'cansado' || input.energy === 'agotado');
+  const mini = Boolean(habit.miniVersion) && (energy === 'cansado' || energy === 'agotado');
   return { duration: mini ? Math.min(15, full) : full, variant: mini ? 'mini' as const : 'full' as const };
 }
 export function proposeWeeklyPlan(input: PlannerInput): WeeklyProposal {
@@ -149,8 +151,7 @@ export function proposeWeeklyPlan(input: PlannerInput): WeeklyProposal {
 
   for (const need of needs) {
     const habit = need.habit;
-    const { duration, variant } = durationFor(habit, input);
-    let best: { date: Date; start: Date; score: number } | null = null;
+    let best: { date: Date; start: Date; score: number; duration: number; variant: 'full' | 'mini' } | null = null;
     for (let i = 0; i < 7; i++) {
       const day = dates[i];
       const key = localHabitDateKey(day);
@@ -158,8 +159,10 @@ export function proposeWeeklyPlan(input: PlannerInput): WeeklyProposal {
       if (slots.some(s => s.habitId === habit.id && s.date === key)) continue;
       const dayCount = slots.filter(s => s.date === key).length;
       const isRecoveryDay = recoveryDates.has(key);
+      const dailyEnergy = input.energyByDate?.[key] ?? (isRecoveryDay ? 'cansado' : input.energy);
+      const { duration, variant } = durationFor(habit, input, dailyEnergy);
       // Recovery is non-negotiable. Never stack activities after a night shift.
-      const maxDaily = isRecoveryDay || input.energy === 'agotado' ? 1 : 2;
+      const maxDaily = isRecoveryDay || dailyEnergy === 'agotado' ? 1 : 2;
       if (dayCount >= maxDaily) continue;
       // Only use future time. Daily planning does not infer a wake-up time.
       for (let minute = 10 * 60; minute <= 20 * 60 - duration; minute += 30) {
@@ -175,10 +178,11 @@ export function proposeWeeklyPlan(input: PlannerInput): WeeklyProposal {
         // Prefer spreading sessions, while reserving a lighter recovery day.
         const score = dayCount * 120 + separationPenalty + (isRecoveryDay ? 95 : 0)
           + Math.abs(i - plannedPosition) * 7 + Math.abs(minute - 15 * 60) / 60;
-        if (!best || score < best.score) best = { date: day, start, score };
+        if (!best || score < best.score) best = { date: day, start, score, duration, variant };
       }
     }
     if (!best) continue;
+    const { duration, variant } = best;
     const end = new Date(best.start.getTime() + duration * MINUTE);
     const date = localHabitDateKey(best.date);
     slots.push({
@@ -186,7 +190,7 @@ export function proposeWeeklyPlan(input: PlannerInput): WeeklyProposal {
       habitId: habit.id,
       title: variant === 'mini' ? habit.miniVersion || habit.name : habit.name,
       date, start: clock(best.start), end: clock(end), durationMin: duration, variant,
-      explanation: variant === 'mini' ? 'Versión breve sugerida por energía baja.' : 'Espacio disponible sin conflicto con trabajo y recuperación.',
+      explanation: variant === 'mini' ? 'Versión breve sugerida según energía y recuperación de ese día.' : 'Espacio disponible sin conflicto con trabajo y recuperación.',
     });
     scheduledByHabit.set(habit.id, (scheduledByHabit.get(habit.id) || 0) + 1);
   }
