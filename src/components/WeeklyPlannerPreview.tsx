@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { syncLivePlanReminders } from '@/src/services/notifications';
 import { Alert } from 'react-native';
 import { confirmWeeklyProposal, loadConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -29,6 +30,7 @@ export function WeeklyPlannerPreview({ week }: { week: WeekSchedule }) {
     }
     setConfirmed(result.plan || null);
     setProposal(null);
+    void syncLivePlanReminders().catch(error => console.warn('Could not synchronize confirmed habit reminders', error));
     Alert.alert('Semana confirmada', 'Las sesiones quedaron guardadas sin borrar tus hábitos ni el historial.');
   }
   function preview() {
