@@ -26,7 +26,8 @@ import {
   type FoodRecipeMatch,
 } from '@/src/food/recommendations';
 import { RECIPES, type FoodRecipe } from '@/src/food/recipes';
-import { contextCopy, contextTitle, foodContextForShift } from '@/src/food/suggestions';
+import { contextCopy, contextTitle, type FoodContext } from '@/src/food/suggestions';
+import { shiftContextForDate } from '@/src/domain/services/shiftSchedule';
 import {
   loadDayState,
   loadFoodDay,
@@ -41,7 +42,6 @@ import {
   saveFoodPantry,
   saveFoodPreferences,
   saveFoodShopping,
-  shiftForDate,
   updateFoodEntryTime,
   type FoodDayRecord,
   type FoodEntry,
@@ -84,8 +84,18 @@ export default function FoodScreen() {
   const [guidedRecipe, setGuidedRecipe] = useState<FoodRecipe | null>(null);
   const [editingEntry, setEditingEntry] = useState<FoodEntry | null>(null);
 
-  const todayShift = useMemo(() => shiftForDate(weekState, clockNow), [clockNow, weekState]);
-  const context = useMemo(() => foodContextForShift(clockNow, todayShift), [clockNow, todayShift]);
+  const shiftWindow = useMemo(() => shiftContextForDate(weekState, clockNow), [clockNow, weekState]);
+  const todayShift = shiftWindow.shift;
+  const context = useMemo<FoodContext>(() => {
+    if (!shiftWindow.startAt || !shiftWindow.endAt) return 'free';
+    const start = new Date(shiftWindow.startAt).getTime();
+    const end = new Date(shiftWindow.endAt).getTime();
+    const now = clockNow.getTime();
+    if (now >= start && now < end) return 'working';
+    if (now < start && start - now <= 180 * 60000) return 'before';
+    if (now >= end && now - end <= 240 * 60000) return 'after';
+    return 'free';
+  }, [clockNow, shiftWindow]);
   const lowEnergy = dayState.energy === 'cansado' || dayState.energy === 'agotado';
   const recentConsumptions = useMemo(
     () => recentFoodRecipeConsumptions(foodHistory, RECIPES, foodDay.date),
