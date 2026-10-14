@@ -295,11 +295,17 @@ export function getNowView({ dayState, weekState, moveDoneToday, now }: GetNowVi
 
   }
 
+  const mainSleepWake = plan.mode === 'night-shift'
+    ? datedPlanMoments(plan.moments, shiftContext.startAt, now).find(entry => entry.item.type === 'wake')?.at
+    : undefined;
+  const confirmedForNow = confirmedMomentsForNow(loadConfirmedWeeklyPlan(), loadHabitsState(), now)
+    .filter(({ at }) => !mainSleepWake || at >= mainSleepWake);
+
   const upcomingMoments = [
     ...datedPlanMoments(plan.moments, shiftContext.startAt, now),
     ...extraRealityMoments,
     ...datedImportantMoments,
-    ...confirmedMomentsForNow(loadConfirmedWeeklyPlan(), loadHabitsState(), now),
+    ...confirmedForNow,
   ]
     .filter(({ item, at }) => {
       if (moveDoneToday && item.type === 'move') return false;
