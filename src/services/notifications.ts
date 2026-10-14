@@ -1,5 +1,7 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import { loadConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
+import { loadHabitsState } from '@/src/habits/persistence';
 import { buildLivePlanReminders } from '@/src/domain/services/reminderPlan';
 import { isReminderKindEnabled } from '@/src/notifications/core';
 import { loadNotificationPreferences } from '@/src/notifications/persistence';
@@ -154,9 +156,25 @@ async function performLivePlanReminderSync(now: Date): Promise<number> {
     weekState,
     now,
   );
+  const confirmed = loadConfirmedWeeklyPlan();
+  const habits = loadHabitsState();
+  const habitReminders: WeekFlowReminder[] = (confirmed?.slots ?? []).flatMap((slot) => {
+    const habit = habits.habits.find(h => h.id === slot.habitId && h.active);
+    if (!habit || habits.completions.some(entry => entry.habitId === habit.id && entry.date === slot.date)) return [];
+    const [year, month, day] = slot.date.split('-').map(Number);
+    const [hour, minute] = slot.start.split(':').map(Number);
+    const at = new Date(year, month - 1, day, hour, minute);
+    if (at <= now || at.getTime() > now.getTime() + 14 * 86400000) return [];
+    return [{
+      id: 'weekly-habit-' + slot.id,
+      title: '🌱 ' + habit.name,
+      body: slot.variant === 'mini' ? 'Tu versión mini está programada para ahora.' : 'Tienes un espacio reservado para este hábito.',
+      at, kind: 'general' as const,
+    }];
+  });
   const windows = buildProtectedRestWindows(dayState, weekState, now);
-  const reminders = allReminders.filter((reminder) =>
-    isReminderKindEnabled(preferences, reminder.kind)
+  const reminders = [...allReminders, ...habitReminders].filter((reminder) =>
+    (reminder.kind === 'general' || isReminderKindEnabled(preferences, reminder.kind))
     && interruptionDecision(preferences, reminder.kind, reminder.at, windows).allowed,
   );
 
