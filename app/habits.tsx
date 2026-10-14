@@ -20,6 +20,7 @@ import {
 } from '@/src/habits/core';
 import { loadHabitsState, saveHabitsState } from '@/src/habits/persistence';
 import { colors } from '@/src/theme/colors';
+import { syncLivePlanReminders } from '@/src/services/notifications';
 import { loadConfirmedWeeklyPlan, type ConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
 
 const frequencyOptions = [1, 2, 3, 4, 5, 7] as const;
@@ -61,6 +62,7 @@ export default function HabitsScreen() {
 
   function persist(next: HabitsState) {
     setHabitsState(saveHabitsState(next));
+    void syncLivePlanReminders().catch(error => console.warn('Could not sync habit reminders', error));
   }
 
   function resetForm() {
