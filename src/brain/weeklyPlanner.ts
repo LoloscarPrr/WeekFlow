@@ -96,6 +96,14 @@ function protectedIntervals(
     const endMargin = Math.max(0, settings.commuteBackMin + settings.recoveryMin);
     blocked.push({ start: new Date(s.start.getTime() - startMargin * MINUTE), end: s.start });
     blocked.push({ start: s.end, end: new Date(s.end.getTime() + endMargin * MINUTE) });
+    // Match Brain's pre-shift wake calculation. A night-shift wake is not
+    // available time: protect the preceding main sleep window as well.
+    if (s.end.getDate() !== s.start.getDate() || s.start.getHours() >= 19) {
+      const wakeLeadMin = settings.commuteOutMin + settings.bufferMin
+        + settings.prepMin + settings.mealMin + 20;
+      const wakeAt = new Date(s.start.getTime() - wakeLeadMin * MINUTE);
+      blocked.push({ start: new Date(wakeAt.getTime() - 8 * 60 * MINUTE), end: wakeAt });
+    }
     // Protect the post-night sleep: free time is not automatically usable time.
     if (s.end.getDate() !== s.start.getDate() || s.start.getHours() >= 19) {
       const sleepAt = new Date(s.end.getTime() + endMargin * MINUTE);
