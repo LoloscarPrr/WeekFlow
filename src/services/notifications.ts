@@ -173,10 +173,8 @@ async function performLivePlanReminderSync(now: Date): Promise<number> {
     }];
   });
   const windows = buildProtectedRestWindows(dayState, weekState, now);
-  const reminders = [...allReminders, ...habitReminders].filter((reminder) =>
-    (reminder.kind === 'general' || isReminderKindEnabled(preferences, reminder.kind))
-    && interruptionDecision(preferences, reminder.kind, reminder.at, windows).allowed,
-  );
+  const reminders = [...allReminders.filter(reminder => isReminderKindEnabled(preferences, reminder.kind)), ...habitReminders]
+    .filter(reminder => interruptionDecision(preferences, reminder.kind ?? 'general', reminder.at, windows).allowed);
 
   const desiredIds = new Set(reminders.map((reminder) => reminder.id));
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
