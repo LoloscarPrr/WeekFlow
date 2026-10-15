@@ -22,8 +22,6 @@ export function MoveHome({ move }: { move: MoveController }) {
         >
           <Brand />
           <PillarTabs active="move" />
-          <Text style={styles.eyebrow}>PILARES · MOVE</Text>
-          <Text style={styles.title}>Una sesión real, no una etiqueta.</Text>
           {move.finished ? <MoveFeedback move={move} /> : <MovePlan move={move} />}
         </RefreshableScrollView>
       </KeyboardAvoidingView>
