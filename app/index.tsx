@@ -24,10 +24,6 @@ function remainingLabel(totalMinutes: number) {
   return `${hours} h ${minutes} min restantes`;
 }
 
-function energyLabel(energy: Energy) {
-  return energyOptions.find((item) => item.value === energy)?.label ?? 'Bien';
-}
-
 function deltaLabel(deltaMinutes: number) {
   if (deltaMinutes === 0) return 'a la hora programada';
   const absolute = Math.abs(deltaMinutes);
@@ -49,14 +45,12 @@ export default function NowScreen() {
     correctActualExitTime,
     todayShift,
     snapshot,
-    plan,
     hasActualExit,
     exitImpact,
     needsExitReview,
     phase,
     workProgress,
     timelineMoments,
-    jornadaLabel,
     live,
   } = useNowController();
   const [exitEditorOpen, setExitEditorOpen] = useState(false);
@@ -69,12 +63,7 @@ export default function NowScreen() {
           <View style={styles.build}><Text style={styles.buildText}>Alpha 0.5.5</Text></View>
         </View>
 
-        <View style={styles.hero}>
-          <Text style={styles.eyebrow}>AHORA</Text>
-          <Text style={styles.title}>Qué importa ahora</Text>
-        </View>
-
-        <Text style={styles.section}>DÍA VIVO</Text>
+        <Text style={styles.section}>AHORA</Text>
         <View style={styles.liveCard}>
           <View style={styles.liveRow}>
             <View style={styles.liveIcon}><Text style={styles.emoji}>{live.icon}</Text></View>
@@ -132,20 +121,9 @@ export default function NowScreen() {
           ) : null}
         </View>
 
-        <View style={styles.card}>
-          <View style={styles.cardHead}>
-            <View style={styles.brainIcon}><Text style={styles.emoji}>🧠</Text></View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>WeekFlow Brain</Text>
-              <Text style={styles.muted}>{phase === 'working' && !hasActualExit ? 'Tu jornada está en curso. El resto del día se mantiene en espera.' : plan.summary}</Text>
-            </View>
-          </View>
-          <View style={styles.stats}>
-            <Stat value={jornadaLabel} label="Hoy" />
-            <Stat value={`${snapshot.commuteOutMin}/${snapshot.commuteBackMin}`} label="Ida / vuelta" />
-            <Stat value={energyLabel(dayState.energy)} label="Energía" />
-          </View>
-        </View>
+        {snapshot.commuteOutMin > 0 || snapshot.commuteBackMin > 0 ? (
+          <Text style={styles.commute}>Traslado · {snapshot.commuteOutMin} min ida / {snapshot.commuteBackMin} min vuelta</Text>
+        ) : null}
 
         <Text style={styles.section}>¿CÓMO LLEGAS HOY?</Text>
         <View style={styles.energyGrid}>
@@ -185,8 +163,7 @@ export default function NowScreen() {
           }) : (
             <View style={styles.emptyTimeline}>
               <Text style={styles.emptyTimelineTitle}>Nada urgente después de esto.</Text>
-              <Text style={styles.emptyTimelineCopy}>Dejamos el espacio libre en vez de llenarlo por llenar.</Text>
-            </View>
+              </View>
           )}
         </View>
       </RefreshableScrollView>
@@ -206,17 +183,9 @@ export default function NowScreen() {
   );
 }
 
-function Stat({ value, label }: { value: string; label: string }) {
-  return (
-    <View style={styles.stat}>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
+  commute: { color: colors.muted, fontSize: 12, marginTop: 12 },
   content: { padding: 22, paddingBottom: 96 },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   build: { paddingHorizontal: 13, paddingVertical: 9, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
