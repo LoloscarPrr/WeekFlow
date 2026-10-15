@@ -52,15 +52,7 @@ export default function GardenScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <Brand />
-        <Text style={styles.eyebrow}>JARDÍN</Text>
         <Text style={styles.title}>Tu jardín esta semana.</Text>
-        <Text style={styles.intro}>Una vista amable de cómo estás cuidando tus pilares. No es una nota ni una competencia.</Text>
-
-        <View style={styles.focusCard}>
-          <Text style={styles.focusEyebrow}>VISTA GENERAL</Text>
-          <Text style={styles.focusTitle}>Cuidar no significa completar todo.</Text>
-          <Text style={styles.focusCopy}>WeekFlow muestra señales reales cuando las tiene y dice “Sin datos” cuando todavía no sabe. No rellena huecos inventando progreso.</Text>
-        </View>
 
         <Text style={styles.section}>TUS PILARES</Text>
         <View style={styles.list}>
@@ -103,14 +95,13 @@ export default function GardenScreen() {
             <Text style={styles.cardTitle}>Hábitos flexibles</Text>
             <Text style={styles.cardCopy}>
               {snapshot.activeHabits > 0
-                ? `${snapshot.activeHabits} ${snapshot.activeHabits === 1 ? 'hábito activo' : 'hábitos activos'}. Gestiona frecuencia, mini-versión y próximo día.`
-                : 'Crea hábitos por frecuencia semanal, con mini-versiones y sin rachas punitivas.'}
+                ? `${snapshot.activeHabits} ${snapshot.activeHabits === 1 ? 'hábito activo' : 'hábitos activos'}`
+                : 'Sin hábitos todavía'}
             </Text>
           </View>
           <Text style={styles.arrow}>›</Text>
         </Pressable>
 
-        <Text style={styles.footerCopy}>Los pilares sin datos se activarán cuando WeekFlow tenga una fuente real y coherente para ellos.</Text>
       </ScrollView>
     </SafeAreaView>
   );
