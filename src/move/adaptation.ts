@@ -147,23 +147,8 @@ const MOVE_EXPERIENCES = new Set<MoveExperience>(MOVE_EXPERIENCE_OPTIONS.map((it
 const MOVE_GOALS = new Set<MoveGoal>(MOVE_GOAL_OPTIONS.map((item) => item.value));
 
 function baseMinutes(energy: Energy) {
-  if (energy === 'agotado') return 5;
-  if (energy === 'cansado') return 10;
-  if (energy === 'vigoroso') return 30;
-  return 20;
-}
-
-function previousDuration(value: number) {
-  if (value >= 30) return 20;
-  if (value >= 20) return 10;
-  return 5;
-}
-
-export function shorterMoveDuration(value: number) {
-  if (!Number.isFinite(value) || value <= 5) return 5;
-  if (value <= 10) return 5;
-  if (value <= 20) return 10;
-  return 20;
+  // El tiempo mínimo es explícito; los días difíciles se ajustan en intensidad.
+  return energy === 'vigoroso' ? 45 : 30;
 }
 
 function previousIntensity(value: MoveIntensity): MoveIntensity {
@@ -191,11 +176,8 @@ export function recommendMoveMinutes(
 ) {
   let minutes = baseMinutes(energy);
 
-  if (lastFeedback === 'Demasiado') minutes = previousDuration(previousDuration(minutes));
-  else if (lastFeedback === 'Difícil') minutes = previousDuration(minutes);
-  else if (lastEndedEarly && !lastFeedback) minutes = previousDuration(minutes);
-
-  if (shift.type !== 'off' && energy !== 'vigoroso' && minutes > 20) minutes = 20;
+  if (lastFeedback === 'Demasiado' || lastFeedback === 'Difícil' || lastEndedEarly) minutes = 30;
+  if (shift.type !== 'off') minutes = 30;
   return minutes;
 }
 
@@ -288,7 +270,7 @@ export function moveRecommendationCopy(
   if (lastFeedback === 'Muy fácil') return 'La última sesión se sintió muy fácil. Hoy Move buscará variantes un poco más exigentes dentro de la misma familia, sin aumentar automáticamente tus kilos.';
   if (lastFeedback === 'Demasiado') return 'La última sesión fue demasiado. Hoy reducimos claramente carga, dificultad y densidad, con más recuperación entre esfuerzos.';
   if (lastFeedback === 'Difícil') return 'La última sesión se sintió difícil, así que hoy bajamos intensidad y buscamos variantes más simples antes de volver a subir.';
-  if (lastEndedEarly && !lastFeedback) return 'La última sesión terminó antes. Hoy proponemos una dosis más corta y menos densa, sin asumir que tengas que compensarla.';
+  if (lastEndedEarly && !lastFeedback) return 'Hoy priorizamos variantes suaves y más descansos.';
   if (energy === 'agotado') return 'Marcaste poca energía. La propuesta usa intensidad de recuperación y puedes terminar antes sin perder la sesión.';
   if (energy === 'cansado') return 'Hoy priorizamos una sesión suave, con más recuperación entre bloques para que sume sin convertirse en otra obligación.';
   if (shift.type !== 'off') return `Hay jornada ${shift.start}–${shift.end}. Move queda acotado, con intensidad ${intensity} y enfoque ${preferences.focus}.`;
