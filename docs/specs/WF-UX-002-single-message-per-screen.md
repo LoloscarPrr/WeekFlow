@@ -1,6 +1,6 @@
 # WF-UX-002 — Una sola vez, en el lugar correcto
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Requested: 2026-10-15
 Blueprint: WeekFlow Blueprint Maestro v4.0
@@ -42,5 +42,10 @@ Menos desplazamiento, menos encabezados repetidos, explicaciones solo cuando son
 ## Edge cases / regression plan
 Revisar salidas reales y confirmación de reajuste, energía, timeline, Rest durante turno, Move perfil plegado/desplegado y Asistente con propuesta pendiente. Ejecutar Quality CI y Android antes de liberar. Validar visualmente en móvil antes de cerrar.
 
-## Verification
-Pending.
+## Verification progress
+- PASS — AC1: Ahora solo usa «AHORA» y conserva la tarjeta viva y sus acciones.
+- PASS — AC2: selector de energía único; traslado conserva minutos de ida/vuelta.
+- PASS — AC3: Rest mantiene planificación y descanso opcional; desaparece «REGLAS ACTIVAS».
+- PASS — AC4: revisión de Ahora, Move, Rest, Food, Semana, Jardín, Hábitos, Asistente, Onboarding y Notificaciones; no se retiraron controles de acción.
+- PASS — AC5: tests de estructura añadidos y pruebas originales ajustadas.
+- BLOCKED — Quality final, build Android y verificación visual en Android pendientes de su ejecución sobre el SHA definitivo.
