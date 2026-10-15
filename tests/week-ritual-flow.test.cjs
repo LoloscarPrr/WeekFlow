@@ -24,12 +24,13 @@ assert(updateWeek.includes('organizedAt: null'), 'Manual week changes must still
 assert(updateWeek.includes('export function completeWeekRitual'), 'Canonical ritual use case must remain available');
 
 assert(weekScreen.includes("week.organizedAt ? 'SEMANA ORGANIZADA' : 'RITUAL DE LA SEMANA'"), 'Week screen must render compact open/done ritual states');
-assert(weekScreen.includes('Listo. Tu semana ya está organizada.'), 'Week screen must show the canonical completion copy');
+assert(!weekScreen.includes('Listo. Tu semana ya está organizada.'), 'Week screen must not repeat the completion state in two titles');
 assert(weekScreen.includes('Listo, organizar semana'), 'Open week must expose exactly one clear completion action');
 assert(weekScreen.includes('onPress={completeRitual}'), 'Completion button must call the controller action');
-assert(weekScreen.includes('summary.workDays'), 'Ritual must reuse the existing work-day summary');
-assert(weekScreen.includes('summary.freeDays'), 'Ritual must reuse the existing free-day summary');
-assert(weekScreen.includes('summary.total'), 'Ritual must reuse the existing programmed-time summary');
+assert(!weekScreen.includes('styles.ritualSummary'), 'No duplicate summary inside the ritual card');
+assert(weekScreen.includes('summary.workDays'), 'Week summary must retain actual work-day data');
+assert(weekScreen.includes('summary.freeDays'), 'Week summary must retain actual free-day data');
+assert(weekScreen.includes('summary.total'), 'Week summary must retain actual scheduled time');
 assert(weekScreen.indexOf('<ImportantEventCard') < weekScreen.indexOf('RITUAL DE LA SEMANA'), 'Ritual closure must remain after the compact important-event control');
 assert(!weekScreen.includes('Importar horario'), 'Legacy schedule import entry must stay hidden until Brain smart import returns');
 assert(!weekScreen.includes("router.push('/import')"), 'Semana must not route users into the frozen legacy import flow');
