@@ -36,7 +36,7 @@ for (const pillar of [
   assert.match(summary, new RegExp(`title: '${pillar}'`));
 }
 
-assert.match(habits, /PILARES · HÁBITOS/);
+assert.match(habits, /<Text style=\{styles.title\}>Hábitos<\/Text>/);
 assert.match(habits, /Mini-versión \(opcional\)/);
 assert.match(habits, /placeholder="Ej\. leer 2 páginas"/);
 assert.match(habits, /maxLength=\{120\}/);
@@ -50,7 +50,7 @@ assert.match(habits, /nextHabitPlanDates\(new Date\(\), 7\)/);
 assert.match(habits, /'Mover'/);
 assert.match(habits, /'Cambiar día'/);
 assert.match(habits, /PRÓXIMA OCASIÓN/);
-assert.match(habits, /Es una referencia, no una obligación/);
+assert.doesNotMatch(habits, /Es una referencia, no una obligación/);
 assert.match(habits, /Dejar flexible/);
 assert.match(habits, /Hecho/);
 assert.doesNotMatch(habits, /fallaste|perdiste|atrasad|deuda|racha perdida|streak/i);
