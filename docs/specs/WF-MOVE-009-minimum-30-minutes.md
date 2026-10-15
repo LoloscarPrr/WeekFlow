@@ -50,4 +50,4 @@ Días libres, turnos largos/nocturnos, energía agotada, feedback «Difícil/Dem
 - PASS — AC2: recomendación base 30/45, con suelo de 30 aun para energía agotada y feedback difícil; intensidad adaptativa intacta.
 - PASS — AC3: generador ahora soporta 45/60 minutos completos; pruebas de intervalos, series y AMRAP añadidas.
 - PASS — AC4: sesión activa conserva plannedMinutes histórico; al terminar las nuevas selecciones tienen mínimo 30. Historial no migrado.
-- BLOCKED — Quality final y build Android pendiente de validar SHA definitivo.
+- PASS — Quality #38822617223: TypeScript + regresiones. BLOCKED — build Android y prueba en teléfono pendientes.
