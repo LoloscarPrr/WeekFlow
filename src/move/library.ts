@@ -84,13 +84,15 @@ const LOADED_ORDER = [
 const CONDITIONING_PREFIX = ['march', 'side-step', 'knee-lift', 'squat-reach'];
 const MOBILITY_PREFIX = ['shoulders', 'reach', 'calf-release', 'cat-cow'];
 const SAFE_FALLBACK_ORDER = ['breathing', 'calf-release', 'march'];
-const STEP_COUNT: Record<number, number> = { 5: 5, 10: 9, 20: 16, 30: 22 };
+const STEP_COUNT: Record<number, number> = { 5: 5, 10: 9, 20: 16, 30: 22, 45: 30, 60: 36 };
 
 function supportedDuration(value: number) {
   if (value <= 5) return 5;
   if (value <= 10) return 10;
   if (value <= 20) return 20;
-  return 30;
+  if (value <= 30) return 30;
+  if (value <= 45) return 45;
+  return 60;
 }
 
 function experienceCompatible(exercise: MoveExercise, preferences: MovePreferences) {
