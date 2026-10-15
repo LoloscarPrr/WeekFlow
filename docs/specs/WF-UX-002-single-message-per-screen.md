@@ -48,4 +48,4 @@ Revisar salidas reales y confirmación de reajuste, energía, timeline, Rest dur
 - PASS — AC3: Rest mantiene planificación y descanso opcional; desaparece «REGLAS ACTIVAS».
 - PASS — AC4: revisión de Ahora, Move, Rest, Food, Semana, Jardín, Hábitos, Asistente, Onboarding y Notificaciones; no se retiraron controles de acción.
 - PASS — AC5: tests de estructura añadidos y pruebas originales ajustadas.
-- BLOCKED — Quality final, build Android y verificación visual en Android pendientes de su ejecución sobre el SHA definitivo.
+- PASS — Quality #38822617223: TypeScript + regresiones; BLOCKED — APK Android y QA visual todavía pendientes.
