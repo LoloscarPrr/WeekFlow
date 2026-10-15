@@ -58,10 +58,7 @@ export default function NowScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <RefreshableScrollView contentContainerStyle={styles.content} onRefreshData={refreshNow}>
-        <View style={styles.top}>
-          <Brand />
-          <View style={styles.build}><Text style={styles.buildText}>Alpha 0.5.5</Text></View>
-        </View>
+        <Brand />
 
         <Text style={styles.section}>AHORA</Text>
         <View style={styles.liveCard}>
@@ -187,9 +184,6 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   commute: { color: colors.muted, fontSize: 12, marginTop: 12 },
   content: { padding: 22, paddingBottom: 96 },
-  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  build: { paddingHorizontal: 13, paddingVertical: 9, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
-  buildText: { color: colors.text, fontSize: 14 },
   hero: { marginTop: 24, marginBottom: 12 },
   eyebrow: { color: '#76AFFF', fontWeight: '800', letterSpacing: 4, fontSize: 14 },
   title: { color: colors.text, fontWeight: '900', fontSize: 30, lineHeight: 36, marginTop: 6 },
