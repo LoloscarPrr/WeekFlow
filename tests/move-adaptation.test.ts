@@ -4,7 +4,6 @@ import {
   recommendMoveIntensity,
   recommendMoveMinutes,
   sanitizeMovePreferences,
-  shorterMoveDuration,
   type MovePreferences,
 } from '../src/move/adaptation';
 import {
@@ -40,18 +39,22 @@ function preferences(
 const workShift: Shift = { start: '07:00', end: '17:30', type: 'morning', breakMinutes: 30 };
 const offShift: Shift = { start: '', end: '', type: 'off', breakMinutes: 0 };
 
-equal(recommendMoveMinutes('bien', null, offShift), 20, 'bien en día libre');
-equal(recommendMoveMinutes('cansado', null, workShift), 10, 'cansado en jornada');
-equal(recommendMoveMinutes('vigoroso', 'Difícil', offShift), 20, 'feedback difícil reduce duración');
-equal(recommendMoveMinutes('vigoroso', 'Demasiado', offShift), 10, 'feedback demasiado reduce más');
-equal(recommendMoveMinutes('bien', null, offShift, true), 10, 'terminar antes reduce la siguiente propuesta sin castigo');
+equal(recommendMoveMinutes('bien', null, offShift), 30, 'bien en día libre propone 30 min');
+equal(recommendMoveMinutes('vigoroso', null, offShift), 45, 'energía alta y día libre pueden proponer 45 min');
+equal(recommendMoveMinutes('cansado', null, workShift), 30, 'cansado en jornada mantiene 30 min');
+equal(recommendMoveMinutes('agotado', null, workShift), 30, 'agotado no ofrece versión de 5 min');
+equal(recommendMoveMinutes('vigoroso', 'Difícil', offShift), 30, 'feedback difícil reduce carga sin bajar de 30 min');
+equal(recommendMoveMinutes('vigoroso', 'Demasiado', offShift), 30, 'feedback demasiado prioriza intensidad, no mini-sesión');
+equal(recommendMoveMinutes('bien', null, offShift, true), 30, 'terminar antes no crea una versión más corta');
+for (const energy of ['agotado', 'cansado', 'bien', 'vigoroso'] as const) {
+  for (const feedback of [null, 'Muy fácil', 'Bien', 'Difícil', 'Demasiado']) {
+    ok(recommendMoveMinutes(energy, feedback, workShift) >= 30, 'ninguna recomendación baja de 30 min');
+  }
+}
 
-equal(shorterMoveDuration(30), 20, '30 min ofrece versión de 20 min');
-equal(shorterMoveDuration(20), 10, '20 min ofrece versión de 10 min');
-equal(shorterMoveDuration(15), 10, 'duración intermedia baja al peldaño seguro inferior');
-equal(shorterMoveDuration(10), 5, '10 min ofrece versión mínima de 5 min');
-equal(shorterMoveDuration(7), 5, 'duración corta intermedia baja a 5 min');
-equal(shorterMoveDuration(5), 5, 'la versión mínima nunca baja de 5 min');
+const longIntervalPreferences = preferences({ trainingStyle: 'intervalos' });
+equal(routineForDuration(45, longIntervalPreferences).totalSeconds, 2700, 'intervalos de 45 min tienen duración real');
+equal(routineForDuration(60, longIntervalPreferences).totalSeconds, 3600, 'intervalos de 60 min tienen duración real');
 
 equal(recommendMoveIntensity('agotado', 'avanzado', null), 'recuperacion', 'agotado usa recuperación');
 equal(recommendMoveIntensity('cansado', 'avanzado', null), 'suave', 'cansado usa intensidad suave');
