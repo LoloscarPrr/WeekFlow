@@ -6,17 +6,19 @@ function ok(value, message) {
   if (!value) throw new Error(message);
 }
 
-const hero = source.indexOf('Qué importa ahora');
-const live = source.indexOf('DÍA VIVO');
-const brain = source.indexOf('WeekFlow Brain');
+const header = source.indexOf('>AHORA</Text>');
+const live = source.indexOf('<View style={styles.liveCard}>');
 const energy = source.indexOf('¿CÓMO LLEGAS HOY?');
 const timeline = source.indexOf('LO QUE VIENE');
 
-ok(hero >= 0, 'Ahora debe declarar Qué importa ahora');
-ok(live > hero, 'La prioridad viva debe aparecer después del encabezado');
-ok(brain > live, 'El contexto Brain debe quedar subordinado a la prioridad viva');
-ok(energy > brain, 'El selector de energía debe seguir disponible después del contexto');
-ok(timeline > energy, 'Lo que viene debe conservarse después del contexto de hoy');
+ok(header >= 0, 'Ahora debe mostrar el encabezado AHORA');
+ok(live > header, 'La tarjeta viva debe aparecer debajo de su encabezado');
+ok(energy > live, 'El selector de energía debe seguir disponible');
+ok(timeline > energy, 'Lo que viene debe seguir después de energía');
+ok(!source.includes('Qué importa ahora'), 'No repetir la pregunta como hero');
+ok(!source.includes('DÍA VIVO'), 'No reintroducir etiqueta Día Vivo');
+ok(!source.includes('WeekFlow Brain'), 'No duplicar la prioridad con un segundo resumen');
+ok(source.includes('Traslado ·'), 'Preservar la información única de traslado');
 
 for (const handler of ['markActualExit', 'confirmExitReplan', 'correctActualExitTime', 'timelineMoments']) {
   ok(source.includes(handler), `Ahora debe conservar ${handler}`);
