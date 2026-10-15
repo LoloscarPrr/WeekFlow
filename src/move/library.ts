@@ -473,6 +473,38 @@ function amrapRoutine(
   };
 }
 
+// Extiende las sesiones estructuradas largas con bloques cronometrados compatibles,
+// sin modificar las rutinas históricas de 5/10/20/30 minutos.
+function extendStructuredRoutine(
+  routine: MoveRoutine,
+  targetMinutes: number,
+  preferences: MovePreferences,
+  intensity: MoveIntensity,
+  progression: MoveProgressionContext,
+): MoveRoutine {
+  const missingSeconds = targetMinutes * 60 - routine.totalSeconds;
+  if (targetMinutes <= 30 || missingSeconds <= 0) return routine;
+
+  const count = Math.max(1, Math.ceil(missingSeconds / 180));
+  const restSec = intensity === 'suave' ? 20 : 10;
+  const exerciseSeconds = missingSeconds - restSec * (count - 1);
+  const each = Math.floor(exerciseSeconds / count);
+  let spare = exerciseSeconds - each * count;
+  const fillers = idsFor(preferences, count, intensity, progression).map((exercise, index) => {
+    const durationSec = each + (spare > 0 ? 1 : 0);
+    if (spare > 0) spare -= 1;
+    return {
+      slot: routine.steps.length + index,
+      exercise,
+      durationSec,
+      restAfterSec: index === count - 1 ? 0 : restSec,
+      mode: 'timed' as const,
+    };
+  });
+
+  return { ...routine, steps: [...routine.steps, ...fillers], totalSeconds: targetMinutes * 60 };
+}
+
 export function routineForDuration(
   value: number,
   preferences: MovePreferences = DEFAULT_MOVE_PREFERENCES,
@@ -484,12 +516,12 @@ export function routineForDuration(
 
   if (requestedStyle === 'series') {
     const structured = seriesRoutine(targetMinutes, preferences, intensity, progression);
-    if (structured) return structured;
+    if (structured) return extendStructuredRoutine(structured, targetMinutes, preferences, intensity, progression);
   }
 
   if (requestedStyle === 'amrap') {
     const structured = amrapRoutine(targetMinutes, preferences, intensity, progression);
-    if (structured) return structured;
+    if (structured) return extendStructuredRoutine(structured, targetMinutes, preferences, intensity, progression);
   }
 
   return intervalRoutine(targetMinutes, preferences, intensity, progression);
