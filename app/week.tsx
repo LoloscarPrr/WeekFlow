@@ -119,9 +119,7 @@ export default function WeekScreen() {
                             </View>
                           </View>
                         </>
-                      ) : (
-                        <Text style={styles.freeCopy}>Día libre. WeekFlow no programará una jornada aquí.</Text>
-                      )}
+                      ) : null}
                     </View>
                   ) : null}
                 </View>
@@ -140,17 +138,6 @@ export default function WeekScreen() {
           <View style={[styles.ritualCard, week.organizedAt ? styles.ritualCardDone : null]}>
             <Text style={[styles.ritualEyebrow, week.organizedAt ? styles.ritualEyebrowDone : null]}>
               {week.organizedAt ? 'SEMANA ORGANIZADA' : 'RITUAL DE LA SEMANA'}
-            </Text>
-            <Text style={styles.ritualTitle}>
-              {week.organizedAt ? 'Listo. Tu semana ya está organizada.' : '¿Todo quedó bien?'}
-            </Text>
-            <Text style={styles.ritualSummary}>
-              {summary.workDays} jornadas · {summary.freeDays} libres · {summary.total} programadas
-            </Text>
-            <Text style={styles.ritualHint}>
-              {week.organizedAt
-                ? 'Si cambias un horario o evento, WeekFlow vuelve a abrir la semana para que la revises.'
-                : 'Revisa horarios y eventos importantes. Cuando esté listo, cierra la organización.'}
             </Text>
             {!week.organizedAt ? (
               <Pressable style={styles.ritualButton} onPress={completeRitual}>
