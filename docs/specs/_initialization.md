@@ -7,8 +7,8 @@
 - Product source of truth: uploaded `WeekFlow Blueprint Maestro v4.0` (read sections 1–3, Core, Ahora, Move, governance) and current user's UX feedback.
 
 ## App / build
-- App version: `0.5.11`; Android `versionCode 103`, package `com.weekflow.app`.
-- Quality at this branch: NOT RUN at initialization.
+- App version: `0.5.12`; Android source `versionCode 104`, package `com.weekflow.app`.
+- Quality at initialization: NOT RUN; first candidate test suite passed up to smart-silence; its legacy copy assertion was fixed in subsequent commit; final CI pending.
 - Android at this branch: NOT RUN at initialization.
 - Last available baseline from repository docs was for earlier versions; not evidence for this branch.
 
