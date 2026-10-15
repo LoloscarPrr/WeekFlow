@@ -57,7 +57,8 @@ export function buildProtectedRestWindows(
   const horizon = new Date(now);
   horizon.setDate(horizon.getDate() + horizonDays);
 
-  for (let offset = 0; offset <= horizonDays; offset += 1) {
+  // Include yesterday: overnight recovery can extend into today.
+  for (let offset = -1; offset <= horizonDays; offset += 1) {
     const date = new Date(now);
     date.setHours(0, 0, 0, 0);
     date.setDate(date.getDate() + offset);
@@ -66,16 +67,29 @@ export function buildProtectedRestWindows(
     if (shift.type === 'off' || !shift.start) continue;
 
     const startsAt = localDateTime(localDateKey(date), shift.start);
-    if (startsAt <= now || startsAt > horizon) continue;
+    if (startsAt > horizon) continue;
 
     const rest = restWindowForShift(dayState, shift, startsAt);
     if (!rest) continue;
 
-    windows.push({
+    if (rest.wakeAt > now) windows.push({
       startsAt: rest.sleepAt,
       endsAt: rest.wakeAt,
       nextShiftAt: startsAt,
     });
+
+    // Protect the sleep after an overnight shift as well as the sleep
+    // preceding it. No habit should notify during post-shift recovery.
+    const [startHour, startMinute] = shift.start.split(':').map(Number);
+    const [endHour, endMinute] = shift.end.split(':').map(Number);
+    const crossesMidnight = endHour * 60 + endMinute <= startHour * 60 + startMinute;
+    if (crossesMidnight || shift.type === 'night') {
+      const endsAt = localDateTime(localDateKey(date), shift.end);
+      if (crossesMidnight) endsAt.setDate(endsAt.getDate() + 1);
+      const recoveryAt = new Date(endsAt.getTime() + (dayState.settings.commuteBackMin + dayState.settings.recoveryMin) * 60000);
+      const recoveryEnd = new Date(recoveryAt.getTime() + 8 * 60 * 60000);
+      if (recoveryEnd > now && recoveryAt <= horizon) windows.push({ startsAt: recoveryAt, endsAt: recoveryEnd, nextShiftAt: startsAt });
+    }
   }
 
   return windows.sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
