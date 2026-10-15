@@ -55,10 +55,6 @@ export default function AssistantScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Brand />
         <Text style={styles.eyebrow}>ASISTENTE</Text>
-        <Text style={styles.title}>Entiendo tu semana real.</Text>
-        <Text style={styles.subtitle}>
-          Este contexto viene de Ahora, Semana, Move, Food y Rest. No es una copia aparte.
-        </Text>
 
         <Text style={styles.section}>CUÉNTAME QUÉ CAMBIÓ</Text>
         <View style={styles.inputCard}>
@@ -104,7 +100,6 @@ export default function AssistantScreen() {
 
         <Text style={styles.section}>ESTADO REAL</Text>
         <View style={styles.heroCard}>
-          <Text style={styles.heroLabel}>AHORA</Text>
           <Text style={styles.heroTitle}>{context.liveTitle}</Text>
           <Text style={styles.heroMeta}>{context.liveMeta}</Text>
         </View>
@@ -118,14 +113,11 @@ export default function AssistantScreen() {
           <View style={styles.contextCard}>
             <Text style={styles.contextLabel}>MOVE</Text>
             <Text style={styles.contextValue}>{context.move.label}</Text>
-            <Text style={styles.contextMeta}>Estado de hoy</Text>
           </View>
           <View style={styles.contextCard}>
             <Text style={styles.contextLabel}>FOOD</Text>
             <Text style={styles.contextValue}>{context.food.label}</Text>
-            <Text style={styles.contextMeta}>
-              {context.food.lastTitle ? `Último · ${context.food.lastTitle}` : 'Nada que resumir todavía'}
-            </Text>
+            {context.food.lastTitle ? <Text style={styles.contextMeta}>Último · {context.food.lastTitle}</Text> : null}
           </View>
           <View style={styles.contextCard}>
             <Text style={styles.contextLabel}>REST</Text>
@@ -141,7 +133,6 @@ export default function AssistantScreen() {
               <View style={styles.iconWrap}><Text style={styles.icon}>{item.icon}</Text></View>
               <View style={styles.copy}>
                 <Text style={styles.cardTitle}>{item.title}</Text>
-                <Text style={styles.cardBody}>{item.body}</Text>
               </View>
               <Text style={styles.arrow}>›</Text>
             </Pressable>

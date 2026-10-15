@@ -20,7 +20,6 @@ import {
   recommendMoveIntensity,
   recommendMoveMinutes,
   sanitizeMovePreferences,
-  shorterMoveDuration,
   type MoveAvoidArea,
   type MoveExperience,
   type MoveFocus,
@@ -41,7 +40,7 @@ import {
   type MoveRuntime,
 } from '@/src/move/runtime';
 
-export const MOVE_DURATIONS = [5, 10, 20, 30] as const;
+export const MOVE_DURATIONS = [30, 45, 60] as const;
 export const MOVE_FEEDBACK = ['Muy fácil', 'Bien', 'Difícil', 'Demasiado'];
 
 function elapsedMs(session: ActiveMoveSession, nowMs: number) {
@@ -155,9 +154,12 @@ export function useMoveController() {
     if (active) {
       setDuration(active.plannedMinutes);
       setFinished(false);
-    } else if (feedbackPendingFor(record)) {
-      setFinished(true);
-      setFeedback(null);
+    } else {
+      setDuration((previous) => Math.max(30, previous));
+      if (feedbackPendingFor(record)) {
+        setFinished(true);
+        setFeedback(null);
+      }
     }
     setClockMs(Date.now());
   }, []);
@@ -258,24 +260,19 @@ export function useMoveController() {
     });
   }
 
-  const shorterDuration = shorterMoveDuration(duration);
-
   function useRecommendation() {
     setDuration(recommended);
-  }
-
-  function useShorterVersion() {
-    if (duration > 5) setDuration(shorterDuration);
   }
 
   function startSession() {
     const nowMs = Date.now();
     const id = `${nowMs}`;
-    const selectedRoutine = routineForDuration(duration, preferences, adaptiveIntensity, progressionContext);
+    const plannedMinutes = Math.max(30, duration);
+    const selectedRoutine = routineForDuration(plannedMinutes, preferences, adaptiveIntensity, progressionContext);
     const next: ActiveMoveSession = {
       id,
       startedAt: new Date(nowMs).toISOString(),
-      plannedMinutes: duration,
+      plannedMinutes,
       step: 0,
       totalSteps: selectedRoutine.steps.length,
       paused: false,
@@ -331,6 +328,7 @@ export function useMoveController() {
     setActiveSession(null);
     setRuntime(null);
     setFinished(true);
+    setDuration((previous) => Math.max(30, previous));
     setFeedback(null);
     setFeedbackNote('');
     setNoteSaved(false);
@@ -478,8 +476,6 @@ export function useMoveController() {
     sessionIntensity,
     recommendationCopy,
     useRecommendation,
-    shorterDuration,
-    useShorterVersion,
     todayShift,
     sessionDuration,
     routine,

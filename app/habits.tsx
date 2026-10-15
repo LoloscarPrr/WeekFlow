@@ -104,9 +104,7 @@ export default function HabitsScreen() {
           keyboardDismissMode="on-drag"
         >
           <Brand />
-          <Text style={styles.eyebrow}>PILARES · HÁBITOS</Text>
-          <Text style={styles.title}>Hábitos flexibles, sin culpa.</Text>
-          <Text style={styles.intro}>Frecuencia orientativa, mini-versiones y reprogramación cuando la semana cambia.</Text>
+          <Text style={styles.title}>Hábitos</Text>
 
           <View style={styles.formCard}>
             <Text style={styles.formTitle}>{editingId ? 'Editar hábito' : 'Crear hábito'}</Text>
@@ -124,7 +122,6 @@ export default function HabitsScreen() {
                 );
               })}
             </View>
-            <Text style={styles.hint}>{targetCopy(targetPerWeek)} · puedes hacerlo cualquier día.</Text>
             <View style={styles.formActions}>
               {editingId ? <Pressable style={styles.secondaryButton} onPress={resetForm}><Text style={styles.secondaryText}>Cancelar</Text></Pressable> : null}
               <Pressable style={[styles.primaryButton, !name.trim() && styles.disabled]} onPress={submitHabit} disabled={!name.trim()}>
@@ -137,7 +134,6 @@ export default function HabitsScreen() {
           {habits.length === 0 ? (
             <View style={styles.emptyCard}>
               <Text style={styles.cardTitle}>Todavía no hay hábitos.</Text>
-              <Text style={styles.cardCopy}>Empieza con algo pequeño. La mini-versión existe para los días en que hacer todo no da.</Text>
             </View>
           ) : (
             <View style={styles.list}>
@@ -169,7 +165,7 @@ export default function HabitsScreen() {
                     {activePlan && !today ? (
                       <View style={styles.planNote}>
                         <Text style={styles.planLabel}>PRÓXIMA OCASIÓN</Text>
-                        <Text style={styles.planCopy}>{planDateLabel(activePlan)}. Es una referencia, no una obligación.</Text>
+                        <Text style={styles.planCopy}>{planDateLabel(activePlan)}</Text>
                       </View>
                     ) : null}
 
@@ -189,8 +185,7 @@ export default function HabitsScreen() {
                         </Pressable>
                         {isReplanning ? (
                           <View style={styles.replanPanel}>
-                            <Text style={styles.cardCopy}>Si hoy no cabe, muévelo sin perder nada.</Text>
-                            <View style={styles.replanOptions}>
+                                      <View style={styles.replanOptions}>
                               {replanOptions.map((dateKey) => (
                                 <Pressable key={dateKey} style={[styles.replanChip, activePlan === dateKey && styles.frequencyChipActive]} onPress={() => moveHabit(habit.id, dateKey)}>
                                   <Text style={[styles.frequencyText, activePlan === dateKey && styles.frequencyTextActive]}>{planDateLabel(dateKey)}</Text>

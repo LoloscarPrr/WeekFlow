@@ -87,10 +87,6 @@ export default function NotificationPreferencesScreen() {
 
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>NOTIFICACIONES</Text>
-          <Text style={styles.title}>Solo avisos que tengan sentido.</Text>
-          <Text style={styles.lead}>
-            Tú eliges qué momentos pueden interrumpirte. WeekFlow no necesita avisarte de todo.
-          </Text>
         </View>
 
         <View style={styles.masterCard}>
@@ -150,9 +146,6 @@ export default function NotificationPreferencesScreen() {
           <Text style={styles.statusBody}>{status}</Text>
         </View>
 
-        <Text style={styles.footer}>
-          Esta protección usa tu plan Rest y tus turnos. Es una regla visible y reversible; no aprende ni cambia tus preferencias por su cuenta.
-        </Text>
       </ScrollView>
     </SafeAreaView>
   );

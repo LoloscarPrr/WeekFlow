@@ -20,7 +20,6 @@ export default function RestScreen() {
         <Text style={styles.title}>{view.heroTitle}</Text>
 
         <View style={styles.contextCard}>
-          <Text style={styles.contextEyebrow}>AHORA</Text>
           <Text style={styles.contextTitle}>{view.contextTitle}</Text>
           <Text style={styles.contextCopy}>{view.contextCopy}</Text>
           <Text style={styles.contextMeta}>{view.contextMeta}</Text>
@@ -49,7 +48,6 @@ export default function RestScreen() {
               <View style={styles.planMain}>
                 <Text style={styles.planLabel}>CIERRE ORIENTATIVO</Text>
                 <Text style={styles.planTime}>{content.plan.windDownAt}</Text>
-                <Text style={styles.planCopy}>Referencia calculada desde la próxima entrada. Dejamos 45 min para bajar el ritmo antes de una ventana base de descanso.</Text>
               </View>
 
               {content.plan.nap ? (
@@ -57,7 +55,6 @@ export default function RestScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={styles.napLabel}>PAUSA OPCIONAL</Text>
                     <Text style={styles.napTime}>{content.plan.nap.startAt}–{content.plan.nap.endAt}</Text>
-                    <Text style={styles.napCopy}>Tu energía viene baja y todavía hay margen suficiente. Si te sirve, puedes reservar {content.plan.nap.durationMin} min de descanso sin mover el sueño principal.</Text>
                   </View>
                   <Text style={styles.napIcon}>😴</Text>
                 </View>
@@ -68,7 +65,6 @@ export default function RestScreen() {
                 <MiniStat label="Despertar" value={content.plan.wakeAt} />
                 <MiniStat label="Entrada" value={content.plan.nextStart} />
               </View>
-              <Text style={styles.note}>La ventana base se usa para organizar, no como una orden rígida. Más adelante será personalizable.</Text>
             </View>
           </>
         ) : (
@@ -76,17 +72,10 @@ export default function RestScreen() {
             <Text style={styles.section}>{content.sectionTitle}</Text>
             <View style={styles.emptyCard}>
               <Text style={styles.emptyTitle}>No hay otro turno registrado todavía.</Text>
-              <Text style={styles.emptyCopy}>Rest no inventa una alarma ni una hora de dormir cuando Semana no tiene una próxima entrada.</Text>
             </View>
           </>
         )}
 
-        <Text style={styles.section}>REGLAS ACTIVAS</Text>
-        <View style={styles.rulesCard}>
-          <Rule title="El turno manda" copy="Entrada, traslado, preparación y margen definen el descanso; no una hora fija universal." />
-          <Rule title="La noche cambia la prioridad" copy="Después de un turno nocturno, recuperación aparece antes que Move, pendientes o productividad." />
-          <Rule title="La realidad puede corregir el plan" copy="Si marcas “Ya salí”, el Brain reajusta el regreso y la recuperación desde esa hora." last />
-        </View>
       </RefreshableScrollView>
     </SafeAreaView>
   );
@@ -110,15 +99,6 @@ function MiniStat({ label, value }: { label: string; value: string }) {
     <View style={styles.miniStat}>
       <Text style={styles.miniValue}>{value}</Text>
       <Text style={styles.miniLabel}>{label}</Text>
-    </View>
-  );
-}
-
-function Rule({ title, copy, last = false }: { title: string; copy: string; last?: boolean }) {
-  return (
-    <View style={[styles.rule, last && styles.ruleLast]}>
-      <Text style={styles.ruleTitle}>{title}</Text>
-      <Text style={styles.ruleCopy}>{copy}</Text>
     </View>
   );
 }

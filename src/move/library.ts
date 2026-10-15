@@ -84,13 +84,15 @@ const LOADED_ORDER = [
 const CONDITIONING_PREFIX = ['march', 'side-step', 'knee-lift', 'squat-reach'];
 const MOBILITY_PREFIX = ['shoulders', 'reach', 'calf-release', 'cat-cow'];
 const SAFE_FALLBACK_ORDER = ['breathing', 'calf-release', 'march'];
-const STEP_COUNT: Record<number, number> = { 5: 5, 10: 9, 20: 16, 30: 22 };
+const STEP_COUNT: Record<number, number> = { 5: 5, 10: 9, 20: 16, 30: 22, 45: 30, 60: 36 };
 
 function supportedDuration(value: number) {
   if (value <= 5) return 5;
   if (value <= 10) return 10;
   if (value <= 20) return 20;
-  return 30;
+  if (value <= 30) return 30;
+  if (value <= 45) return 45;
+  return 60;
 }
 
 function experienceCompatible(exercise: MoveExercise, preferences: MovePreferences) {
@@ -471,6 +473,38 @@ function amrapRoutine(
   };
 }
 
+// Extiende las sesiones estructuradas largas con bloques cronometrados compatibles,
+// sin modificar las rutinas históricas de 5/10/20/30 minutos.
+function extendStructuredRoutine(
+  routine: MoveRoutine,
+  targetMinutes: number,
+  preferences: MovePreferences,
+  intensity: MoveIntensity,
+  progression: MoveProgressionContext,
+): MoveRoutine {
+  const missingSeconds = targetMinutes * 60 - routine.totalSeconds;
+  if (targetMinutes <= 30 || missingSeconds <= 0) return routine;
+
+  const count = Math.max(1, Math.ceil(missingSeconds / 180));
+  const restSec = intensity === 'suave' ? 20 : 10;
+  const exerciseSeconds = missingSeconds - restSec * (count - 1);
+  const each = Math.floor(exerciseSeconds / count);
+  let spare = exerciseSeconds - each * count;
+  const fillers = idsFor(preferences, count, intensity, progression).map((exercise, index) => {
+    const durationSec = each + (spare > 0 ? 1 : 0);
+    if (spare > 0) spare -= 1;
+    return {
+      slot: routine.steps.length + index,
+      exercise,
+      durationSec,
+      restAfterSec: index === count - 1 ? 0 : restSec,
+      mode: 'timed' as const,
+    };
+  });
+
+  return { ...routine, steps: [...routine.steps, ...fillers], totalSeconds: targetMinutes * 60 };
+}
+
 export function routineForDuration(
   value: number,
   preferences: MovePreferences = DEFAULT_MOVE_PREFERENCES,
@@ -482,12 +516,12 @@ export function routineForDuration(
 
   if (requestedStyle === 'series') {
     const structured = seriesRoutine(targetMinutes, preferences, intensity, progression);
-    if (structured) return structured;
+    if (structured) return extendStructuredRoutine(structured, targetMinutes, preferences, intensity, progression);
   }
 
   if (requestedStyle === 'amrap') {
     const structured = amrapRoutine(targetMinutes, preferences, intensity, progression);
-    if (structured) return structured;
+    if (structured) return extendStructuredRoutine(structured, targetMinutes, preferences, intensity, progression);
   }
 
   return intervalRoutine(targetMinutes, preferences, intensity, progression);

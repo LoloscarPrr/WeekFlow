@@ -11,7 +11,8 @@ function ok(value, message) {
 ok(core.includes('smartSilence: boolean'), 'preferencias deben incluir smartSilence');
 ok(screen.includes('Proteger mi descanso'), 'UI debe exponer protección');
 ok(screen.includes('Próximo descanso protegido'), 'UI debe mostrar próxima ventana');
-ok(screen.includes('no aprende ni cambia tus preferencias'), 'UI debe explicar que no hay IA opaca');
+ok(screen.includes('Durante tu ventana principal de sueño'), 'UI explica la protección al usuario sin detallar arquitectura');
+ok(!screen.includes('no aprende ni cambia tus preferencias'), 'UI evita texto técnico redundante');
 ok(policy.includes('protected-rest'), 'política debe identificar supresión por descanso');
 ok(policy.includes("kind === 'important' || kind === 'departure' || kind === 'rest'"), 'prioridades explícitas deben conservarse');
 ok(service.includes('interruptionDecision'), 'servicio debe aplicar política');

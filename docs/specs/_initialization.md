@@ -2,40 +2,35 @@
 
 ## Repository and ref
 - Repository: `LoloscarPrr/WeekFlow`.
-- Base: `main` at `bd9ba1339955d51380515d6183dbef7069169631`.
-- Working branch: `brain/wf-brain-001-action-foundation`.
-- Product source of truth: `WeekFlow Blueprint Maestro v4.0`.
+- Base: `main` at `ca5a85e87ca830a23f2cc88f0830d1ec85fba917`.
+- Working branch: `ux/wf-ux-002-compact-move-min30`.
+- Product source of truth: uploaded `WeekFlow Blueprint Maestro v4.0` (read sections 1–3, Core, Ahora, Move, governance) and current user's UX feedback.
 
 ## App / build
-- Technical app version: `0.5.8`; source Android `versionCode 100`; package `com.weekflow.app`.
-- Main Quality #258: PASS.
-- Main Android #167: PASS; signed APK + AAB published for 0.5.8.
-- Local dependency-backed quality: UNAVAILABLE in this session; GitHub Actions is the verification runner.
+- App version: `0.5.12`; Android source `versionCode 104`, package `com.weekflow.app`.
+- Quality at initialization: NOT RUN; first candidate test suite passed up to smart-silence; its legacy copy assertion was fixed in subsequent commit; final CI pending.
+- Android at this branch: NOT RUN at initialization.
+- Last available baseline from repository docs was for earlier versions; not evidence for this branch.
 
 ## Product context / active scope
-- Current canonical phase: `0.7.x — Assistant + Brain`.
-- Blueprint requires Brain as the single decision layer and Assistant as an interface, not a parallel state owner.
-- Important automation must be explainable, confirmable or reversible.
-- This batch implements only `0.7.1 — Brain Action Foundation`.
-- Natural-language parsing, chat UI, voice, Smart Import and autonomous replanning are out of scope.
+- Current canonical roadmap stage in repository: 0.7.x — Assistant + Brain, with UX corrections to already shipped areas admitted NOW.
+- Immediate fixes: Move 30-minute minimum, removal of shorter action, and cross-screen reduction of redundant text.
+- Brain, SQLite, notification logic and exercise generator remain the single underlying sources of truth.
 
 ## Relevant repository state
-- `src/brain/engine.ts` currently computes plans and replans but does not expose a transactional action contract.
-- Ahora already applies energy and actual-exit changes through application use cases.
-- Semana already applies shift/event changes through application use cases.
-- Existing controllers persist their own state; 0.7.1 must not create a second canonical store.
-- Existing SQLite schema remains the source of truth for DayState/WeekSchedule.
+- `app/index.tsx` repeats “AHORA”/“Qué importa ahora”/“DÍA VIVO” and repeats summary stats.
+- `src/move/useMoveController.ts` exposes 5/10/20/30 min; `adaptation.ts` recommends 5/10/20/30 and supports shorter duration.
+- `src/move/MovePlan.tsx` offers shortening and explanatory copy.
+- `app/rest.tsx` exposes a persistent internal “REGLAS ACTIVAS” panel.
+- Assistant and other pillar pages contain long technical/descriptive microcopy.
 
-## Baseline
-- PASS — Blueprint Brain/Assistant principles and 0.7 roadmap inspected.
-- PASS — Brain engine, Ahora controller, Semana controller and relevant use cases inspected.
-- PASS — 0.5.8 Quality/Android release verified.
-- NOT RUN — branch Quality/Android (no 0.7.1 code yet).
+## Baseline / constraints
+- PASS — current source and supplied Blueprint inspected; AGENTS/TLC read.
+- NOT RUN — typecheck, JS tests, Android build for new branch.
+- Constraint — direct local GitHub clone is unavailable in this runtime; use GitHub connector and remote CI.
+- Constraint — physical Android QA is needed to mark UX visually verified.
+- Existing active Move sessions under 30 min must not change while in progress.
 
-## Next action / constraints
-- `WF-BRAIN-001 — Action Foundation`.
-- Proposal must be explicit, explainable and confirmation-aware.
-- Application must reuse existing use cases rather than duplicate domain mutation logic.
-- Undo must not silently overwrite newer state.
-- No parallel Assistant state and no new persistence schema.
-- Target technical release: `0.5.9` / source Android `versionCode 101` if verification passes.
+## Locked change specs
+- `WF-UX-002 — Una sola vez, en el lugar correcto` (NOW).
+- `WF-MOVE-009 — Move sin versiones inferiores a 30 minutos` (NOW).

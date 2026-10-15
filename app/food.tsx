@@ -232,8 +232,6 @@ export default function FoodScreen() {
           <Brand />
           <PillarTabs active="food" />
 
-          <Text style={styles.eyebrow}>PILARES · FOOD</Text>
-          <Text style={styles.title}>Come según tu día y lo que realmente tienes.</Text>
 
           <View style={styles.contextCard}>
             <Text style={styles.contextEyebrow}>AHORA</Text>
@@ -259,7 +257,7 @@ export default function FoodScreen() {
                 ))}
               </View>
             ) : (
-              <Text style={styles.pantryEmpty}>Escribe lo que tienes en casa. No necesitas cantidades exactas.</Text>
+              <Text style={styles.pantryEmpty}>Agrega tus ingredientes.</Text>
             )}
 
             {pantryOpen ? (
@@ -378,13 +376,11 @@ export default function FoodScreen() {
                   </Pressable>
                 ))}
               </View>
-              <Text style={styles.preferenceHint}>Food usa esto para ordenar propuestas; no oculta recetas ni convierte el presupuesto en un precio exacto.</Text>
             </View>
           ) : null}
 
           <View style={styles.sectionHead}>
             <Text style={styles.sectionInline}>RECETAS VIABLES</Text>
-            <Text style={styles.sectionMeta}>según tu día</Text>
           </View>
 
           <View style={styles.recipeList}>
@@ -406,7 +402,6 @@ export default function FoodScreen() {
           {foodDay.entries.length === 0 ? (
             <View style={styles.emptyCard}>
               <Text style={styles.emptyTitle}>Todavía no has registrado nada.</Text>
-              <Text style={styles.emptyCopy}>Food empieza a aprender cuando tú le cuentas; no te persigue para completar casillas.</Text>
             </View>
           ) : (
             <View style={styles.logCard}>

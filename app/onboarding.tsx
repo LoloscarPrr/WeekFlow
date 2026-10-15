@@ -43,13 +43,9 @@ export default function OnboardingScreen() {
           <View style={styles.hero}>
             <Text style={styles.eyebrow}>BIENVENIDO A WEEKFLOW</Text>
             <Text style={styles.title}>Tu semana. Tu ritmo. Tu equilibrio.</Text>
-            <Text style={styles.lead}>
-              Partamos con lo mínimo. WeekFlow puede conocerte poco a poco, justo cuando cada dato sea útil.
-            </Text>
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.cardLabel}>OPCIONAL</Text>
             <Text style={styles.cardTitle}>¿Cómo quieres que te llamemos?</Text>
             <TextInput
               value={name}
@@ -62,15 +58,12 @@ export default function OnboardingScreen() {
               autoCapitalize="words"
               accessibilityLabel="Tu nombre"
             />
-            <Text style={styles.hint}>Puedes dejarlo vacío. No necesitas crear una cuenta para usar WeekFlow.</Text>
+            <Text style={styles.hint}>No necesitas crear una cuenta.</Text>
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.cardLabel}>LO IMPORTANTE PRIMERO</Text>
             <Text style={styles.cardTitle}>Tu semana manda</Text>
-            <Text style={styles.copy}>
-              Si configuras tus jornadas, WeekFlow puede ordenar el resto alrededor de tu realidad. También puedes hacerlo después.
-            </Text>
+            <Text style={styles.copy}>Puedes configurar tus jornadas ahora o después.</Text>
 
             <Pressable
               accessibilityRole="button"
@@ -91,9 +84,6 @@ export default function OnboardingScreen() {
             </Pressable>
           </View>
 
-          <Text style={styles.footer}>
-            Después podrás ajustar Move, Food, Rest, hábitos y notificaciones desde su propio contexto. No tienes que decidirlo todo hoy.
-          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

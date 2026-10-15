@@ -106,19 +106,15 @@ export function MovePlan({ move }: { move: MoveController }) {
     toggleAvoidArea,
     recommended,
     adaptiveIntensity,
-    recommendationCopy,
     useRecommendation,
     preview,
     routine,
     doneToday,
-    shorterDuration,
-    useShorterVersion,
     startSession,
   } = move;
 
   const goalLabel = optionLabel(MOVE_GOAL_OPTIONS, preferences.goal);
   const experienceLabel = optionLabel(MOVE_EXPERIENCE_OPTIONS, preferences.experience);
-  const selectedFocus = MOVE_FOCUS_OPTIONS.find((item) => item.value === preferences.focus);
 
   return (
     <>
@@ -127,7 +123,7 @@ export function MovePlan({ move }: { move: MoveController }) {
           <Text style={styles.doneTodayIcon}>✓</Text>
           <View style={{ flex: 1 }}>
             <Text style={styles.doneTodayTitle}>Move ya está hecho por hoy</Text>
-            <Text style={styles.doneTodayCopy}>{moveRecordDuration(lastRecord)}{typeof lastRecord.actualSeconds === 'number' ? ` · plan ${lastRecord.plannedMinutes} min` : ''}{lastRecord.feedback ? ` · ${lastRecord.feedback}` : ''}</Text>
+            <Text style={styles.doneTodayCopy}>{moveRecordDuration(lastRecord)}{lastRecord.feedback ? ` · ${lastRecord.feedback}` : ''}</Text>
           </View>
           <Pressable style={styles.extraButton} onPress={() => setExtraOpen(true)}><Text style={styles.extraButtonText}>Otra sesión</Text></Pressable>
         </View>
@@ -141,7 +137,6 @@ export function MovePlan({ move }: { move: MoveController }) {
               <View style={{ flex: 1 }}>
                 <Text style={styles.recommendEyebrow}>{doneToday ? 'OPCIONAL' : 'HOY'} · {MOVE_INTENSITY_LABELS[adaptiveIntensity].toUpperCase()}</Text>
                 <Text style={styles.recommendTitle}>{recommended} min recomendados</Text>
-                <Text style={styles.recommendCopy}>{doneToday ? 'Ya hiciste una sesión. Esta segunda queda totalmente opcional.' : recommendationCopy}</Text>
               </View>
             </View>
 
@@ -151,7 +146,7 @@ export function MovePlan({ move }: { move: MoveController }) {
               </Pressable>
             ) : null}
 
-            <Text style={styles.smallLabel}>Perfil base</Text>
+            <Text style={styles.smallLabel}>Perfil</Text>
             <View style={styles.preferenceButton}>
               <Text style={styles.preferenceIcon}>👤</Text>
               <View style={{ flex: 1 }}>
@@ -222,7 +217,6 @@ export function MovePlan({ move }: { move: MoveController }) {
                       </View>
                     </View>
                   </View>
-                  <Text style={styles.profileHint}>Peso y altura solo dan contexto a la carga; WeekFlow no clasifica tu cuerpo.</Text>
                 </View>
 
                 <Text style={styles.smallLabel}>Equipo habitual</Text>
@@ -267,9 +261,6 @@ export function MovePlan({ move }: { move: MoveController }) {
                   })}
                 </View>
 
-                <Text style={styles.profileHint}>
-                  Move no sube automáticamente tus kilos: usa exactamente el equipo y las cargas que declares.
-                </Text>
 
                 <Text style={styles.smallLabel}>Preferencias de ejercicio</Text>
                 <View style={styles.profileChips}>
@@ -300,7 +291,7 @@ export function MovePlan({ move }: { move: MoveController }) {
             ) : null}
 
             <Pressable style={styles.recommendUseButton} onPress={() => router.push('/move-library')}>
-              <Text style={styles.recommendUseText}>Abrir Biblioteca Move · 100+ ejercicios</Text>
+              <Text style={styles.recommendUseText}>Biblioteca de ejercicios</Text>
             </Pressable>
 
             <Text style={styles.smallLabel}>Enfoque de hoy</Text>
@@ -314,7 +305,6 @@ export function MovePlan({ move }: { move: MoveController }) {
                 );
               })}
             </View>
-            {selectedFocus ? <Text style={styles.profileHint}>{selectedFocus.copy}</Text> : null}
 
             <Text style={styles.smallLabel}>Formato de sesión</Text>
             <View style={styles.profileChips}>
@@ -331,12 +321,6 @@ export function MovePlan({ move }: { move: MoveController }) {
                 );
               })}
             </View>
-            <Text style={styles.profileHint}>
-              {TRAINING_STYLES.find((item) => item.value === preferences.trainingStyle)?.copy}
-            </Text>
-            <Text style={styles.profileHint}>
-              Hoy se resolvería como: {routineStyleLabel(routine.style)} · {routineSummary(routine)}
-            </Text>
 
             <Text style={styles.smallLabel}>¿Cuánto tiempo tienes?</Text>
             <View style={styles.durationRow}>
@@ -347,15 +331,6 @@ export function MovePlan({ move }: { move: MoveController }) {
                 </Pressable>
               ))}
             </View>
-
-            {duration > 5 ? (
-              <>
-                <Pressable style={styles.recommendUseButton} onPress={useShorterVersion}>
-                  <Text style={styles.recommendUseText}>Dame una versión más corta · {shorterDuration} min</Text>
-                </Pressable>
-                <Text style={styles.profileHint}>Mantiene tu objetivo, energía, equipo y restricciones. Solo reduce el volumen para que la sesión quepa de verdad.</Text>
-              </>
-            ) : null}
 
             <Pressable style={styles.primaryButton} onPress={startSession}><Text style={styles.primaryButtonText}>Empezar sesión guiada</Text></Pressable>
           </View>
@@ -378,7 +353,7 @@ export function MovePlan({ move }: { move: MoveController }) {
                 </View>
               );
             })}
-            <Text style={styles.libraryNote}>Formato: {routineStyleLabel(routine.style)}. {routineSummary(routine)}. Las series y AMRAP toman estructuras legibles de tus rutinas de entrenador, pero siempre pasan por nivel, equipo, exclusiones, energía y feedback.</Text>
+            <Text style={styles.libraryNote}>{routineStyleLabel(routine.style)} · {routineSummary(routine)}</Text>
           </View>
         </>
       ) : null}
@@ -386,7 +361,7 @@ export function MovePlan({ move }: { move: MoveController }) {
       {!doneToday && lastRecord ? (
         <View style={styles.lastCard}>
           <Text style={styles.lastLabel}>ÚLTIMA SESIÓN</Text>
-          <Text style={styles.lastValue}>{moveRecordDuration(lastRecord)}{typeof lastRecord.actualSeconds === 'number' ? ` · plan ${lastRecord.plannedMinutes} min` : ''}{lastRecord.feedback ? ` · ${lastRecord.feedback}` : ''}</Text>
+          <Text style={styles.lastValue}>{moveRecordDuration(lastRecord)}{lastRecord.feedback ? ` · ${lastRecord.feedback}` : ''}</Text>
         </View>
       ) : null}
     </>
