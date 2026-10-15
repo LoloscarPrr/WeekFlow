@@ -1,6 +1,6 @@
 # WF-MOVE-009 — Move sin versiones inferiores a 30 minutos
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Requested: 2026-10-15
 Blueprint: WeekFlow Blueprint Maestro v4.0
@@ -45,5 +45,9 @@ Menos controles y microcopy; tiempo/volumen guiado por selección expresa.
 ## Edge cases / regression plan
 Días libres, turnos largos/nocturnos, energía agotada, feedback «Difícil/Demasiado», sesión activa histórica de 10 min; tests de recomendación, intensidad y duración en el generador, Quality CI y Android antes de liberar.
 
-## Verification
-Pending.
+## Verification progress
+- PASS — AC1: selector ofrece 30, 45 y 60, sin botón de «versión más corta».
+- PASS — AC2: recomendación base 30/45, con suelo de 30 aun para energía agotada y feedback difícil; intensidad adaptativa intacta.
+- PASS — AC3: generador ahora soporta 45/60 minutos completos; pruebas de intervalos, series y AMRAP añadidas.
+- PASS — AC4: sesión activa conserva plannedMinutes histórico; al terminar las nuevas selecciones tienen mínimo 30. Historial no migrado.
+- BLOCKED — Quality final y build Android pendiente de validar SHA definitivo.
