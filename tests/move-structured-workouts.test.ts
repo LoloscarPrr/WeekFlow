@@ -133,6 +133,15 @@ const shortSeries = prefs({
 });
 equal(resolveMoveTrainingStyle(5, shortSeries, 'moderada'), 'intervalos', '5 min no fuerza una sesión de series inviable');
 
+const extendedSeries = routineForDuration(45, fullyEquippedStrength, 'moderada');
+equal(extendedSeries.targetMinutes, 45, '45 min conserva su duración elegida');
+equal(extendedSeries.totalSeconds, 2700, 'sesión de series larga completa los 45 min con bloques compatibles');
+ok(extendedSeries.steps.some((step) => step.mode === 'set'), 'la sesión extendida conserva sus series');
+const extendedAmrap = routineForDuration(60, conditioning, 'alta');
+equal(extendedAmrap.targetMinutes, 60, 'AMRAP largo conserva el objetivo de 60 min');
+equal(extendedAmrap.totalSeconds, 3600, 'AMRAP extendido completa los 60 min');
+ok(extendedAmrap.steps.some((step) => step.mode === 'amrap'), 'AMRAP extendido conserva rondas originales');
+
 const sourceText = JSON.stringify(TRAINER_SET_TEMPLATES);
 ok(!sourceText.includes('Benja'), 'plantillas no guardan nombre personal de la pizarra');
 ok(!sourceText.includes('Tommy'), 'plantillas no guardan nombre personal de la pizarra');
