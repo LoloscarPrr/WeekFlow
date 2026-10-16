@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { loadConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
 import { loadHabitsState } from '@/src/habits/persistence';
+import { shiftContextForDate } from '@/src/domain/services/shiftSchedule';
 import { buildLivePlanReminders } from '@/src/domain/services/reminderPlan';
 import { isReminderKindEnabled } from '@/src/notifications/core';
 import { loadNotificationPreferences } from '@/src/notifications/persistence';
@@ -165,6 +166,14 @@ async function performLivePlanReminderSync(now: Date): Promise<number> {
     const [hour, minute] = slot.start.split(':').map(Number);
     const at = new Date(year, month - 1, day, hour, minute);
     if (at <= now || at.getTime() > now.getTime() + 14 * 86400000) return [];
+    // Never alert for a habit while commuting to, or working a shift.
+    const context = shiftContextForDate(weekState, at);
+    if (context.startAt && context.endAt) {
+      const shiftStart = new Date(context.startAt).getTime();
+      const shiftEnd = new Date(context.endAt).getTime();
+      const leaveAt = shiftStart - (dayState.settings.commuteOutMin + dayState.settings.bufferMin) * 60000;
+      if (at.getTime() >= leaveAt && at.getTime() < shiftEnd) return [];
+    }
     return [{
       id: 'weekly-habit-' + slot.id,
       title: '🌱 ' + habit.name,
