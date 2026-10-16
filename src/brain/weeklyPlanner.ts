@@ -165,6 +165,9 @@ export function proposeWeeklyPlan(input: PlannerInput): WeeklyProposal {
       const key = localHabitDateKey(day);
       if (input.habits.completions.some(c => c.habitId === habit.id && c.date === key)) continue;
       if (slots.some(s => s.habitId === habit.id && s.date === key)) continue;
+      // Same visible activity, even if registered under different habit IDs.
+      const label = habit.name.trim().toLocaleLowerCase();
+      if (slots.some(s => s.date === key && active.some(h => h.id === s.habitId && h.name.trim().toLocaleLowerCase() === label))) continue;
       const dayCount = slots.filter(s => s.date === key).length;
       const isRecoveryDay = recoveryDates.has(key);
       const dailyEnergy = input.energyByDate?.[key] ?? (isRecoveryDay ? 'cansado' : input.energy);
