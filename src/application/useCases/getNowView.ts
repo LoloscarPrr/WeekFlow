@@ -9,7 +9,7 @@ import type { Shift, WeekSchedule } from '@/src/domain/entities/Shift';
 import { longLocalDateLabel, shortLocalDateLabel } from '@/src/domain/services/calendarDate';
 import { importantMomentsForDate } from '@/src/domain/services/importantMoments';
 import { IMPORTANT_MOMENT_ICON, timelineAfterFeaturedMoment } from '@/src/domain/services/nowTimeline';
-import { shiftContextForDate, type ShiftContext } from '@/src/domain/services/shiftSchedule';
+import { localDateKey, shiftContextForDate, type ShiftContext } from '@/src/domain/services/shiftSchedule';
 
 export type DayPhase = 'off' | 'before' | 'commuting' | 'working' | 'after';
 
@@ -299,7 +299,18 @@ export function getNowView({ dayState, weekState, moveDoneToday, now }: GetNowVi
     ? datedPlanMoments(plan.moments, shiftContext.startAt, now).find(entry => entry.item.type === 'wake')?.at
     : undefined;
   const confirmedForNow = confirmedMomentsForNow(loadConfirmedWeeklyPlan(), loadHabitsState(), now)
-    .filter(({ at }) => !mainSleepWake || at >= mainSleepWake);
+    .filter(({ at }) => {
+      if (mainSleepWake && at < mainSleepWake) return false;
+      const context = shiftContextForDate(weekState, at);
+      if (!context.startAt || !context.endAt) return true;
+      const leaveAt = new Date(context.startAt).getTime()
+        - (dayState.settings.commuteOutMin + dayState.settings.bufferMin) * 60000;
+      return at.getTime() < leaveAt || at.getTime() >= new Date(context.endAt).getTime();
+    });
+  // Do not suggest an additional generic Move session when exercise is
+  // already scheduled as a confirmed habit for the same day.
+  const exerciseConfirmedToday = confirmedForNow.some(({ item, at }) =>
+    localDateKey(at) === localDateKey(now) && /ejerc|entren|gimnas|actividad f[ií]sica/i.test(item.title));
 
   const upcomingMoments = [
     ...datedPlanMoments(plan.moments, shiftContext.startAt, now),
@@ -308,7 +319,7 @@ export function getNowView({ dayState, weekState, moveDoneToday, now }: GetNowVi
     ...confirmedForNow,
   ]
     .filter(({ item, at }) => {
-      if (moveDoneToday && item.type === 'move') return false;
+      if ((moveDoneToday || exerciseConfirmedToday) && item.type === 'move') return false;
       if (needsExitReview && item.flexible) return false;
       return at.getTime() >= now.getTime();
     })
