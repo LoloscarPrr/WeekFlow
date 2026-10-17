@@ -66,12 +66,14 @@ export function buildLivePlanReminders(
     const leaveAt = new Date(
       startsAt.getTime() - (dayState.settings.commuteOutMin + dayState.settings.bufferMin) * 60_000,
     );
-    if (leaveAt > now) {
+    // Notify shortly before departure rather than when the user should already be on the move.
+    const notifyAt = new Date(leaveAt.getTime() - 15 * 60_000);
+    if (notifyAt > now) {
       reminders.push({
         id: `shift-${localDateKey(date)}-${shift.start}`,
         title: '🚇 Hora de salir hacia el trabajo',
-        body: `Entrada ${shift.start} · ${dayState.settings.commuteOutMin} min de traslado + ${dayState.settings.bufferMin} min de margen.`,
-        at: leaveAt,
+        body: `Sal a las ${hm(leaveAt)} · entrada ${shift.start} · ${dayState.settings.commuteOutMin} min de traslado + ${dayState.settings.bufferMin} min de margen.`,
+        at: notifyAt,
         kind: 'departure',
       });
     }
