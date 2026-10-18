@@ -32,8 +32,9 @@ const reminders = buildLivePlanReminders(defaultDayState, week, now);
 
 const departure = reminders.find((item) => item.kind === 'departure');
 ok(departure, 'debe existir recordatorio de salida');
-equal(hm(departure!.at), '11:30', '13:00 - 75 min - 15 min');
-ok(departure!.body.includes('Entrada 13:00'), 'salida explica entrada');
+equal(hm(departure!.at), '11:15', 'aviso 15 min antes de salir a las 11:30');
+ok(departure!.body.includes('entrada 13:00'), 'salida explica entrada');
+ok(departure!.body.includes('Sal a las 11:30'), 'salida indica hora exacta de partida');
 ok(departure!.body.includes('75 min de traslado'), 'salida explica traslado');
 ok(departure!.body.includes('15 min de margen'), 'salida explica margen');
 
