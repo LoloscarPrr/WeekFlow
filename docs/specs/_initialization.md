@@ -1,36 +1,22 @@
-# TLC Initialization Snapshot
+# TLC Initialization Snapshot — 2026-10-19 (WF-CORE-007)
 
 ## Repository and ref
-- Repository: `LoloscarPrr/WeekFlow`.
-- Base: `main` at `ca5a85e87ca830a23f2cc88f0830d1ec85fba917`.
-- Working branch: `ux/wf-ux-002-compact-move-min30`.
-- Product source of truth: uploaded `WeekFlow Blueprint Maestro v4.0` (read sections 1–3, Core, Ahora, Move, governance) and current user's UX feedback.
+- Repository: `LoloscarPrr/WeekFlow`, base `main` at `90de69ff420db8e9cc96aa018cd55fa8fa888480`.
+- Branch: `fix/wf-core-007-expo-autolinking-publication`.
+- Product source: Blueprint Maestro v4.0; active 0.7.x assistant/brain with 0.5.12 stabilization.
 
 ## App / build
-- App version: `0.5.12`; Android source `versionCode 104`, package `com.weekflow.app`.
-- Quality at initialization: NOT RUN; first candidate test suite passed up to smart-silence; its legacy copy assertion was fixed in subsequent commit; final CI pending.
-- Android at this branch: NOT RUN at initialization.
-- Last available baseline from repository docs was for earlier versions; not evidence for this branch.
+- Source version: `0.5.12`; Android source versionCode `104`, production package `com.weekflow.app`.
+- CI Quality (main previous SHA `7174bda17`): PASS.
+- Android release Oct 15 #38822812246 and Oct 19 #39251235777/#39251755922: FAIL in Gradle `settings.gradle:32` because `publication.version` missing.
+- Autolinking normalization reported 0 fixes; current diagnostic script used `build/index.js` (non-executable) and logged “Unexpected end of JSON input”.
 
-## Product context / active scope
-- Current canonical roadmap stage in repository: 0.7.x — Assistant + Brain, with UX corrections to already shipped areas admitted NOW.
-- Immediate fixes: Move 30-minute minimum, removal of shorter action, and cross-screen reduction of redundant text.
-- Brain, SQLite, notification logic and exercise generator remain the single underlying sources of truth.
+## Scope and constraints
+- Active specs: `WF-UX-002`, `WF-MOVE-009` (user-visible changes already merged) and `WF-CORE-007` (NOW, Android build bug).
+- Workflow: `.github/workflows/build-weekflow-native.yml`.
+- No source UI/business changes, no dependency or signing changes; preserve compatible signed updates.
+- Blueprint file available in project but build debugging uses current repo.
+- Build verification must use GitHub Actions; Android device testing remains unverified.
 
-## Relevant repository state
-- `app/index.tsx` repeats “AHORA”/“Qué importa ahora”/“DÍA VIVO” and repeats summary stats.
-- `src/move/useMoveController.ts` exposes 5/10/20/30 min; `adaptation.ts` recommends 5/10/20/30 and supports shorter duration.
-- `src/move/MovePlan.tsx` offers shortening and explanatory copy.
-- `app/rest.tsx` exposes a persistent internal “REGLAS ACTIVAS” panel.
-- Assistant and other pillar pages contain long technical/descriptive microcopy.
-
-## Baseline / constraints
-- PASS — current source and supplied Blueprint inspected; AGENTS/TLC read.
-- NOT RUN — typecheck, JS tests, Android build for new branch.
-- Constraint — direct local GitHub clone is unavailable in this runtime; use GitHub connector and remote CI.
-- Constraint — physical Android QA is needed to mark UX visually verified.
-- Existing active Move sessions under 30 min must not change while in progress.
-
-## Locked change specs
-- `WF-UX-002 — Una sola vez, en el lugar correcto` (NOW).
-- `WF-MOVE-009 — Move sin versiones inferiores a 30 minutos` (NOW).
+## Next action
+Lock `WF-CORE-007`, replace incomplete publication normalizer with executable Expo autolinking metadata validation, add pure regression tests, run PR CI, merge after PASS then verify Android build and artifacts.
