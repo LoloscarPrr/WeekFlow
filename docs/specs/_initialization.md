@@ -1,36 +1,21 @@
-# TLC Initialization Snapshot
+# TLC Initialization Snapshot — WF-CORE-008, 2026-10-19
 
 ## Repository and ref
-- Repository: `LoloscarPrr/WeekFlow`.
-- Base: `main` at `ca5a85e87ca830a23f2cc88f0830d1ec85fba917`.
-- Working branch: `ux/wf-ux-002-compact-move-min30`.
-- Product source of truth: uploaded `WeekFlow Blueprint Maestro v4.0` (read sections 1–3, Core, Ahora, Move, governance) and current user's UX feedback.
+- LoloscarPrr/WeekFlow; base `main` at `2c95a386cedee7beb75cea173f49525884d85847`.
+- Branch: `fix/wf-core-008-expo-image-sdk57`.
+- Product source: WeekFlow Blueprint Maestro v4.0 and active 0.5.12/0.7.x specs; only release compatibility in scope.
 
-## App / build
-- App version: `0.5.12`; Android source `versionCode 104`, package `com.weekflow.app`.
-- Quality at initialization: NOT RUN; first candidate test suite passed up to smart-silence; its legacy copy assertion was fixed in subsequent commit; final CI pending.
-- Android at this branch: NOT RUN at initialization.
-- Last available baseline from repository docs was for earlier versions; not evidence for this branch.
+## Current version and release
+- App: WeekFlow 0.5.12, package `com.weekflow.app`, Android source versionCode 104; CI assigns monotonically increasing build versionCodes.
+- Quality: PASS #39252334796.
+- Android: FAIL #39252334493 in `:app:checkReleaseAarMetadata` with `expo.modules.image:expo.modules.image:58.0.15` requiring compileSdk >= 37; Expo SDK 57 native build uses compileSdk 36 and AGP 8.12.0.
+- Expo publication metadata normalizer: PASS (patched one nested dependency), so prior missing publication.version error is resolved.
 
-## Product context / active scope
-- Current canonical roadmap stage in repository: 0.7.x — Assistant + Brain, with UX corrections to already shipped areas admitted NOW.
-- Immediate fixes: Move 30-minute minimum, removal of shorter action, and cross-screen reduction of redundant text.
-- Brain, SQLite, notification logic and exercise generator remain the single underlying sources of truth.
+## Active spec
+- `WF-CORE-008` (NOW): force nested Expo-image SDK 57-compatible version; preflight nested dependency versions.
+- Existing UX/Move behavior from WF-UX-002/WF-MOVE-009 preserved.
 
-## Relevant repository state
-- `app/index.tsx` repeats “AHORA”/“Qué importa ahora”/“DÍA VIVO” and repeats summary stats.
-- `src/move/useMoveController.ts` exposes 5/10/20/30 min; `adaptation.ts` recommends 5/10/20/30 and supports shorter duration.
-- `src/move/MovePlan.tsx` offers shortening and explanatory copy.
-- `app/rest.tsx` exposes a persistent internal “REGLAS ACTIVAS” panel.
-- Assistant and other pillar pages contain long technical/descriptive microcopy.
-
-## Baseline / constraints
-- PASS — current source and supplied Blueprint inspected; AGENTS/TLC read.
-- NOT RUN — typecheck, JS tests, Android build for new branch.
-- Constraint — direct local GitHub clone is unavailable in this runtime; use GitHub connector and remote CI.
-- Constraint — physical Android QA is needed to mark UX visually verified.
-- Existing active Move sessions under 30 min must not change while in progress.
-
-## Locked change specs
-- `WF-UX-002 — Una sola vez, en el lugar correcto` (NOW).
-- `WF-MOVE-009 — Move sin versiones inferiores a 30 minutos` (NOW).
+## Scope and constraints
+- Only `package.json`, CI workflows, script/tests, spec.
+- No user app logic/SQLite, assets, keystore, Gradle, SDK bump, or UI modifications.
+- Physical Android QA not available in CI; APK must first be generated and verified.
