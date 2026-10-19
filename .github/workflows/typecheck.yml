@@ -25,5 +25,8 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Validate Expo-image SDK compatibility
+        run: node scripts/check-expo-image-sdk.cjs
+
       - name: Typecheck and regression tests
         run: npm run quality
