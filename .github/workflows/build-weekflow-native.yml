@@ -121,32 +121,42 @@ jobs:
           const fs = require('fs');
           const path = require('path');
           let patched = 0;
+          const visited = new Set();
           function inspect(dir) {
             const configPath = path.join(dir, 'expo-module.config.json');
             if (!fs.existsSync(configPath)) return;
             const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-            for (const project of config.android?.projects ?? []) {
-              if (project.publication && !project.publication.version) {
+            const publications = [
+              config.android?.publication,
+              ...(config.android?.projects ?? []).map(p => p.publication),
+            ].filter(Boolean);
+            let updated = false;
+            for (const publication of publications) {
+              if (!publication.version) {
                 const packagePath = path.join(dir, 'package.json');
                 const version = fs.existsSync(packagePath)
                   ? JSON.parse(fs.readFileSync(packagePath, 'utf8')).version : null;
                 if (!version) throw new Error('Missing package version for ' + dir);
-                project.publication.version = version;
-                fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
-                console.log('Patched missing Android publication version:', dir, version);
+                publication.version = version;
+                console.log('Corrected Expo publication:', dir, version);
                 patched += 1;
+                updated = true;
               }
             }
+            if (updated) fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
           }
           function scan(dir) {
-            if (!fs.existsSync(dir)) return;
+            if (!fs.existsSync(dir) || visited.has(path.resolve(dir))) return;
+            visited.add(path.resolve(dir));
             for (const entry of fs.readdirSync(dir, {withFileTypes:true})) {
               if (!entry.isDirectory()) continue;
+              const pkgDir = path.join(dir, entry.name);
               if (entry.name.startsWith('@')) {
-                for (const pkg of fs.readdirSync(path.join(dir, entry.name), {withFileTypes:true})) {
-                  if (pkg.isDirectory()) inspect(path.join(dir, entry.name, pkg.name));
-                }
-              } else inspect(path.join(dir, entry.name));
+                scan(pkgDir);
+              } else {
+                inspect(pkgDir);
+                scan(path.join(pkgDir, 'node_modules'));
+              }
             }
           }
           scan('node_modules');
