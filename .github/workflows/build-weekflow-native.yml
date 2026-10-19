@@ -132,7 +132,7 @@ jobs:
                   ? JSON.parse(fs.readFileSync(packagePath, 'utf8')).version : null;
                 if (!version) throw new Error('Missing package version for ' + dir);
                 project.publication.version = version;
-                fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\\n');
+                fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
                 console.log('Patched missing Android publication version:', dir, version);
                 patched += 1;
               }
