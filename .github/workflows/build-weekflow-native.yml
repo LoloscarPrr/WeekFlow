@@ -114,44 +114,8 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Normalize third-party Expo module publication metadata
-        shell: bash
-        run: |
-          node <<'NODE'
-          const fs = require('fs');
-          const path = require('path');
-          let patched = 0;
-          function inspect(dir) {
-            const configPath = path.join(dir, 'expo-module.config.json');
-            if (!fs.existsSync(configPath)) return;
-            const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-            for (const project of config.android?.projects ?? []) {
-              if (project.publication && !project.publication.version) {
-                const packagePath = path.join(dir, 'package.json');
-                const version = fs.existsSync(packagePath)
-                  ? JSON.parse(fs.readFileSync(packagePath, 'utf8')).version : null;
-                if (!version) throw new Error('Missing package version for ' + dir);
-                project.publication.version = version;
-                fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
-                console.log('Patched missing Android publication version:', dir, version);
-                patched += 1;
-              }
-            }
-          }
-          function scan(dir) {
-            if (!fs.existsSync(dir)) return;
-            for (const entry of fs.readdirSync(dir, {withFileTypes:true})) {
-              if (!entry.isDirectory()) continue;
-              if (entry.name.startsWith('@')) {
-                for (const pkg of fs.readdirSync(path.join(dir, entry.name), {withFileTypes:true})) {
-                  if (pkg.isDirectory()) inspect(path.join(dir, entry.name, pkg.name));
-                }
-              } else inspect(path.join(dir, entry.name));
-            }
-          }
-          scan('node_modules');
-          console.log('Expo module metadata fixes:', patched);
-          NODE
+      - name: Normalize and verify Expo Android publication metadata
+        run: node scripts/normalize-expo-publications.cjs
 
       - name: Run release quality gate
         run: npm run quality
@@ -273,31 +237,6 @@ jobs:
           path.write_text('\n'.join(output) + '\n')
           print(path.read_text())
           PY
-
-      - name: Diagnose Expo autolinking publication metadata
-        shell: bash
-        run: |
-          node - <<'NODE'
-          const { execFileSync } = require('child_process');
-          const path = require('path');
-          const cli = require.resolve('expo-modules-autolinking/build/index.js');
-          try {
-            const raw = execFileSync(process.execPath, [cli, 'resolve', '--platform', 'android', '--json'], {encoding:'utf8'});
-            const parsed = JSON.parse(raw);
-            const modules = Array.isArray(parsed) ? parsed : (parsed.modules ?? []);
-            modules.forEach((entry, i) => {
-              const projects = entry.projects ?? [];
-              for (const [j, project] of projects.entries()) {
-                if (project.publication && !project.publication.version) {
-                  console.log('Missing publication version:', i, j, entry.packageName ?? entry.name ?? entry.package, JSON.stringify(project.publication));
-                }
-              }
-            });
-            console.log('Autolinking inspected modules:', modules.length);
-          } catch (error) {
-            console.log('Autolinking diagnostic unavailable:', error.message);
-          }
-          NODE
 
       - name: Build signed release APK
         working-directory: android
