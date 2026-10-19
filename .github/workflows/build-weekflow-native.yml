@@ -114,6 +114,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Validate Expo-image SDK compatibility
+        run: node scripts/check-expo-image-sdk.cjs
+
       - name: Normalize third-party Expo module publication metadata
         shell: bash
         run: |
