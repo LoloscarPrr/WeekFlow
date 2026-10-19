@@ -25,5 +25,8 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Validate Expo publication metadata
+        run: node scripts/normalize-expo-publications.cjs
+
       - name: Typecheck and regression tests
         run: npm run quality
