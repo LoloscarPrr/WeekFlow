@@ -274,6 +274,31 @@ jobs:
           print(path.read_text())
           PY
 
+      - name: Diagnose Expo autolinking publication metadata
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const { execFileSync } = require('child_process');
+          const path = require('path');
+          const cli = require.resolve('expo-modules-autolinking/build/index.js');
+          try {
+            const raw = execFileSync(process.execPath, [cli, 'resolve', '--platform', 'android', '--json'], {encoding:'utf8'});
+            const parsed = JSON.parse(raw);
+            const modules = Array.isArray(parsed) ? parsed : (parsed.modules ?? []);
+            modules.forEach((entry, i) => {
+              const projects = entry.projects ?? [];
+              for (const [j, project] of projects.entries()) {
+                if (project.publication && !project.publication.version) {
+                  console.log('Missing publication version:', i, j, entry.packageName ?? entry.name ?? entry.package, JSON.stringify(project.publication));
+                }
+              }
+            });
+            console.log('Autolinking inspected modules:', modules.length);
+          } catch (error) {
+            console.log('Autolinking diagnostic unavailable:', error.message);
+          }
+          NODE
+
       - name: Build signed release APK
         working-directory: android
         env:
