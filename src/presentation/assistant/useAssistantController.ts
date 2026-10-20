@@ -136,6 +136,7 @@ export function useAssistantController() {
         });
         return {
           shiftKey: view.shiftContext.key,
+          shiftStartAt: view.shiftContext.startAt,
           snapshot: view.snapshot,
           currentPlan: view.basePlan,
           phase: view.phase,
@@ -145,7 +146,9 @@ export function useAssistantController() {
     const result = applyBrainAction(state, pendingProposal, { confirmed: true, now, actualExitContext });
 
     if (result.status !== 'applied') {
+      if (result.status === 'conflict') setPendingProposal(null);
       setAssistantMessage(result.message);
+      setContext(readAssistantContext());
       return false;
     }
 
