@@ -76,7 +76,7 @@ export default function AssistantScreen() {
           >
             <Text style={styles.interpretButtonText}>Interpretar</Text>
           </Pressable>
-          <Text style={styles.assistantMessage}>{assistantMessage}</Text>
+          {assistantMessage ? <Text style={styles.assistantMessage}>{assistantMessage}</Text> : null}
           {context.needsExitReview && !pendingProposal ? (
             <Pressable
               style={styles.reviewExitButton}
