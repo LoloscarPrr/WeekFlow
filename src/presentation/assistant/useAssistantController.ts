@@ -5,6 +5,7 @@ import { getRestView } from '@/src/application/useCases/getRestView';
 import { buildAssistantRealState } from '@/src/assistant/context';
 import { interpretAssistantText } from '@/src/assistant/interpret';
 import { relativeExitFromShiftEnd } from '@/src/assistant/relativeExit';
+import { answerAssistantQuestion, detectAssistantQuestion } from '@/src/assistant/questions';
 import {
   applyBrainAction,
   receiptHasEffectiveChange,
@@ -58,7 +59,7 @@ export function useAssistantController() {
   const [pendingProposal, setPendingProposal] = useState<BrainActionProposal | null>(null);
   const [lastReceipt, setLastReceipt] = useState<BrainActionReceipt | null>(null);
   const [assistantMessage, setAssistantMessage] = useState(
-    'Puedes contarme un cambio simple de energía o de horario.',
+    'Pregunta por tu día o cuéntame qué cambió.',
   );
 
   const refresh = useCallback(() => {
@@ -73,6 +74,17 @@ export function useAssistantController() {
 
   const interpret = useCallback((input: string) => {
     const now = new Date();
+    const question = detectAssistantQuestion(input);
+    if (question) {
+      // Questions are read-only and must use fresh canonical repositories/views.
+      // Any unconfirmed proposal is discarded, never applied by a question.
+      const latest = readAssistantContext(now);
+      setPendingProposal(null);
+      setContext(latest);
+      setAssistantMessage(answerAssistantQuestion(question, latest));
+      return true;
+    }
+
     const result = interpretAssistantText(input, now);
     if (result.status === 'actual-exit-intent' || result.status === 'actual-exit-relative-intent') {
       const dayState = loadDayState();
