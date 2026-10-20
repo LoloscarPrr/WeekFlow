@@ -4,6 +4,7 @@ import { getNowView } from '@/src/application/useCases/getNowView';
 import { getRestView } from '@/src/application/useCases/getRestView';
 import { buildAssistantRealState } from '@/src/assistant/context';
 import { interpretAssistantText } from '@/src/assistant/interpret';
+import { relativeExitFromShiftEnd } from '@/src/assistant/relativeExit';
 import {
   applyBrainAction,
   receiptHasEffectiveChange,
@@ -73,7 +74,7 @@ export function useAssistantController() {
   const interpret = useCallback((input: string) => {
     const now = new Date();
     const result = interpretAssistantText(input, now);
-    if (result.status === 'actual-exit-intent') {
+    if (result.status === 'actual-exit-intent' || result.status === 'actual-exit-relative-intent') {
       const dayState = loadDayState();
       const weekState = loadWeekState();
       const view = getNowView({
@@ -87,15 +88,35 @@ export function useAssistantController() {
         setAssistantMessage('No hay una jornada activa para registrar esa salida.');
         return false;
       }
+      const isRelative = result.status === 'actual-exit-relative-intent';
+      if (isRelative && (!view.shiftContext.endAt || !view.shiftContext.startAt)) {
+        setPendingProposal(null);
+        setAssistantMessage('No encontré una jornada completa para calcular esa salida.');
+        return false;
+      }
+      const resolved = isRelative
+        ? relativeExitFromShiftEnd(view.shiftContext.endAt!, result.deltaMinutes)
+        : null;
+      if (resolved) {
+        const startAt = new Date(view.shiftContext.startAt!);
+        if (resolved.exitAt < startAt || resolved.exitAt > now) {
+          setPendingProposal(null);
+          setAssistantMessage('Esa salida aún no ocurrió o queda antes del inicio del turno.');
+          return false;
+        }
+      }
+      const time = resolved?.time ?? (result.status === 'actual-exit-intent' ? result.time : '');
+      const delta = result.status === 'actual-exit-relative-intent' ? result.deltaMinutes : 0;
+      const relativeLabel = delta > 0 ? `${delta} min después` : `${Math.abs(delta)} min antes`;
       setPendingProposal({
         id: `assistant-exit-${now.getTime()}`,
         kind: 'record-actual-exit',
         title: 'Registrar salida real',
-        explanation: `Saliste a las ${result.time}. Ajustaré regreso y recuperación; lo demás se confirmará en Ahora si hace falta.`,
+        explanation: `Salida a las ${time}${isRelative ? ` (${relativeLabel})` : ''}. Ajustaré regreso y recuperación; lo demás se confirmará en Ahora si hace falta.`,
         createdAt: now.toISOString(),
         requiresConfirmation: true,
         payload: {
-          time: result.time,
+          time,
           shiftKey: view.shiftContext.key,
           plannedEnd: view.todayShift.end,
         },
