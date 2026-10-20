@@ -57,7 +57,7 @@ export function interpretAssistantText(input: string, now = new Date()): Convers
 
   // Past-tense real departure is not a planned Week shift change.
   // Be conservative: no implicit hour, previous-day report or multi-action guess.
-  const isActualExit = /\b(?:salí|sali|terminé\s+(?:mi\s+)?turno|termine\s+(?:mi\s+)?turno)\b/.test(text);
+  const isActualExit = /\b(?:salí|sali|terminé\s+(?:mi\s+)?turno|termine\s+(?:mi\s+)?turno)(?=\s|$|[.,;!?])/.test(text);
   const energy = parseEnergy(text);
   if (isActualExit) {
     if (/\b(?:ayer|anteayer|mañana|lunes|martes|miércoles|miercoles|jueves|viernes|sábado|sabado|domingo)\b/.test(text)) {
