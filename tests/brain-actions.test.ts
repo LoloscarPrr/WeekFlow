@@ -226,4 +226,44 @@ const actualExitConflict = undoBrainAction(changedAfterExit, actualExitApplied.r
 equal(actualExitConflict.status, 'conflict', 'undo no debe borrar una confirmación posterior en Ahora');
 equal(actualExitConflict.state.dayState.actualExit, '23:30', 'conflicto de undo conserva la salida real');
 
+// Overnight: exit at 06:10 belongs to the shift started yesterday at 22:00.
+const nightNow = new Date(2026, 9, 6, 6, 15);
+const nightSnapshot: BrainSnapshot = {
+  ...defaultDayState.settings,
+  energy: 'bien',
+  shift: { start: '22:00', end: '06:00', type: 'night' },
+};
+const nightContext = {
+  shiftKey: '2026-10-05@22:00',
+  shiftStartAt: new Date(2026, 9, 5, 22, 0).toISOString(),
+  snapshot: nightSnapshot,
+  currentPlan: buildBrainPlan(nightSnapshot),
+  phase: 'after' as const,
+};
+const nightProposal: BrainActionProposal = {
+  id: 'assistant-night-exit',
+  kind: 'record-actual-exit',
+  title: 'Salida nocturna real',
+  explanation: 'Salí después de medianoche.',
+  createdAt: nightNow.toISOString(),
+  requiresConfirmation: true,
+  payload: { time: '06:10', shiftKey: nightContext.shiftKey, plannedEnd: '06:00' },
+};
+const previousExit = {
+  ...initialState(),
+  dayState: {
+    ...defaultDayState,
+    actualExit: '21:00',
+    actualExitAt: new Date(2026, 9, 4, 21).toISOString(),
+    actualExitShiftKey: '2026-10-04@13:00',
+  },
+};
+const nightResult = applyBrainAction(previousExit, nightProposal, {
+  confirmed: true, now: nightNow, actualExitContext: nightContext,
+});
+equal(nightResult.status, 'applied', 'turno nocturno permite salida real al cruzar medianoche');
+equal(nightResult.state.dayState.actualExit, '06:10', 'hora nocturna guardada');
+equal(new Date(nightResult.state.dayState.actualExitAt!).getDate(), 6, 'usa la jornada actual aunque exista salida previa guardada');
+equal(nightResult.state.dayState.actualExitShiftKey, nightContext.shiftKey, 'conserva identidad del turno nocturno');
+
 console.log('Brain action foundation regression tests passed.');
