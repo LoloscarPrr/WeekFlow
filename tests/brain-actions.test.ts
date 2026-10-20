@@ -7,6 +7,8 @@ import {
   type BrainActionProposal,
 } from '../src/brain/actions';
 import { defaultDayState, defaultWeekState } from '../src/domain/defaults';
+import { buildBrainPlan } from '../src/brain/engine';
+import type { BrainSnapshot } from '../src/domain/entities/Planning';
 
 function equal<T>(actual: T, expected: T, message: string) {
   if (!Object.is(actual, expected)) {
@@ -133,5 +135,73 @@ try {
   invalidDayRejected = true;
 }
 ok(invalidDayRejected, 'día inválido se rechaza');
+
+// A real exit must use the same Now use case and never rewrite the planned Week shift.
+const actualExitNow = new Date(2026, 9, 5, 23, 35);
+const snapshot: BrainSnapshot = {
+  ...defaultDayState.settings,
+  energy: 'bien',
+  shift: { start: '13:00', end: '22:00', type: 'afternoon' },
+};
+const exitContext = {
+  shiftKey: '2026-10-05@13:00',
+  snapshot,
+  currentPlan: buildBrainPlan(snapshot),
+  phase: 'after' as const,
+};
+const exitProposal: BrainActionProposal = createBrainActionProposal({
+  id: 'assistant-real-exit',
+  kind: 'record-actual-exit',
+  title: 'Registrar salida real',
+  explanation: 'Salí después de lo previsto.',
+  createdAt: actualExitNow.toISOString(),
+  requiresConfirmation: true,
+  payload: { time: '23:30', shiftKey: exitContext.shiftKey, plannedEnd: '22:00' },
+});
+const start = initialState();
+const exitWithoutConfirmation = applyBrainAction(start, exitProposal, { now: actualExitNow, actualExitContext: exitContext });
+equal(exitWithoutConfirmation.status, 'confirmation-required', 'salida real no se registra sin confirmar');
+equal(exitWithoutConfirmation.state.dayState.actualExit, start.dayState.actualExit, 'sin confirmar no cambia DayState');
+const actualExitApplied = applyBrainAction(start, exitProposal, {
+  confirmed: true, now: actualExitNow, actualExitContext: exitContext,
+});
+equal(actualExitApplied.status, 'applied', 'salida real se confirma');
+equal(actualExitApplied.state.dayState.actualExit, '23:30', 'hora real guardada mediante caso de uso de Ahora');
+equal(actualExitApplied.state.dayState.actualExitShiftKey, exitContext.shiftKey, 'salida queda vinculada a la jornada correcta');
+ok(Boolean(actualExitApplied.state.dayState.actualExitAt), 'se guarda fecha de salida real');
+equal(actualExitApplied.state.weekState, start.weekState, 'salida real no altera Semana programada');
+ok(actualExitApplied.receipt && receiptHasEffectiveChange(actualExitApplied.receipt), 'salida confirmada puede deshacerse');
+const actualExitUndone = undoBrainAction(actualExitApplied.state, actualExitApplied.receipt!);
+equal(actualExitUndone.status, 'reverted', 'salida real se puede deshacer');
+equal(actualExitUndone.state.dayState.actualExit, start.dayState.actualExit, 'undo repone DayState original');
+
+const changedShiftContext = {
+  ...exitContext,
+  snapshot: { ...snapshot, shift: { ...snapshot.shift, end: '23:00' } },
+};
+const staleExit = applyBrainAction(start, exitProposal, {
+  confirmed: true, now: actualExitNow, actualExitContext: changedShiftContext,
+});
+equal(staleExit.status, 'conflict', 'si cambia la salida planificada, se descarta propuesta');
+equal(staleExit.state, start, 'conflicto no modifica estado');
+
+const offExit = applyBrainAction(start, exitProposal, {
+  confirmed: true, now: actualExitNow,
+  actualExitContext: { ...exitContext, phase: 'off' },
+});
+equal(offExit.status, 'conflict', 'no se registran salidas reales en día libre');
+const beforeExit = applyBrainAction(start, exitProposal, {
+  confirmed: true, now: actualExitNow,
+  actualExitContext: { ...exitContext, phase: 'before' },
+});
+equal(beforeExit.status, 'conflict', 'no se registra salida antes de trabajar');
+
+const changedAfterExit: BrainActionState = {
+  ...actualExitApplied.state,
+  dayState: { ...actualExitApplied.state.dayState, actualExitReplanConfirmed: true },
+};
+const actualExitConflict = undoBrainAction(changedAfterExit, actualExitApplied.receipt!);
+equal(actualExitConflict.status, 'conflict', 'undo no debe borrar una confirmación posterior en Ahora');
+equal(actualExitConflict.state.dayState.actualExit, '23:30', 'conflicto de undo conserva la salida real');
 
 console.log('Brain action foundation regression tests passed.');
