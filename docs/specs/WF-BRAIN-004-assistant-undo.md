@@ -1,6 +1,6 @@
 # WF-BRAIN-004 — Deshacer el último cambio del Asistente
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Requested: 2026-10-20
 Blueprint: WeekFlow Blueprint Maestro v4.0
@@ -56,4 +56,11 @@ No hay schema nuevo. Solo se escriben DayState o WeekSchedule existentes, median
 Prueba unitaria pura de `BrainActionReceipt` efectivo/no-op, regresiones existentes `brain-actions.test.ts` y pruebas estructurales de Asistente; Quality CI del PR y build firmado post-merge; verificar instalación sobre 0.5.12 en teléfono antes de declarar QA físico.
 
 ## Verification
-Pending.
+- AC1: PASS — `app/assistant.tsx` muestra una acción compacta y accesible cuando hay recibo efectivo.
+- AC2: PASS — `receiptHasEffectiveChange` evita mostrar undo para no-op; test puro agregado.
+- AC3: PASS — la acción se oculta al existir una propuesta pendiente; cancelación no borra el recibo previo.
+- AC4: PASS — controller utiliza `undoBrainAction` sobre datos frescos, guarda solo el target revertido, reconstruye contexto y sincroniza recordatorios.
+- AC5: PASS — `undoBrainAction` impide sobrescribir un target modificado después; tests puros de energía y horario.
+- AC6: PASS — el recibo se descarta tras undo/conflicto; sin nueva persistencia.
+- AC7: Quality #39366129691 PASS (TypeScript + regresiones). Android release firmado 0.5.13 y QA física: PENDING, no declarar DONE hasta verificar APK.
+- No cambia lógica Move, Food, Rest, Semana ni paquete/firma; Android source versionCode 105 y CI monotónico.
