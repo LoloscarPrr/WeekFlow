@@ -4,6 +4,7 @@ import { getNowView } from '@/src/application/useCases/getNowView';
 import { getRestView } from '@/src/application/useCases/getRestView';
 import { buildAssistantRealState } from '@/src/assistant/context';
 import { interpretAssistantText } from '@/src/assistant/interpret';
+import { interpretAssistantQuestion, answerAssistantQuestion } from '@/src/assistant/questions';
 import { relativeExitFromShiftEnd } from '@/src/assistant/relativeExit';
 import {
   applyBrainAction,
@@ -72,6 +73,16 @@ export function useAssistantController() {
   );
 
   const interpret = useCallback((input: string) => {
+    const question = interpretAssistantQuestion(input);
+    if (question) {
+      // Consultas de solo lectura: siempre refrescar las fuentes canónicas.
+      const fresh = readAssistantContext();
+      setContext(fresh);
+      setPendingProposal(null);
+      setAssistantMessage(answerAssistantQuestion(question, fresh));
+      return 'answered' as const;
+    }
+
     const now = new Date();
     const result = interpretAssistantText(input, now);
     if (result.status === 'actual-exit-intent' || result.status === 'actual-exit-relative-intent') {
