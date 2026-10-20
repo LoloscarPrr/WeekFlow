@@ -122,9 +122,9 @@ export function createBrainActionProposal(
     throw new Error('Invalid week day');
   }
   if (proposal.kind === 'record-actual-exit' && (
-    !/^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(proposal.payload.time)
+    !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(proposal.payload.time)
     || !proposal.payload.shiftKey.trim()
-    || !/^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(proposal.payload.plannedEnd)
+    || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(proposal.payload.plannedEnd)
   )) {
     throw new Error('Invalid actual exit proposal');
   }
