@@ -46,6 +46,7 @@ export type RecordActualExitProposal = ProposalBase & {
   payload: {
     time: string;
     shiftKey: string;
+    plannedEnd: string;
   };
 };
 
@@ -123,6 +124,7 @@ export function createBrainActionProposal(
   if (proposal.kind === 'record-actual-exit' && (
     !/^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(proposal.payload.time)
     || !proposal.payload.shiftKey.trim()
+    || !/^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(proposal.payload.plannedEnd)
   )) {
     throw new Error('Invalid actual exit proposal');
   }
@@ -214,6 +216,7 @@ export function applyBrainAction(
   if (proposal.kind === 'record-actual-exit') {
     const context = options.actualExitContext;
     if (!context || context.shiftKey !== proposal.payload.shiftKey
+      || context.snapshot.shift.end !== proposal.payload.plannedEnd
       || context.snapshot.shift.type === 'off'
       || (context.phase !== 'working' && context.phase !== 'after')) {
       return {
