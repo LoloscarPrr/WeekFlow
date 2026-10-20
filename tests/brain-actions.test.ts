@@ -159,6 +159,7 @@ const exitProposal: BrainActionProposal = createBrainActionProposal({
   requiresConfirmation: true,
   payload: { time: '23:30', shiftKey: exitContext.shiftKey, plannedEnd: '22:00' },
 });
+if (exitProposal.kind !== 'record-actual-exit') throw new Error('Expected real-exit proposal fixture');
 const start = initialState();
 const exitWithoutConfirmation = applyBrainAction(start, exitProposal, { now: actualExitNow, actualExitContext: exitContext });
 equal(exitWithoutConfirmation.status, 'confirmation-required', 'salida real no se registra sin confirmar');
