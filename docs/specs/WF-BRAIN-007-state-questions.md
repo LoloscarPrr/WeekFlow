@@ -1,6 +1,6 @@
 # WF-BRAIN-007 — Preguntas al Asistente desde el estado real
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Requested: 2026-10-20
 Product: WeekFlow Blueprint Maestro v4.0
@@ -49,5 +49,12 @@ No migration, keys or new persisted data. Pure question parser/responder + Assis
 - Pregunta mientras existe una propuesta: no ejecutar la propuesta sin confirmación.
 - QA de teclado y safe area; release APK instalada como update en dispositivo pendiente de comprobación.
 
-## Verification
-Pending CI and device QA.
+## Verification (2026-10-20)
+- AC1: PASS — tests puros normalizan acentos y preguntas, sin reclasificar declaraciones de energía, salidas reales u órdenes desconocidas.
+- AC2: PASS — `answerAssistantQuestion('now')` usa `AssistantRealState.liveTitle/liveMeta` provenientes de `getNowView`, con fixture de estado distinto.
+- AC3: PASS — tests comprueban energía, Move con/sin sesión terminada, Food con/sin registros sin inventar ingesta, y Rest con/sin descripción.
+- AC4: PASS — branch de consulta en `useAssistantController` llama `readAssistantContext(now)`, no ejecuta Brain Action, no persiste; test estructural.
+- AC5: PASS — regresiones `brain-actions`, `assistant-conversation`, salidas absolutas/relativas y deshacer preservadas.
+- AC6: PASS — `app/assistant.tsx` integra preguntas/cambios en un solo campo y CTA «Enviar» accesible, sin nuevas tarjetas.
+- AC7: Quality PR #39500564611 PASS (TypeScript y regresiones). Nueva revisión documental en CI y Android APK/AAB 0.5.16: PENDING. QA física: NOT RUN, requiere dispositivo.
+- Sin migración SQLite. Firma y package `com.weekflow.app` preservados, versionCode fuente 108, CI monotónico.
