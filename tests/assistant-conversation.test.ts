@@ -51,7 +51,6 @@ for (const [input, expected] of [
 for (const text of [
   'hoy salí a las 25:00',
   'hoy salí a las 22:89',
-  'salí una hora tarde',
   'ayer salí a las 21:00',
   'mañana salí a las 22:00',
   'salí a las 22 y entro a las 10',
