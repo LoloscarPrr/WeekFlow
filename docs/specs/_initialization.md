@@ -1,30 +1,28 @@
-# TLC Initialization Snapshot — 2026-10-20 / WF-BRAIN-004
+# TLC Initialization Snapshot — 2026-10-20
 
-## Repository and ref
-- Repository `LoloscarPrr/WeekFlow`; base `main` SHA `90343011b73ac91b07b0a7f1be9e469ba4e3aa7b`.
-- Working branch `feat/wf-brain-004-assistant-undo`; current Blueprint Maestro v4.0 (2026-09-30) read and applied.
-- Product milestone in canonical roadmap: 0.7.x Assistant + Brain; technical app release at 0.5.12 before this change.
+## Repository / ref
+- LoloscarPrr/WeekFlow, `main` SHA `b4f76e5844db458b936d652d89aae391dc2e4321`.
+- Branch: `feat/wf-brain-005-actual-exit`.
+- Canonical product: WeekFlow Blueprint Maestro v4.0, 0.7.x Assistant + Brain (real changes, replan flexible) before 0.8.x Smart Import.
 
-## Build and baseline
-- `package.json` / `app.json`: 0.5.12, package `com.weekflow.app`, source Android versionCode 104; CI increments monotonic versionCode.
-- Quality workflow #39278260062: PASS.
-- Android workflow #39278260355: PASS; signed APK/AAB 0.5.12 published to GitHub Release.
-- Physical Android UX/persistence check: UNAVAILABLE to automation; user received APK.
+## Version and known baseline
+- 0.5.13, Android source versionCode 105, package com.weekflow.app.
+- Quality #39366393404: PASS; Android signed APK/AAB #39366393378: PASS.
+- Physical device testing not available from GitHub CI (NOT RUN).
+- Current Brain specs WF-BRAIN-001 through WF-BRAIN-004; 0.7.4 undo merged and verified via CI, physical test pending.
+- New spec WF-BRAIN-005 (NOW): real departure from Assistant via canonical Ahora flow.
 
-## Active scope
-- `WF-BRAIN-003` reports first conversational energy/shift changes and explicitly defers visible undo to 0.7.4.
-- `WF-BRAIN-001` implemented pure receipt and safe `undoBrainAction`, including conflict prevention tests.
-- New locked spec `WF-BRAIN-004`: expose safe undo of last confirmed Assistant change (NOW).
-- Product principles: one shared state, explicit confirmation/reversibility, no repeated copy, no extraneous module.
+## Source inspected
+- `src/assistant/interpret.ts`: currently handles energy and scheduled `salgo` only.
+- `src/brain/actions.ts`: typed proposal, receipt, safe undo.
+- `src/presentation/assistant/useAssistantController.ts`: confirms and saves DayState / WeekSchedule and refreshes notifications.
+- `src/presentation/now/useNowController.ts`, `src/application/useCases/registerActualExit.ts`, `src/application/useCases/getNowView.ts`: canonical actual exit + shift-context + replan guard.
+- `src/brain/exitImpact.ts`: requires confirmation to move flexible moments after significant timing differences.
 
-## Code surveyed
-- `src/brain/actions.ts`: `BrainActionReceipt`, apply/undo conflict guard.
-- `src/presentation/assistant/useAssistantController.ts`: applies proposals, persists canonical DayState/WeekSchedule, refreshes reminder; currently drops receipt.
-- `app/assistant.tsx`: shows proposal confirmation, no undo.
-- Existing tests for Brain actions and Assistant conversation/structure; UI only small addition.
-- Changes limited to these files + specs, version metadata and tests; no DB schema migration.
+## Constraints
+- Build from GitHub connector and CI; no mobile device QA.
+- Keep Week schedule, fixed commitments, Move minimum 30 min, onboarding, notification safety, and 0-redundancy UX intact.
+- Text interpretation must not confuse planned `salgo` and factual `salí`; only active shifts, always explicit confirmation; no Smart Import or generic assistant LLM.
 
-## Known constraints / plan
-- Repo changes via connected GitHub and remote CI; no local authenticated clone.
-- QA cannot certify visual behavior/installation without a phone test; don't call it complete merely because CI is green.
-- Next: implement WF-BRAIN-004, PR Quality, merge only when safe and run Android signed build.
+## Active task
+- WF-BRAIN-005 — register actual exit with clear, safe language and reused Now/Brain, tests and Android signed validation.
