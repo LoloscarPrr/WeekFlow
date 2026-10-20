@@ -1,6 +1,6 @@
 # WF-BRAIN-007 — Preguntas sobre el estado real
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Requested: 2026-10-20
 Blueprint: WeekFlow Blueprint Maestro v4.0
@@ -48,4 +48,13 @@ No hay esquema ni estado nuevo persistido. Respuestas de texto en el mensaje act
 Accentos/mayúsculas, signos de pregunta, día sin Move ni comida, nombres de platos concretos, título Ahora neutral, propuesta pendiente, turnos nocturnos y respuestas basadas en datos recién refrescados. No confundir pregunta «¿estoy cansado?» con la orden «estoy cansado».
 
 ## Verification
-Pendiente de ejecutar CI.
+- AC1: PASS — pregunta de Ahora responde exactamente con título y metadatos del contexto real; fixture de día sin pendientes.
+- AC2: PASS — Move diferencia sesión completada hoy y ninguna sesión, sin inventar entrenamientos.
+- AC3: PASS — Food vacío dice que no hay registros; con registros comunica cantidad y último nombre cronológico.
+- AC4: PASS — Rest devuelve título/metadata canónicos y la energía usa el valor guardado.
+- AC5: PASS — `questions.ts` es puro; controller resuelve preguntas antes del parser de acciones, refresca contexto y no entra a persistencia/recordatorios.
+- AC6: PASS — test rechaza conversiones de órdenes de energía/turnos, salidas relativas y mensajes mixtos en consulta; las regresiones del parser original se conservan.
+- AC7: PASS — al responder, solo descarta propuesta no confirmada; no borra recibo de último cambio ni guarda datos.
+- AC8: Quality PR #39500392905 PASS (TypeScript + regresiones). Android release firmado 0.5.16 PENDING y QA física UNAVAILABLE hasta instalación en dispositivo.
+- No cambia esquema SQLite, permisos Android, dependencia, módulo Move ni frontera Smart Import.
+
