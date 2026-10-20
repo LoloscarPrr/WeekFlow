@@ -1,4 +1,5 @@
 import { interpretAssistantText } from '../src/assistant/interpret';
+import { parseRelativeExitOffset, relativeExitFromShiftEnd } from '../src/assistant/relativeExit';
 
 function equal<T>(actual: T, expected: T, message: string) {
   if (!Object.is(actual, expected)) throw new Error(`${message}: esperaba ${String(expected)}, recibí ${String(actual)}`);
@@ -73,5 +74,57 @@ ok(mondayTomorrow.status === 'proposal', 'mañana desde domingo debe reconocerse
 if (mondayTomorrow.status === 'proposal' && mondayTomorrow.proposal.kind === 'update-week-shift') {
   equal(mondayTomorrow.proposal.payload.day, 0, 'domingo + mañana cruza a lunes');
 }
+
+
+// Desfases relativos siempre refieren al final FECHADO del turno de Ahora.
+for (const [input, delta] of [
+  ['salí una hora tarde', 60],
+  ['hoy salí 30 minutos antes', -30],
+  ['terminé mi turno media hora tarde', 30],
+  ['salí 2 horas tarde', 120],
+  ['salí 45 min antes', -45],
+] as const) {
+  const answer = interpretAssistantText(input, monday);
+  equal(answer.status, 'actual-exit-relative-intent', 'salida relativa reconocida: ' + input);
+  if (answer.status === 'actual-exit-relative-intent') {
+    equal(answer.deltaMinutes, delta, 'desfase firmado correcto');
+  }
+}
+for (const invalid of [
+  'salí tarde',
+  'salí 0 minutos tarde',
+  'salí 200 minutos tarde',
+  'salí 4 horas tarde',
+  'salí una hora tarde y entro a las 10',
+  'ayer salí una hora tarde',
+  'mañana salí 20 min antes',
+  'no salí una hora tarde',
+  'salí una hora tarde a las 22:00',
+]) {
+  equal(interpretAssistantText(invalid, monday).status, 'unsupported', 'frase relativa ambigua no se aplica: ' + invalid);
+}
+
+equal(parseRelativeExitOffset('una hora tarde'), 60, 'una hora');
+equal(parseRelativeExitOffset('1 hora antes'), -60, 'hora en dígitos');
+equal(parseRelativeExitOffset('media hora antes'), -30, 'media hora');
+equal(parseRelativeExitOffset('0 min tarde'), null, 'cero no es salida relativa');
+equal(parseRelativeExitOffset('181 minutos tarde'), null, 'tope de desfase');
+const nightEnd = new Date(2026, 9, 6, 6, 0);
+const oneHourLate = relativeExitFromShiftEnd(nightEnd.toISOString(), 60);
+equal(oneHourLate.time, '07:00', 'salida nocturna +60');
+equal(oneHourLate.exitAt.getDate(), 6, 'salida después de medianoche conserva día correcto');
+const oneHourEarly = relativeExitFromShiftEnd(nightEnd.toISOString(), -60);
+equal(oneHourEarly.time, '05:00', 'salida nocturna −60');
+equal(oneHourEarly.exitAt.getDate(), 6, 'salida temprana nocturna conserva día correcto');
+const midnightEnd = new Date(2026, 9, 6, 0, 15);
+const previousDayExit = relativeExitFromShiftEnd(midnightEnd.toISOString(), -30);
+equal(previousDayExit.time, '23:45', 'desfase negativo cruza medianoche');
+equal(previousDayExit.exitAt.getDate(), 5, 'desfase negativo usa el día anterior');
+let thrown = false;
+try { relativeExitFromShiftEnd('invalid', 60); } catch { thrown = true; }
+ok(thrown, 'no se calcula hora con fin sin fecha');
+thrown = false;
+try { relativeExitFromShiftEnd(nightEnd.toISOString(), 181); } catch { thrown = true; }
+ok(thrown, 'desfase excesivo se rechaza');
 
 console.log('Assistant conversation interpretation tests passed.');
