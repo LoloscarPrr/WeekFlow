@@ -58,12 +58,12 @@ export default function AssistantScreen() {
         <Brand />
         <Text style={styles.eyebrow}>ASISTENTE</Text>
 
-        <Text style={styles.section}>CUÉNTAME QUÉ CAMBIÓ</Text>
+        <Text style={styles.section}>PREGUNTA O CUENTA UN CAMBIO</Text>
         <View style={styles.inputCard}>
           <TextInput
             value={input}
             onChangeText={setInput}
-            placeholder="Ej: mañana entro a las 10:00"
+            placeholder="Ej: ¿qué sigue? · mañana entro a las 10:00"
             placeholderTextColor={colors.muted}
             multiline
             style={styles.input}
@@ -72,9 +72,11 @@ export default function AssistantScreen() {
           <Pressable
             style={styles.interpretButton}
             onPress={() => interpret(input)}
+            accessibilityRole="button"
+            accessibilityLabel="Enviar mensaje al Asistente"
             disabled={!input.trim()}
           >
-            <Text style={styles.interpretButtonText}>Interpretar</Text>
+            <Text style={styles.interpretButtonText}>Enviar</Text>
           </Pressable>
           {assistantMessage ? <Text style={styles.assistantMessage}>{assistantMessage}</Text> : null}
           {context.needsExitReview && !pendingProposal ? (
