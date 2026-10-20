@@ -1,8 +1,10 @@
 import type { BrainActionProposal } from '../brain/actions';
+import { parseRelativeExitOffset } from './relativeExit';
 
 export type ConversationInterpretation =
   | { status: 'proposal'; proposal: BrainActionProposal }
   | { status: 'actual-exit-intent'; time: string }
+  | { status: 'actual-exit-relative-intent'; deltaMinutes: number }
   | { status: 'unsupported'; message: string };
 
 const DAY_NAMES: Record<string, number> = {
@@ -65,6 +67,16 @@ export function interpretAssistantText(input: string, now = new Date()): Convers
     }
     if (energy || /\b(?:entro|entrada|empiezo|salgo)\b/.test(text) || /\b(?:y\s+(?:después|despues|también|tambien|luego|entro|salgo))\b/.test(text)) {
       return { status: 'unsupported', message: 'Dime solamente la salida real con su hora.' };
+    }
+    // Solo frases inequívocas: «salí una hora tarde» / «terminé mi turno 30 min antes».
+    // La hora final se resuelve contra el término FECHADO del turno en el controller.
+    if (/\bno\s+(?:salí|sali|terminé|termine)\b/.test(text)) {
+      return { status: 'unsupported', message: 'No registré la salida. Dime qué pasó cuando realmente termines.' };
+    }
+    const relativePhrase = /^(?:hoy\s+)?(?:salí|sali|terminé\s+(?:mi\s+)?turno|termine\s+(?:mi\s+)?turno)\s+(.+)$/.exec(text);
+    if (relativePhrase) {
+      const deltaMinutes = parseRelativeExitOffset(relativePhrase[1]);
+      if (deltaMinutes !== null) return { status: 'actual-exit-relative-intent', deltaMinutes };
     }
     const hourMatch = /\ba\s+las?\s+(\d{1,2})(?::(\d{2}))?(?![:\d])\b/.exec(text);
     if (!hourMatch || Number(hourMatch[1]) > 23 || Number(hourMatch[2] ?? '0') > 59) {
