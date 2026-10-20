@@ -2,6 +2,7 @@ import type { BrainActionProposal } from '../brain/actions';
 
 export type ConversationInterpretation =
   | { status: 'proposal'; proposal: BrainActionProposal }
+  | { status: 'actual-exit-intent'; time: string }
   | { status: 'unsupported'; message: string };
 
 const DAY_NAMES: Record<string, number> = {
@@ -54,7 +55,24 @@ export function interpretAssistantText(input: string, now = new Date()): Convers
   const text = normalize(input);
   if (!text) return { status: 'unsupported', message: 'Escribe qué cambió y lo reviso.' };
 
+  // Past-tense real departure is not a planned Week shift change.
+  // Be conservative: no implicit hour, previous-day report or multi-action guess.
+  const isActualExit = /\b(?:salí|sali|terminé\s+(?:mi\s+)?turno|termine\s+(?:mi\s+)?turno)(?=\s|$|[.,;!?])/.test(text);
   const energy = parseEnergy(text);
+  if (isActualExit) {
+    if (/\b(?:ayer|anteayer|mañana|lunes|martes|miércoles|miercoles|jueves|viernes|sábado|sabado|domingo)\b/.test(text)) {
+      return { status: 'unsupported', message: 'Por ahora puedo registrar solo la salida real de la jornada actual.' };
+    }
+    if (energy || /\b(?:entro|entrada|empiezo|salgo)\b/.test(text) || /\b(?:y\s+(?:después|despues|también|tambien|luego|entro|salgo))\b/.test(text)) {
+      return { status: 'unsupported', message: 'Dime solamente la salida real con su hora.' };
+    }
+    const hourMatch = /\ba\s+las?\s+(\d{1,2})(?::(\d{2}))?(?![:\d])\b/.exec(text);
+    if (!hourMatch || Number(hourMatch[1]) > 23 || Number(hourMatch[2] ?? '0') > 59) {
+      return { status: 'unsupported', message: 'Indícame la hora real, por ejemplo “hoy salí a las 22:30”.' };
+    }
+    const time = `${hourMatch[1].padStart(2, '0')}:${(hourMatch[2] ?? '00').padStart(2, '0')}`;
+    return { status: 'actual-exit-intent', time };
+  }
   if (energy) {
     return {
       status: 'proposal',

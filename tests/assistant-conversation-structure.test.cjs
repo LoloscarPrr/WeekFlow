@@ -29,4 +29,17 @@ ok(parser.includes("requiresConfirmation: true"), 'propuestas conversacionales d
 ok(!parser.includes('saveDayState') && !parser.includes('saveWeekState'), 'parser puro no debe persistir');
 ok(screen.includes("title: 'Cuenta WeekFlow'") && screen.includes("title: 'Horario semanal'"), 'controles existentes se conservan');
 
+ok(parser.includes("status: 'actual-exit-intent'"), 'pasado real debe ser distinto de programación semanal');
+ok(controller.includes("kind: 'record-actual-exit'"), 'Asistente genera propuesta de salida real confirmable');
+ok(controller.includes('shiftKey: view.shiftContext.key'), 'salida usa identidad canónica de turno');
+ok(controller.includes('plannedEnd: view.todayShift.end'), 'propuesta captura salida planificada para evitar cambios obsoletos');
+ok(controller.includes('getNowView({'), 'confirmación relee la realidad desde Ahora');
+ok(controller.includes('actualExitContext'), 'Brain recibe contexto actual de salida real');
+ok(controller.includes("pendingProposal.kind === 'record-actual-exit'"), 'solo DayState guarda la salida real');
+ok(screen.includes('context.needsExitReview'), 'Asistente anuncia si falta confirmar el reajuste');
+ok(screen.includes('Revisar reajuste en Ahora'), 'reajuste importante tiene acción directa');
+const actions = fs.readFileSync('src/brain/actions.ts', 'utf8');
+ok(actions.includes('correctActualExitTime'), 'Brain aplica el use case canónico de salida real');
+ok(actions.includes('context.snapshot.shift.end !== proposal.payload.plannedEnd'), 'rechazar propuestas si cambió el turno antes de confirmar');
+ok(actions.includes("kind === 'record-actual-exit'"), 'undo también identifica el target DayState');
 console.log('Assistant conversation structure tests passed.');

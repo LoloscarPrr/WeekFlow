@@ -76,7 +76,16 @@ export default function AssistantScreen() {
           >
             <Text style={styles.interpretButtonText}>Interpretar</Text>
           </Pressable>
-          <Text style={styles.assistantMessage}>{assistantMessage}</Text>
+          {assistantMessage ? <Text style={styles.assistantMessage}>{assistantMessage}</Text> : null}
+          {context.needsExitReview && !pendingProposal ? (
+            <Pressable
+              style={styles.reviewExitButton}
+              accessibilityRole="button"
+              onPress={() => router.push('/')}
+            >
+              <Text style={styles.reviewExitButtonText}>Revisar reajuste en Ahora →</Text>
+            </Pressable>
+          ) : null}
           {lastReceipt && !pendingProposal ? (
             <Pressable
               style={styles.undoButton}
@@ -167,6 +176,8 @@ const styles = StyleSheet.create({
   interpretButton: { alignSelf: 'flex-start', marginTop: 12, backgroundColor: '#245D9C', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14 },
   interpretButtonText: { color: '#FFFFFF', fontWeight: '900', fontSize: 13 },
   assistantMessage: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 10 },
+  reviewExitButton: { alignSelf: 'flex-start', marginTop: 8, minHeight: 44, justifyContent: 'center', paddingVertical: 8, paddingRight: 12 },
+  reviewExitButtonText: { color: '#8BBEFF', fontWeight: '800', fontSize: 13 },
   undoButton: { alignSelf: 'flex-start', marginTop: 8, minHeight: 44, justifyContent: 'center', paddingVertical: 8, paddingRight: 12 },
   undoButtonText: { color: '#8BBEFF', fontWeight: '800', fontSize: 13 },
   proposalCard: { marginTop: 10, backgroundColor: '#102A4D', borderWidth: 1, borderColor: '#2A5D99', borderRadius: 20, padding: 15 },

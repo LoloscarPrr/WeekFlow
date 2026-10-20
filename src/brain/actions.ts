@@ -1,4 +1,6 @@
 import { updateNowEnergy } from '../application/useCases/updateNowState';
+import { correctActualExitTime } from '../application/useCases/registerActualExit';
+import type { BrainPlan, BrainSnapshot } from '../domain/entities/Planning';
 import {
   updateWeekShift,
   type WeekShiftPatch,
@@ -6,7 +8,7 @@ import {
 import type { DayState, Energy } from '../domain/entities/DailyState';
 import type { WeekSchedule } from '../domain/entities/Shift';
 
-export type BrainActionKind = 'set-energy' | 'update-week-shift';
+export type BrainActionKind = 'set-energy' | 'update-week-shift' | 'record-actual-exit';
 export type BrainActionStatus =
   | 'applied'
   | 'confirmation-required'
@@ -39,9 +41,33 @@ export type UpdateWeekShiftProposal = ProposalBase & {
   };
 };
 
+export type RecordActualExitProposal = ProposalBase & {
+  kind: 'record-actual-exit';
+  payload: {
+    time: string;
+    shiftKey: string;
+    plannedEnd: string;
+  };
+};
+
 export type BrainActionProposal =
   | SetEnergyProposal
-  | UpdateWeekShiftProposal;
+  | UpdateWeekShiftProposal
+  | RecordActualExitProposal;
+
+export type ActualExitActionContext = {
+  shiftKey: string;
+  shiftStartAt: string | null;
+  snapshot: BrainSnapshot;
+  currentPlan: BrainPlan;
+  phase: 'working' | 'after' | 'before' | 'commuting' | 'off';
+};
+
+type BrainActionOptions = {
+  confirmed?: boolean;
+  now?: Date;
+  actualExitContext?: ActualExitActionContext;
+};
 
 export type BrainActionTargetSnapshot =
   | { target: 'day-state'; value: DayState }
@@ -96,6 +122,13 @@ export function createBrainActionProposal(
   if (proposal.kind === 'update-week-shift' && !validDay(proposal.payload.day)) {
     throw new Error('Invalid week day');
   }
+  if (proposal.kind === 'record-actual-exit' && (
+    !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(proposal.payload.time)
+    || !proposal.payload.shiftKey.trim()
+    || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(proposal.payload.plannedEnd)
+  )) {
+    throw new Error('Invalid actual exit proposal');
+  }
 
   return {
     ...proposal,
@@ -113,7 +146,7 @@ function targetBefore(
   state: BrainActionState,
   proposal: BrainActionProposal,
 ): BrainActionTargetSnapshot {
-  if (proposal.kind === 'set-energy') {
+  if (proposal.kind === 'set-energy' || proposal.kind === 'record-actual-exit') {
     return { target: 'day-state', value: state.dayState };
   }
   return { target: 'week-state', value: state.weekState };
@@ -123,7 +156,7 @@ function targetAfter(
   state: BrainActionState,
   proposal: BrainActionProposal,
 ): BrainActionTargetSnapshot {
-  if (proposal.kind === 'set-energy') {
+  if (proposal.kind === 'set-energy' || proposal.kind === 'record-actual-exit') {
     return { target: 'day-state', value: state.dayState };
   }
   return { target: 'week-state', value: state.weekState };
@@ -132,12 +165,27 @@ function targetAfter(
 function applyProposal(
   state: BrainActionState,
   proposal: BrainActionProposal,
+  options: BrainActionOptions,
 ): BrainActionState {
   if (proposal.kind === 'set-energy') {
     return {
       ...state,
       dayState: updateNowEnergy(state.dayState, proposal.payload.energy),
     };
+  }
+
+  if (proposal.kind === 'record-actual-exit') {
+    const context = options.actualExitContext;
+    if (!context) throw new Error('Actual exit context is required');
+    const result = correctActualExitTime({
+      state: state.dayState,
+      shiftKey: context.shiftKey,
+      snapshot: context.snapshot,
+      currentPlan: context.currentPlan,
+      time: proposal.payload.time,
+      referenceAt: options.now,
+    });
+    return { ...state, dayState: result.state };
   }
 
   return {
@@ -153,7 +201,7 @@ function applyProposal(
 export function applyBrainAction(
   state: BrainActionState,
   rawProposal: BrainActionProposal,
-  options: { confirmed?: boolean; now?: Date } = {},
+  options: BrainActionOptions = {},
 ): BrainActionResult {
   const proposal = createBrainActionProposal(rawProposal);
 
@@ -166,8 +214,45 @@ export function applyBrainAction(
     };
   }
 
+  if (proposal.kind === 'record-actual-exit') {
+    const context = options.actualExitContext;
+    if (!context || context.shiftKey !== proposal.payload.shiftKey
+      || context.snapshot.shift.end !== proposal.payload.plannedEnd
+      || context.snapshot.shift.type === 'off'
+      || (context.phase !== 'working' && context.phase !== 'after')) {
+      return {
+        status: 'conflict',
+        state,
+        receipt: null,
+        message: 'La jornada cambió o no está activa. No registré la salida.',
+      };
+    }
+  }
+  if (proposal.kind === 'record-actual-exit') {
+    const context = options.actualExitContext!;
+    const clockNow = options.now ?? new Date();
+    const potentialExit = correctActualExitTime({
+      state: state.dayState,
+      shiftKey: context.shiftKey,
+      snapshot: context.snapshot,
+      currentPlan: context.currentPlan,
+      time: proposal.payload.time,
+      referenceAt: clockNow,
+    });
+    const shiftStarts = context.shiftStartAt ? new Date(context.shiftStartAt) : null;
+    if (!shiftStarts || !Number.isFinite(shiftStarts.getTime())
+      || potentialExit.recordedAt < shiftStarts || potentialExit.recordedAt > clockNow) {
+      return {
+        status: 'conflict',
+        state,
+        receipt: null,
+        message: 'La hora indicada no corresponde a una salida ya ocurrida en esta jornada.',
+      };
+    }
+  }
+
   const before = targetBefore(state, proposal);
-  const next = applyProposal(state, proposal);
+  const next = applyProposal(state, proposal, options);
   const after = targetAfter(next, proposal);
   const appliedAt = (options.now ?? new Date()).toISOString();
 

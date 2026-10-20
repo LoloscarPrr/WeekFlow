@@ -38,15 +38,18 @@ function readAssistantContext(now = new Date()) {
   });
   const restView = getRestView(dayState, weekState, now);
 
-  return buildAssistantRealState({
-    profile,
-    dayState,
-    moveHistory,
-    foodDay,
-    nowView,
-    restView,
-    now,
-  });
+  return {
+    ...buildAssistantRealState({
+      profile,
+      dayState,
+      moveHistory,
+      foodDay,
+      nowView,
+      restView,
+      now,
+    }),
+    needsExitReview: nowView.needsExitReview,
+  };
 }
 
 export function useAssistantController() {
@@ -68,14 +71,45 @@ export function useAssistantController() {
   );
 
   const interpret = useCallback((input: string) => {
-    const result = interpretAssistantText(input);
+    const now = new Date();
+    const result = interpretAssistantText(input, now);
+    if (result.status === 'actual-exit-intent') {
+      const dayState = loadDayState();
+      const weekState = loadWeekState();
+      const view = getNowView({
+        dayState,
+        weekState,
+        moveDoneToday: moveSessionDoneToday(now),
+        now,
+      });
+      if (view.todayShift.type === 'off' || (view.phase !== 'working' && view.phase !== 'after')) {
+        setPendingProposal(null);
+        setAssistantMessage('No hay una jornada activa para registrar esa salida.');
+        return false;
+      }
+      setPendingProposal({
+        id: `assistant-exit-${now.getTime()}`,
+        kind: 'record-actual-exit',
+        title: 'Registrar salida real',
+        explanation: `Saliste a las ${result.time}. Ajustaré regreso y recuperación; lo demás se confirmará en Ahora si hace falta.`,
+        createdAt: now.toISOString(),
+        requiresConfirmation: true,
+        payload: {
+          time: result.time,
+          shiftKey: view.shiftContext.key,
+          plannedEnd: view.todayShift.end,
+        },
+      });
+      setAssistantMessage('');
+      return true;
+    }
     if (result.status === 'unsupported') {
       setPendingProposal(null);
       setAssistantMessage(result.message);
       return false;
     }
     setPendingProposal(result.proposal);
-    setAssistantMessage('Esto es lo que entendí. Revísalo antes de confirmar.');
+    setAssistantMessage('');
     return true;
   }, []);
 
@@ -91,14 +125,34 @@ export function useAssistantController() {
       dayState: loadDayState(),
       weekState: loadWeekState(),
     };
-    const result = applyBrainAction(state, pendingProposal, { confirmed: true });
+    const now = new Date();
+    const actualExitContext = pendingProposal.kind === 'record-actual-exit'
+      ? (() => {
+        const view = getNowView({
+          dayState: state.dayState,
+          weekState: state.weekState,
+          moveDoneToday: moveSessionDoneToday(now),
+          now,
+        });
+        return {
+          shiftKey: view.shiftContext.key,
+          shiftStartAt: view.shiftContext.startAt,
+          snapshot: view.snapshot,
+          currentPlan: view.basePlan,
+          phase: view.phase,
+        };
+      })()
+      : undefined;
+    const result = applyBrainAction(state, pendingProposal, { confirmed: true, now, actualExitContext });
 
     if (result.status !== 'applied') {
+      if (result.status === 'conflict') setPendingProposal(null);
       setAssistantMessage(result.message);
+      setContext(readAssistantContext());
       return false;
     }
 
-    if (pendingProposal.kind === 'set-energy') {
+    if (pendingProposal.kind === 'set-energy' || pendingProposal.kind === 'record-actual-exit') {
       saveDayState(result.state.dayState);
     } else {
       saveWeekState(result.state.weekState);
@@ -106,8 +160,13 @@ export function useAssistantController() {
 
     setPendingProposal(null);
     setLastReceipt(result.receipt && receiptHasEffectiveChange(result.receipt) ? result.receipt : null);
-    setAssistantMessage(result.message);
-    setContext(readAssistantContext());
+    const nextContext = readAssistantContext();
+    setAssistantMessage(pendingProposal.kind === 'record-actual-exit'
+      ? nextContext.needsExitReview
+        ? 'Salida registrada. Confirma el reajuste en Ahora.'
+        : 'Salida real registrada.'
+      : result.message);
+    setContext(nextContext);
 
     void syncLivePlanReminders().catch((error) => {
       console.warn('Could not refresh WeekFlow reminders after Assistant action', error);
