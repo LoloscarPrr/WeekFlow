@@ -5,9 +5,9 @@ const parser = fs.readFileSync('src/assistant/interpret.ts','utf8');
 
 function ok(v,m){ if(!v) throw new Error(m); }
 
-ok(screen.includes('CUÉNTAME QUÉ CAMBIÓ'), 'UI debe mostrar entrada conversacional');
+ok(screen.includes('PREGUNTA O CUENTA UN CAMBIO'), 'UI debe mostrar entrada conversacional');
 ok(screen.includes('TextInput'), 'UI debe tener TextInput');
-ok(screen.includes('Interpretar'), 'UI debe tener acción Interpretar');
+ok(screen.includes('Enviar'), 'UI debe tener acción Enviar');
 ok(screen.includes('Confirmar cambio'), 'UI debe pedir confirmación');
 ok(screen.includes('Cancelar'), 'UI debe permitir cancelar');
 ok(screen.includes('↶ Deshacer cambio'), 'UI debe ofrecer un solo undo compacto');
@@ -15,6 +15,15 @@ ok(screen.includes('lastReceipt && !pendingProposal'), 'Undo debe ocultarse dura
 ok(screen.includes('accessibilityLabel="Deshacer último cambio del Asistente"'), 'Undo debe ser accesible');
 ok(screen.includes('keyboardShouldPersistTaps="handled"'), 'Scroll debe convivir con teclado');
 ok(controller.includes('interpretAssistantText'), 'controller debe interpretar texto');
+ok(controller.includes('detectAssistantQuestion(input)'), 'Asistente identifica preguntas con parser puro');
+ok(controller.includes('answerAssistantQuestion(question, latest)'), 'preguntas contestan solo con estado canónico');
+ok(controller.includes('const latest = readAssistantContext(now)'), 'respuestas no usan un snapshot obsoleto');
+ok(screen.includes('accessibilityLabel="Enviar mensaje al Asistente"'), 'CTA preguntas/cambios es accesible');
+ok(screen.includes('Ej: ¿qué sigue?'), 'placeholder indica uso conversacional');
+const queryBranch = controller.slice(controller.indexOf('if (question) {'), controller.indexOf('const result = interpretAssistantText'));
+ok(queryBranch.includes('setPendingProposal(null)'), 'pregunta descarta propuesta pendiente sin aplicarla');
+ok(!queryBranch.includes('saveDayState(') && !queryBranch.includes('saveWeekState(') && !queryBranch.includes('applyBrainAction('), 'consultas son solo lectura');
+
 ok(controller.includes('applyBrainAction'), 'confirmación debe pasar por Brain Action Foundation');
 ok(controller.includes('saveDayState'), 'energía confirmada debe persistir DayState');
 ok(controller.includes('saveWeekState'), 'turno confirmado debe persistir Semana');
