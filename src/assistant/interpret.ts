@@ -66,7 +66,7 @@ export function interpretAssistantText(input: string, now = new Date()): Convers
     if (energy || /\b(?:entro|entrada|empiezo|salgo)\b/.test(text) || /\b(?:y\s+(?:después|despues|también|tambien|luego|entro|salgo))\b/.test(text)) {
       return { status: 'unsupported', message: 'Dime solamente la salida real con su hora.' };
     }
-    const hourMatch = /\ba\s+las?\s+(\d{1,2})(?::(\d{2}))?\b/.exec(text);
+    const hourMatch = /\ba\s+las?\s+(\d{1,2})(?::(\d{2}))?(?![:\d])\b/.exec(text);
     if (!hourMatch || Number(hourMatch[1]) > 23 || Number(hourMatch[2] ?? '0') > 59) {
       return { status: 'unsupported', message: 'Indícame la hora real, por ejemplo “hoy salí a las 22:30”.' };
     }
