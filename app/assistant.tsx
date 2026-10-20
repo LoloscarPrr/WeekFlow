@@ -63,7 +63,7 @@ export default function AssistantScreen() {
           <TextInput
             value={input}
             onChangeText={setInput}
-            placeholder="Ej: mañana entro a las 10:00"
+            placeholder="Ej: ¿ya entrené hoy?"
             placeholderTextColor={colors.muted}
             multiline
             style={styles.input}
@@ -71,7 +71,9 @@ export default function AssistantScreen() {
           />
           <Pressable
             style={styles.interpretButton}
-            onPress={() => interpret(input)}
+            onPress={() => {
+              if (interpret(input) === 'answered') setInput('');
+            }}
             disabled={!input.trim()}
           >
             <Text style={styles.interpretButtonText}>Interpretar</Text>
