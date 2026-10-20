@@ -145,6 +145,7 @@ const snapshot: BrainSnapshot = {
 };
 const exitContext = {
   shiftKey: '2026-10-05@13:00',
+  shiftStartAt: new Date(2026, 9, 5, 13, 0).toISOString(),
   snapshot,
   currentPlan: buildBrainPlan(snapshot),
   phase: 'after' as const,
@@ -195,6 +196,26 @@ const beforeExit = applyBrainAction(start, exitProposal, {
   actualExitContext: { ...exitContext, phase: 'before' },
 });
 equal(beforeExit.status, 'conflict', 'no se registra salida antes de trabajar');
+const beforeShiftTime: BrainActionProposal = {
+  ...exitProposal,
+  payload: { ...exitProposal.payload, time: '10:00' },
+};
+const impossibleEarlyExit = applyBrainAction(start, beforeShiftTime, {
+  confirmed: true, now: actualExitNow, actualExitContext: exitContext,
+});
+equal(impossibleEarlyExit.status, 'conflict', 'no registra hora real anterior al inicio del turno');
+equal(impossibleEarlyExit.state, start, 'la salida inválida conserva DayState');
+
+const futureExit: BrainActionProposal = {
+  ...exitProposal,
+  payload: { ...exitProposal.payload, time: '23:55' },
+};
+const futureResult = applyBrainAction(start, futureExit, {
+  confirmed: true, now: actualExitNow, actualExitContext: exitContext,
+});
+equal(futureResult.status, 'conflict', 'no registra salida que aún no ocurrió');
+equal(futureResult.state, start, 'hora futura no escribe estado');
+
 
 const changedAfterExit: BrainActionState = {
   ...actualExitApplied.state,
