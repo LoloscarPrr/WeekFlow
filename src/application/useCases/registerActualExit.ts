@@ -76,7 +76,8 @@ export function correctActualExitTime({
   time,
   referenceAt,
 }: CorrectActualExitTimeInput): RegisterActualExitResult {
-  const parsedReference = state.actualExitAt ? new Date(state.actualExitAt) : (referenceAt ?? new Date());
+  // Assistant uses the current shift's live reference; Ahora correction keeps the original exit date.
+  const parsedReference = referenceAt ?? (state.actualExitAt ? new Date(state.actualExitAt) : new Date());
   const reference = Number.isNaN(parsedReference.getTime()) ? new Date() : parsedReference;
   const correctedAt = dateAtClosestTime(reference, time);
 
