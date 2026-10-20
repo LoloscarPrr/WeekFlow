@@ -50,4 +50,17 @@ ok(controller.includes('resolved.exitAt < startAt || resolved.exitAt > now'), 'r
 ok(controller.includes("kind: 'record-actual-exit'"), 'el mismo Brain Action aplica salidas absolutas/relativas');
 ok(relative.includes('minutes > 180'), 'solo desfases razonables y explícitos');
 ok(!relative.includes('saveDayState') && !relative.includes('saveWeekState'), 'helper puro no escribe estado');
+const questions = fs.readFileSync('src/assistant/questions.ts', 'utf8');
+ok(controller.includes('interpretAssistantQuestion(input)'), 'Asistente debe detectar consulta antes de acciones');
+ok(controller.indexOf('interpretAssistantQuestion(input)') < controller.indexOf('interpretAssistantText(input, now)'), 'consulta se resuelve antes de una propuesta');
+ok(controller.includes('answerAssistantQuestion(question, fresh)'), 'preguntas leen contexto fresco desde fuente canónica');
+ok(controller.includes('setPendingProposal(null)'), 'consultar descarta propuesta sin confirmar');
+ok(controller.includes("return 'answered' as const"), 'controller marca consulta ya respondida');
+ok(screen.includes("interpret(input) === 'answered'"), 'UI limpia texto de consulta respondida');
+ok(questions.includes("import type { AssistantRealState }"), 'preguntas responden desde mismo contexto');
+ok(questions.includes("context.move.doneToday") && questions.includes("context.food.countToday"), 'Move y Food usan datos reales');
+ok(questions.includes("context.rest.title") && questions.includes("context.energyLabel"), 'Rest y energía usan fuente común');
+for (const forbidden of ['saveDayState', 'saveWeekState', 'applyBrainAction', 'syncLivePlanReminders', 'expo-sqlite']) {
+  ok(!questions.includes(forbidden), 'preguntas puras nunca deben ejecutar: ' + forbidden);
+}
 console.log('Assistant conversation structure tests passed.');
