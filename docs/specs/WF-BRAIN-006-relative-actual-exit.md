@@ -1,6 +1,6 @@
 # WF-BRAIN-006 — Salidas relativas en el Asistente
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Requested: 2026-10-20
 Blueprint: WeekFlow Blueprint Maestro v4.0
@@ -45,4 +45,12 @@ Sin persistencia adicional. La UI existente del Asistente muestra una sola tarje
 Comprobar turno tarde/noche, salida antes del fin previsto estando aún en jornada, cruce de medianoche, desfase futuro y «salí a las» exacto. Si el desfase apunta a una fecha ajena al turno, no crear propuesta. QA visual y de actualización de APK en teléfono queda pendiente del usuario.
 
 ## Verificación
-Pendiente.
+- AC1: PASS — las pruebas reconocen +60, −30, +30 y otros desfases entre 1–180 minutos.
+- AC2: PASS — helper calcula desde fin ISO de turno; pruebas protegen 22:00–06:00 y 00:15 menos 30 minutos, respetando día local.
+- AC3: PASS — se rechazan frases mixtas, negadas, sin duración, horas fuera de turno y futuras; validación de fase permanece en controller/Brain.
+- AC4: PASS — misma propuesta `record-actual-exit`, con hora concreta y desfase; no se persiste antes de confirmación.
+- AC5: PASS — sin cambios en `src/brain/actions.ts`, `registerActualExit`, persistencia, recordatorios ni undo: reutiliza el flujo ya probado en 0.5.14.
+- AC6: PASS — regresiones existentes de salida exacta y «mañana salgo» aprobadas.
+- AC7: Quality PR #39483362980 PASS (TS + suite de regresión). Android APK y AAB de 0.5.15 pendientes de compilación/QA física.
+- Mismo paquete `com.weekflow.app`; source versionCode 107 con versionCode monotónico en CI; sin SQLite nuevo.
+
