@@ -70,13 +70,16 @@ export function interpretAssistantText(input: string, now = new Date()): Convers
     }
     // Solo frases inequívocas: «salí una hora tarde» / «terminé mi turno 30 min antes».
     // La hora final se resuelve contra el término FECHADO del turno en el controller.
-    if (/\bno\s+(?:salí|sali|terminé|termine)\b/.test(text)) {
+    if (/\bno\s+(?:salí|sali|terminé|termine)(?=\s|$|[.,;!?])/.test(text)) {
       return { status: 'unsupported', message: 'No registré la salida. Dime qué pasó cuando realmente termines.' };
     }
     const relativePhrase = /^(?:hoy\s+)?(?:salí|sali|terminé\s+(?:mi\s+)?turno|termine\s+(?:mi\s+)?turno)\s+(.+)$/.exec(text);
     if (relativePhrase) {
       const deltaMinutes = parseRelativeExitOffset(relativePhrase[1]);
       if (deltaMinutes !== null) return { status: 'actual-exit-relative-intent', deltaMinutes };
+      if (!/^a\s+las?\s+\d{1,2}(?::\d{2})?[.!?]*$/.test(relativePhrase[1])) {
+        return { status: 'unsupported', message: 'Dime una hora exacta o cuánto antes/después saliste.' };
+      }
     }
     const hourMatch = /\ba\s+las?\s+(\d{1,2})(?::(\d{2}))?(?![:\d])\b/.exec(text);
     if (!hourMatch || Number(hourMatch[1]) > 23 || Number(hourMatch[2] ?? '0') > 59) {
