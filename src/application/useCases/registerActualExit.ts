@@ -22,6 +22,7 @@ export type RegisterActualExitResult = {
 
 export type CorrectActualExitTimeInput = Omit<RegisterActualExitInput, 'now'> & {
   time: string;
+  referenceAt?: Date;
 };
 
 function dateAtClosestTime(reference: Date, time: string) {
@@ -73,8 +74,9 @@ export function correctActualExitTime({
   snapshot,
   currentPlan,
   time,
+  referenceAt,
 }: CorrectActualExitTimeInput): RegisterActualExitResult {
-  const parsedReference = state.actualExitAt ? new Date(state.actualExitAt) : new Date();
+  const parsedReference = state.actualExitAt ? new Date(state.actualExitAt) : (referenceAt ?? new Date());
   const reference = Number.isNaN(parsedReference.getTime()) ? new Date() : parsedReference;
   const correctedAt = dateAtClosestTime(reference, time);
 
