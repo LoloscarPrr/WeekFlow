@@ -57,6 +57,7 @@ export type BrainActionProposal =
 
 export type ActualExitActionContext = {
   shiftKey: string;
+  shiftStartAt: string | null;
   snapshot: BrainSnapshot;
   currentPlan: BrainPlan;
   phase: 'working' | 'after' | 'before' | 'commuting' | 'off';
@@ -227,6 +228,29 @@ export function applyBrainAction(
       };
     }
   }
+  if (proposal.kind === 'record-actual-exit') {
+    const context = options.actualExitContext!;
+    const clockNow = options.now ?? new Date();
+    const potentialExit = correctActualExitTime({
+      state: state.dayState,
+      shiftKey: context.shiftKey,
+      snapshot: context.snapshot,
+      currentPlan: context.currentPlan,
+      time: proposal.payload.time,
+      referenceAt: clockNow,
+    });
+    const shiftStarts = context.shiftStartAt ? new Date(context.shiftStartAt) : null;
+    if (!shiftStarts || !Number.isFinite(shiftStarts.getTime())
+      || potentialExit.recordedAt < shiftStarts || potentialExit.recordedAt > clockNow) {
+      return {
+        status: 'conflict',
+        state,
+        receipt: null,
+        message: 'La hora indicada no corresponde a una salida ya ocurrida en esta jornada.',
+      };
+    }
+  }
+
   const before = targetBefore(state, proposal);
   const next = applyProposal(state, proposal, options);
   const after = targetAfter(next, proposal);
