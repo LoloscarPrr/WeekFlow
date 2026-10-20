@@ -2,6 +2,7 @@ import {
   applyBrainAction,
   createBrainActionProposal,
   undoBrainAction,
+  receiptHasEffectiveChange,
   type BrainActionState,
   type BrainActionProposal,
 } from '../src/brain/actions';
@@ -54,6 +55,7 @@ ok(applied.receipt, 'acción aplicada genera recibo');
 equal(applied.receipt?.appliedAt, '2026-10-08T12:01:00.000Z', 'recibo registra timestamp');
 equal(applied.receipt?.before.target, 'day-state', 'recibo identifica target');
 equal(applied.receipt?.after.target, 'day-state', 'recibo identifica target final');
+ok(receiptHasEffectiveChange(applied.receipt!), 'el cambio de energía debe ofrecer undo');
 
 const reverted = undoBrainAction(applied.state, applied.receipt!);
 equal(reverted.status, 'reverted', 'undo válido revierte');
@@ -86,6 +88,21 @@ equal(weekApplied.state.weekState.shifts[0].start, '10:00', 'turno actualiza ent
 equal(weekApplied.state.weekState.shifts[0].end, '18:00', 'turno actualiza salida');
 equal(weekApplied.state.weekState.shifts[0].type, 'morning', 'turno conserva clasificación del use case');
 equal(weekApplied.state.weekState.source, 'manual', 'cambio de turno usa semántica Week existente');
+ok(receiptHasEffectiveChange(weekApplied.receipt!), 'el cambio de horario debe ofrecer undo');
+const weekReverted = undoBrainAction(weekApplied.state, weekApplied.receipt!);
+equal(weekReverted.status, 'reverted', 'undo de Semana revierte turno confirmado');
+equal(weekReverted.state.weekState.shifts[0].start, initialState().weekState.shifts[0].start, 'horario previo restaurado');
+
+const laterWeek = {
+  ...weekApplied.state,
+  weekState: {
+    ...weekApplied.state.weekState,
+    shifts: weekApplied.state.weekState.shifts.map((shift, index) => index === 0 ? { ...shift, start: '11:00' } : shift),
+  },
+};
+const weekConflict = undoBrainAction(laterWeek, weekApplied.receipt!);
+equal(weekConflict.status, 'conflict', 'no revierte Semana modificada posteriormente');
+equal(weekConflict.state.weekState.shifts[0].start, '11:00', 'respeta un cambio posterior de Semana');
 
 const noOpProposal: BrainActionProposal = {
   id: 'energy-noop',
@@ -99,6 +116,7 @@ const noOpProposal: BrainActionProposal = {
 const noOp = applyBrainAction(initialState(), noOpProposal, { confirmed: true });
 equal(noOp.status, 'applied', 'no-op sigue siendo aplicación válida');
 equal(noOp.message, 'El estado ya estaba como proponía WeekFlow.', 'no-op se explica');
+ok(noOp.receipt && !receiptHasEffectiveChange(noOp.receipt), 'no-op no debe ofrecer undo redundante');
 
 let invalidDayRejected = false;
 try {

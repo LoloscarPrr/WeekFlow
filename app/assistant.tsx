@@ -43,10 +43,12 @@ export default function AssistantScreen() {
   const {
     context,
     pendingProposal,
+    lastReceipt,
     assistantMessage,
     interpret,
     confirmProposal,
     cancelProposal,
+    undoLastChange,
   } = useAssistantController();
   const [input, setInput] = useState('');
 
@@ -75,6 +77,16 @@ export default function AssistantScreen() {
             <Text style={styles.interpretButtonText}>Interpretar</Text>
           </Pressable>
           <Text style={styles.assistantMessage}>{assistantMessage}</Text>
+          {lastReceipt && !pendingProposal ? (
+            <Pressable
+              style={styles.undoButton}
+              accessibilityRole="button"
+              accessibilityLabel="Deshacer último cambio del Asistente"
+              onPress={undoLastChange}
+            >
+              <Text style={styles.undoButtonText}>↶ Deshacer cambio</Text>
+            </Pressable>
+          ) : null}
         </View>
 
         {pendingProposal ? (
@@ -155,6 +167,8 @@ const styles = StyleSheet.create({
   interpretButton: { alignSelf: 'flex-start', marginTop: 12, backgroundColor: '#245D9C', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14 },
   interpretButtonText: { color: '#FFFFFF', fontWeight: '900', fontSize: 13 },
   assistantMessage: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 10 },
+  undoButton: { alignSelf: 'flex-start', marginTop: 8, minHeight: 44, justifyContent: 'center', paddingVertical: 8, paddingRight: 12 },
+  undoButtonText: { color: '#8BBEFF', fontWeight: '800', fontSize: 13 },
   proposalCard: { marginTop: 10, backgroundColor: '#102A4D', borderWidth: 1, borderColor: '#2A5D99', borderRadius: 20, padding: 15 },
   proposalLabel: { color: '#8BBEFF', fontSize: 10, fontWeight: '900', letterSpacing: 2 },
   proposalTitle: { color: colors.text, fontWeight: '900', fontSize: 17, lineHeight: 22, marginTop: 5 },

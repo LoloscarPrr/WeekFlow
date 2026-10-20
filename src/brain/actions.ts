@@ -55,6 +55,10 @@ export type BrainActionReceipt = {
   after: BrainActionTargetSnapshot;
 };
 
+export function receiptHasEffectiveChange(receipt: BrainActionReceipt): boolean {
+  return JSON.stringify(receipt.before.value) !== JSON.stringify(receipt.after.value);
+}
+
 export type BrainActionResult = {
   status: BrainActionStatus;
   state: BrainActionState;

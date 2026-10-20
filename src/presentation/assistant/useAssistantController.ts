@@ -6,7 +6,10 @@ import { buildAssistantRealState } from '@/src/assistant/context';
 import { interpretAssistantText } from '@/src/assistant/interpret';
 import {
   applyBrainAction,
+  receiptHasEffectiveChange,
+  undoBrainAction,
   type BrainActionProposal,
+  type BrainActionReceipt,
 } from '@/src/brain/actions';
 import { syncLivePlanReminders } from '@/src/services/notifications';
 import {
@@ -49,6 +52,7 @@ function readAssistantContext(now = new Date()) {
 export function useAssistantController() {
   const [context, setContext] = useState(() => readAssistantContext());
   const [pendingProposal, setPendingProposal] = useState<BrainActionProposal | null>(null);
+  const [lastReceipt, setLastReceipt] = useState<BrainActionReceipt | null>(null);
   const [assistantMessage, setAssistantMessage] = useState(
     'Puedes contarme un cambio simple de energía o de horario.',
   );
@@ -101,6 +105,7 @@ export function useAssistantController() {
     }
 
     setPendingProposal(null);
+    setLastReceipt(result.receipt && receiptHasEffectiveChange(result.receipt) ? result.receipt : null);
     setAssistantMessage(result.message);
     setContext(readAssistantContext());
 
@@ -110,10 +115,41 @@ export function useAssistantController() {
     return true;
   }, [pendingProposal]);
 
+  const undoLastChange = useCallback(() => {
+    if (!lastReceipt) return false;
+
+    const state = {
+      dayState: loadDayState(),
+      weekState: loadWeekState(),
+    };
+    const result = undoBrainAction(state, lastReceipt);
+    // A stale receipt must never remain actionable after a conflict or successful undo.
+    setLastReceipt(null);
+    setAssistantMessage(result.message);
+    if (result.status !== 'reverted') {
+      setContext(readAssistantContext());
+      return false;
+    }
+
+    if (lastReceipt.before.target === 'day-state') {
+      saveDayState(result.state.dayState);
+    } else {
+      saveWeekState(result.state.weekState);
+    }
+
+    setContext(readAssistantContext());
+    void syncLivePlanReminders().catch((error) => {
+      console.warn('Could not refresh WeekFlow reminders after Assistant undo', error);
+    });
+    return true;
+  }, [lastReceipt]);
+
   return {
     context,
     refresh,
     pendingProposal,
+    lastReceipt,
+    undoLastChange,
     assistantMessage,
     interpret,
     confirmProposal,

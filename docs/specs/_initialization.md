@@ -1,36 +1,30 @@
-# TLC Initialization Snapshot
+# TLC Initialization Snapshot — 2026-10-20 / WF-BRAIN-004
 
 ## Repository and ref
-- Repository: `LoloscarPrr/WeekFlow`.
-- Base: `main` at `ca5a85e87ca830a23f2cc88f0830d1ec85fba917`.
-- Working branch: `ux/wf-ux-002-compact-move-min30`.
-- Product source of truth: uploaded `WeekFlow Blueprint Maestro v4.0` (read sections 1–3, Core, Ahora, Move, governance) and current user's UX feedback.
+- Repository `LoloscarPrr/WeekFlow`; base `main` SHA `90343011b73ac91b07b0a7f1be9e469ba4e3aa7b`.
+- Working branch `feat/wf-brain-004-assistant-undo`; current Blueprint Maestro v4.0 (2026-09-30) read and applied.
+- Product milestone in canonical roadmap: 0.7.x Assistant + Brain; technical app release at 0.5.12 before this change.
 
-## App / build
-- App version: `0.5.12`; Android source `versionCode 104`, package `com.weekflow.app`.
-- Quality at initialization: NOT RUN; first candidate test suite passed up to smart-silence; its legacy copy assertion was fixed in subsequent commit; final CI pending.
-- Android at this branch: NOT RUN at initialization.
-- Last available baseline from repository docs was for earlier versions; not evidence for this branch.
+## Build and baseline
+- `package.json` / `app.json`: 0.5.12, package `com.weekflow.app`, source Android versionCode 104; CI increments monotonic versionCode.
+- Quality workflow #39278260062: PASS.
+- Android workflow #39278260355: PASS; signed APK/AAB 0.5.12 published to GitHub Release.
+- Physical Android UX/persistence check: UNAVAILABLE to automation; user received APK.
 
-## Product context / active scope
-- Current canonical roadmap stage in repository: 0.7.x — Assistant + Brain, with UX corrections to already shipped areas admitted NOW.
-- Immediate fixes: Move 30-minute minimum, removal of shorter action, and cross-screen reduction of redundant text.
-- Brain, SQLite, notification logic and exercise generator remain the single underlying sources of truth.
+## Active scope
+- `WF-BRAIN-003` reports first conversational energy/shift changes and explicitly defers visible undo to 0.7.4.
+- `WF-BRAIN-001` implemented pure receipt and safe `undoBrainAction`, including conflict prevention tests.
+- New locked spec `WF-BRAIN-004`: expose safe undo of last confirmed Assistant change (NOW).
+- Product principles: one shared state, explicit confirmation/reversibility, no repeated copy, no extraneous module.
 
-## Relevant repository state
-- `app/index.tsx` repeats “AHORA”/“Qué importa ahora”/“DÍA VIVO” and repeats summary stats.
-- `src/move/useMoveController.ts` exposes 5/10/20/30 min; `adaptation.ts` recommends 5/10/20/30 and supports shorter duration.
-- `src/move/MovePlan.tsx` offers shortening and explanatory copy.
-- `app/rest.tsx` exposes a persistent internal “REGLAS ACTIVAS” panel.
-- Assistant and other pillar pages contain long technical/descriptive microcopy.
+## Code surveyed
+- `src/brain/actions.ts`: `BrainActionReceipt`, apply/undo conflict guard.
+- `src/presentation/assistant/useAssistantController.ts`: applies proposals, persists canonical DayState/WeekSchedule, refreshes reminder; currently drops receipt.
+- `app/assistant.tsx`: shows proposal confirmation, no undo.
+- Existing tests for Brain actions and Assistant conversation/structure; UI only small addition.
+- Changes limited to these files + specs, version metadata and tests; no DB schema migration.
 
-## Baseline / constraints
-- PASS — current source and supplied Blueprint inspected; AGENTS/TLC read.
-- NOT RUN — typecheck, JS tests, Android build for new branch.
-- Constraint — direct local GitHub clone is unavailable in this runtime; use GitHub connector and remote CI.
-- Constraint — physical Android QA is needed to mark UX visually verified.
-- Existing active Move sessions under 30 min must not change while in progress.
-
-## Locked change specs
-- `WF-UX-002 — Una sola vez, en el lugar correcto` (NOW).
-- `WF-MOVE-009 — Move sin versiones inferiores a 30 minutos` (NOW).
+## Known constraints / plan
+- Repo changes via connected GitHub and remote CI; no local authenticated clone.
+- QA cannot certify visual behavior/installation without a phone test; don't call it complete merely because CI is green.
+- Next: implement WF-BRAIN-004, PR Quality, merge only when safe and run Android signed build.
