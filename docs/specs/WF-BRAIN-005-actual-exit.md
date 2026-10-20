@@ -1,6 +1,6 @@
 # WF-BRAIN-005 — Registrar salida real desde Asistente
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Requested: 2026-10-20
 Blueprint: WeekFlow Blueprint Maestro v4.0
@@ -55,3 +55,14 @@ Turno nocturno al cruzar medianoche; jornada libre; entrada futura, mensaje múl
 - Tests `tests/assistant-conversation.test.ts`, `tests/brain-actions.test.ts`, `tests/assistant-conversation-structure.test.cjs`; Quality CI de PR.
 - Android firmado Release post-merge, control de versionCode y firma; instalación real en móvil permanece pendiente hasta probar APK.
 
+
+## Verification progress (20-10-2026)
+- AC1: PASS — test de «salí», «salí hoy» y «terminé mi turno» confirma intención de salida real y hora correcta.
+- AC2: PASS — «mañana salgo» sigue generando un cambio de turno; sin confusión entre pasado y futuro.
+- AC3: PASS — frases ambiguas, horas inválidas, fase previa, día libre, salidas antes del inicio y horas futuras se rechazan sin modificar estado.
+- AC4: PASS — Brain invoca `correctActualExitTime` del dominio Ahora; verifica `shiftKey`, fin programado y hora real al confirmar.
+- AC5: PASS — tests validan `actualExit`, `actualExitAt` y `actualExitShiftKey`, manteniendo WeekSchedule inmutable.
+- AC6: PASS — caso de uso de Ahora requiere confirmación adicional para mover lo flexible; Asistente muestra «Revisar reajuste en Ahora» si corresponde.
+- AC7: PASS — receipt/undo de DayState conserva protección de cambios posteriores y actualiza contexto/recordatorios.
+- AC8: Quality CI #39390675259 PASS antes del último refuerzo nocturno; CI final y Android firmado: PENDING. QA física: BLOCKED hasta prueba en dispositivo.
+- Regresiones adicionales: salida al cruzar medianoche, registro previo de otro turno y restricción de no mostrar copia redundante durante propuesta.
