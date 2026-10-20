@@ -91,7 +91,7 @@ export function useAssistantController() {
         id: `assistant-exit-${now.getTime()}`,
         kind: 'record-actual-exit',
         title: 'Registrar salida real',
-        explanation: `Salida real a las ${result.time}. Ajustaré el regreso y la recuperación; cualquier reajuste importante necesitará tu confirmación en Ahora.`,
+        explanation: `Saliste a las ${result.time}. Ajustaré regreso y recuperación; lo demás se confirmará en Ahora si hace falta.`,
         createdAt: now.toISOString(),
         requiresConfirmation: true,
         payload: {
@@ -100,7 +100,7 @@ export function useAssistantController() {
           plannedEnd: view.todayShift.end,
         },
       });
-      setAssistantMessage('Confirma tu hora real de salida.');
+      setAssistantMessage('');
       return true;
     }
     if (result.status === 'unsupported') {
@@ -109,7 +109,7 @@ export function useAssistantController() {
       return false;
     }
     setPendingProposal(result.proposal);
-    setAssistantMessage('Esto es lo que entendí. Revísalo antes de confirmar.');
+    setAssistantMessage('');
     return true;
   }, []);
 
