@@ -1,26 +1,22 @@
-# TLC Initialization Snapshot — WF-BRAIN-006 (2026-10-20)
+# TLC Initialization Snapshot — 2026-10-20 / WF-BRAIN-007
 
-## Repository and ref
-- `LoloscarPrr/WeekFlow` main `1973e40f202b392fa7417a4164f24dbfe9f0c5de`; working branch `feat/wf-brain-006-relative-actual-exit`.
-- Product intent: WeekFlow Blueprint Maestro v4.0; roadmap 0.7.x Brain + Assistant, before 0.8 Smart Import.
+## Repository, ref and product
+- Repo `LoloscarPrr/WeekFlow`, base `main` SHA `db90f4db3b9110875a04f565d6295e27e307abee`, branch `feat/wf-brain-007-state-questions`.
+- Current product authority: WeekFlow Blueprint Maestro v4.0; milestone 0.7.x Assistant/Brain: common state, factual changes and answers on pillars. Smart Import deferred to 0.8.x.
 
-## Version / baseline
-- Technical version 0.5.14; Android package `com.weekflow.app`, source versionCode 106, monotonic CI.
-- Quality #39391269511: PASS.
-- Android #39391269580: PASS, signed v0.5.14 APK/AAB published (release); physical QA unavailable.
+## Version and tests
+- Technical `0.5.15`, Android package `com.weekflow.app`; source versionCode 107 with monotonic CI versionCode.
+- Quality #39483850236 PASS; Android signed APK/AAB #39483850178 PASS and release v0.5.15 published.
+- Physical Android QA UNAVAILABLE (requires device to be tested by user).
 
-## Active specifications
-- WF-BRAIN-001 foundation; WF-BRAIN-003 natural-language change; WF-BRAIN-004 undo; WF-BRAIN-005 absolute actual exit.
-- WF-BRAIN-006 (NOW): support Blueprint literal «salí una hora tarde» by deriving from dated shift end. No new pillar/Smart Import.
+## Active/relevant specs
+- WF-BRAIN-001 foundation; WF-BRAIN-002 real state; WF-BRAIN-003 actions; WF-BRAIN-004 undo; WF-BRAIN-005/006 factual/relative exit.
+- WF-BRAIN-007 (NOW): ask about Now/energy/Move/Food/Rest using common state.
 
-## Relevant current code
-- `src/assistant/interpret.ts`: absolute «salí a las 22:30» and planned «mañana salgo» distinct.
-- `src/presentation/assistant/useAssistantController.ts`: gets canonical NowView, shiftContext, confirmed proposal and notification sync.
-- `src/brain/actions.ts`: current shift guard, use case `correctActualExitTime`, undo receipt.
-- `src/domain/services/shiftSchedule.ts`: shiftContext.endAt already dated for overnight.
-- Tests in assistant-conversation, brain-actions and structure.
-
-## Constraints / QA
-- Cannot physically install APK; CI/build only, and QA in device remains unverified.
-- No changes to SQLite schema, Move min 30, Week, or signing.
-- Use TLC Lock → Code → Verify and remote CI before merge.
+## Inspected modules/constraints
+- `src/assistant/context.ts`: pure `AssistantRealState` built from existing repositories and view controllers.
+- `src/presentation/assistant/useAssistantController.ts`: reads state and confirms changes; no query path today.
+- `src/assistant/interpret.ts`: cautious deterministic parser for action proposals, absolute and relative exits.
+- `app/assistant.tsx`: single multiline text field and proposal card; UI should remain compact.
+- Existing tests/structure and AGENTS/TLC skill read; baseline PASS via GitHub CI.
+- No new SQLite, LLM, Smart Import, Move/Food/Rest schedule changes or automatic actions. Report QA physical not run.
