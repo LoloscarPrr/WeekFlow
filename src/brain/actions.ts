@@ -67,6 +67,7 @@ export type BrainActionProposal =
 export type ActualExitActionContext = {
   shiftKey: string;
   shiftStartAt: string | null;
+  shiftEndAt?: string | null;
   snapshot: BrainSnapshot;
   currentPlan: BrainPlan;
   phase: 'working' | 'after' | 'before' | 'commuting' | 'off';
@@ -225,6 +226,7 @@ function applyProposal(
       shiftKey: context.shiftKey,
       snapshot: context.snapshot,
       currentPlan: context.currentPlan,
+      shiftEndAt: context.shiftEndAt,
       time: proposal.payload.time,
       referenceAt: options.now,
     });
@@ -279,6 +281,7 @@ export function applyBrainAction(
       shiftKey: context.shiftKey,
       snapshot: context.snapshot,
       currentPlan: context.currentPlan,
+      shiftEndAt: context.shiftEndAt,
       time: proposal.payload.time,
       referenceAt: clockNow,
     });
