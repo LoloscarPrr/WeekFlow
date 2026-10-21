@@ -1,6 +1,6 @@
 # WF-BRAIN-009 — Explicar el impacto de una salida real
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Requested: 2026-10-21
 Blueprint: WeekFlow Blueprint Maestro v4.0
@@ -52,3 +52,14 @@ Salida de noche/madrugada, horario diurno prolongado sobre medianoche, entrada f
 
 ## Verification plan
 Pruebas puras `tests/assistant-exit-explanation.test.ts`, ampliar regresiones de fecha en `tests/regression.test.ts`, checks estructurales y TypeScript. PR Quality y post-merge signed release. QA física diferida por petición expresa del usuario (menos micropruebas).
+
+## Verification evidence — 2026-10-21
+- AC1: PASS — salida exacta y relativa usan la misma propuesta, el mismo use case `correctActualExitTime` y la misma función de impacto; la vista previa no llama persistencia.
+- AC2: PASS — `assistant-exit-explanation.test.ts` cubre 13:00–22:00 → 00:30 del siguiente día (+150 min), jornada 22:00–06:00 → 07:00 (+60 min), salidas tempranas y fallback de compatibilidad.
+- AC3: PASS — el helper `describeExitImpact` usa `ExitReplanImpact` para hora real, diferencia, regreso estimado, recuperación y revisión requerida; pruebas de texto y estimaciones.
+- AC4: PASS — caso sin bloques flexibles (energía agotada) no exige revisión extra; `replanAfterActualExit` mantiene fijo `item.flexible=false` y solo opera detrás del índice de regreso.
+- AC5: PASS (código y estructura) — confirmación lee `getNowView` posterior al guardado; `app/assistant.tsx` conserva enlace a Ahora en caso `needsExitReview`.
+- AC6: PASS — se conservan guardas existentes de jornada/fase/hora y se valida también en propuesta antes de confirmar.
+- AC7: PASS — Quality PR #39664812446 completado en verde, incluyendo tests de Brain, Food, Rest, Now, notificaciones y regresión nueva.
+- AC8: Quality PR PASS; Android release firmado de 0.5.18 PENDING hasta ejecución post-merge; QA física NOT RUN por decisión de usar pruebas por lote en vez de micropruebas.
+- Ninguna migración SQLite, módulo nuevo ni dependencia Android.
