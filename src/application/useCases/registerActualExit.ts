@@ -11,6 +11,7 @@ export type RegisterActualExitInput = {
   shiftKey: string;
   snapshot: BrainSnapshot;
   currentPlan: BrainPlan;
+  shiftEndAt?: string | null;
   now?: Date;
 };
 
@@ -50,10 +51,14 @@ export function registerActualExit({
   shiftKey,
   snapshot,
   currentPlan,
+  shiftEndAt,
   now = new Date(),
 }: RegisterActualExitInput): RegisterActualExitResult {
   const actualExit = currentHm(now);
-  const impact = assessExitReplanImpact(snapshot, currentPlan, actualExit);
+  const impact = assessExitReplanImpact(snapshot, currentPlan, actualExit, {
+    actualExitAt: now,
+    scheduledEndAt: shiftEndAt ? new Date(shiftEndAt) : undefined,
+  });
 
   return {
     recordedAt: now,
@@ -73,6 +78,7 @@ export function correctActualExitTime({
   shiftKey,
   snapshot,
   currentPlan,
+  shiftEndAt,
   time,
   referenceAt,
 }: CorrectActualExitTimeInput): RegisterActualExitResult {
@@ -86,6 +92,7 @@ export function correctActualExitTime({
     shiftKey,
     snapshot,
     currentPlan,
+    shiftEndAt,
     now: correctedAt,
   });
 }
