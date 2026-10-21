@@ -1,7 +1,19 @@
 import { addMinutes, timeConstants, toMinutes } from '../domain/services/time';
 import type { BrainPlan, BrainSnapshot } from './types';
 
-function actualExitDelta(snapshot: BrainSnapshot, actualExit: string) {
+export type DatedExitContext = {
+  actualExitAt?: Date;
+  scheduledEndAt?: Date;
+};
+
+function actualExitDelta(snapshot: BrainSnapshot, actualExit: string, dated?: DatedExitContext) {
+  const actualAt = dated?.actualExitAt;
+  const scheduledEndAt = dated?.scheduledEndAt;
+  if (actualAt && scheduledEndAt
+    && Number.isFinite(actualAt.getTime())
+    && Number.isFinite(scheduledEndAt.getTime())) {
+    return Math.round((actualAt.getTime() - scheduledEndAt.getTime()) / 60_000);
+  }
   const start = toMinutes(snapshot.shift.start);
   let plannedEnd = toMinutes(snapshot.shift.end);
   let actual = toMinutes(actualExit);
@@ -28,6 +40,7 @@ export function assessExitReplanImpact(
   snapshot: BrainSnapshot,
   currentPlan: BrainPlan,
   actualExit: string,
+  dated?: DatedExitContext,
 ): ExitReplanImpact {
   if (snapshot.shift.type === 'off') {
     return {
@@ -46,7 +59,7 @@ export function assessExitReplanImpact(
     (item) => item.flexible && ['food', 'move', 'personal'].includes(item.type),
   ).length;
   const affectsRest = currentPlan.mode === 'night-shift' && afterShift.some((item) => item.type === 'rest');
-  const deltaMinutes = actualExitDelta(snapshot, actualExit);
+  const deltaMinutes = actualExitDelta(snapshot, actualExit, dated);
   const absoluteDelta = Math.abs(deltaMinutes);
 
   // Regreso, descompresión y Rest siguen la realidad sin pedir permiso.

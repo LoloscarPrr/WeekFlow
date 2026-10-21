@@ -1,6 +1,9 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { getNowView } from '@/src/application/useCases/getNowView';
+import { correctActualExitTime } from '@/src/application/useCases/registerActualExit';
+import { assessExitReplanImpact } from '@/src/brain/exitImpact';
+import { describeExitImpact } from '@/src/assistant/exitExplanation';
 import { getRestView } from '@/src/application/useCases/getRestView';
 import { buildAssistantRealState } from '@/src/assistant/context';
 import { interpretAssistantText } from '@/src/assistant/interpret';
@@ -119,13 +122,35 @@ export function useAssistantController() {
         }
       }
       const time = resolved?.time ?? (result.status === 'actual-exit-intent' ? result.time : '');
-      const delta = result.status === 'actual-exit-relative-intent' ? result.deltaMinutes : 0;
-      const relativeLabel = delta > 0 ? `${delta} min después` : `${Math.abs(delta)} min antes`;
+      if (!view.shiftContext.startAt || !view.shiftContext.endAt) {
+        setPendingProposal(null);
+        setAssistantMessage('No pude ubicar una jornada con inicio y fin claros.');
+        return false;
+      }
+      const projected = correctActualExitTime({
+        state: dayState,
+        shiftKey: view.shiftContext.key,
+        shiftEndAt: view.shiftContext.endAt,
+        snapshot: view.snapshot,
+        currentPlan: view.basePlan,
+        time,
+        referenceAt: now,
+      });
+      const startAt = new Date(view.shiftContext.startAt);
+      if (projected.recordedAt < startAt || projected.recordedAt > now) {
+        setPendingProposal(null);
+        setAssistantMessage('Esa salida aún no ocurrió o es anterior al inicio del turno.');
+        return false;
+      }
+      const preview = assessExitReplanImpact(view.snapshot, view.basePlan, time, {
+        actualExitAt: projected.recordedAt,
+        scheduledEndAt: new Date(view.shiftContext.endAt),
+      });
       setPendingProposal({
         id: `assistant-exit-${now.getTime()}`,
         kind: 'record-actual-exit',
         title: 'Registrar salida real',
-        explanation: `Salida a las ${time}${isRelative ? ` (${relativeLabel})` : ''}. Ajustaré regreso y recuperación; lo demás se confirmará en Ahora si hace falta.`,
+        explanation: describeExitImpact(time, preview, false),
         createdAt: now.toISOString(),
         requiresConfirmation: true,
         payload: {
@@ -172,6 +197,7 @@ export function useAssistantController() {
         return {
           shiftKey: view.shiftContext.key,
           shiftStartAt: view.shiftContext.startAt,
+          shiftEndAt: view.shiftContext.endAt,
           snapshot: view.snapshot,
           currentPlan: view.basePlan,
           phase: view.phase,
@@ -200,10 +226,18 @@ export function useAssistantController() {
     setPendingProposal(null);
     setLastReceipt(result.receipt && receiptHasEffectiveChange(result.receipt) ? result.receipt : null);
     const nextContext = readAssistantContext();
+    const afterView = pendingProposal.kind === 'record-actual-exit'
+      ? getNowView({
+        dayState: result.state.dayState,
+        weekState: result.state.weekState,
+        moveDoneToday: moveSessionDoneToday(now),
+        now,
+      })
+      : null;
     setAssistantMessage(pendingProposal.kind === 'record-actual-exit'
-      ? nextContext.needsExitReview
-        ? 'Salida registrada. Confirma el reajuste en Ahora.'
-        : 'Salida real registrada.'
+      ? afterView?.exitImpact
+        ? describeExitImpact(pendingProposal.payload.time, afterView.exitImpact, true)
+        : 'Salida registrada. La planificación de Ahora está actualizada.'
       : pendingProposal.kind === 'log-food-entry'
         ? 'Registrado en Food: ' + pendingProposal.payload.title + '.'
         : result.message);
