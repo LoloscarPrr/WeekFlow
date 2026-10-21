@@ -172,6 +172,7 @@ export function useAssistantController() {
         return {
           shiftKey: view.shiftContext.key,
           shiftStartAt: view.shiftContext.startAt,
+          shiftEndAt: view.shiftContext.endAt,
           snapshot: view.snapshot,
           currentPlan: view.basePlan,
           phase: view.phase,
