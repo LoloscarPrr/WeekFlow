@@ -1,5 +1,7 @@
 import type { BrainActionProposal } from '../brain/actions';
 import { parseRelativeExitOffset } from './relativeExit';
+import { parseConsumedFood } from './foodLog';
+import { localDateKey } from '../domain/services/shiftSchedule';
 
 export type ConversationInterpretation =
   | { status: 'proposal'; proposal: BrainActionProposal }
@@ -59,6 +61,22 @@ export function interpretAssistantText(input: string, now = new Date()): Convers
 
   // Past-tense real departure is not a planned Week shift change.
   // Be conservative: no implicit hour, previous-day report or multi-action guess.
+  const consumedFood = parseConsumedFood(input);
+  if (consumedFood) {
+    return {
+      status: 'proposal',
+      proposal: {
+        id: `assistant-food-${now.getTime()}`,
+        kind: 'log-food-entry',
+        title: 'Registrar en Food',
+        explanation: `Agregar «${consumedFood}» a tus registros de hoy. No estimaré porciones ni calorías.`,
+        createdAt: now.toISOString(),
+        requiresConfirmation: true,
+        payload: { title: consumedFood, date: localDateKey(now) },
+      },
+    };
+  }
+
   const isActualExit = /\b(?:salí|sali|terminé\s+(?:mi\s+)?turno|termine\s+(?:mi\s+)?turno)(?=\s|$|[.,;!?])/.test(text);
   const energy = parseEnergy(text);
   if (isActualExit) {
@@ -134,6 +152,6 @@ export function interpretAssistantText(input: string, now = new Date()): Convers
 
   return {
     status: 'unsupported',
-    message: 'Todavía no sé aplicar ese cambio. Por ahora puedo entender energía y cambios simples de entrada/salida.',
+    message: 'Todavía no puedo registrar eso. Entiendo comidas de hoy, energía y cambios claros de horario.',
   };
 }

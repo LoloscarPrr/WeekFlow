@@ -63,4 +63,15 @@ ok(questions.includes("context.rest.title") && questions.includes("context.energ
 for (const forbidden of ['saveDayState', 'saveWeekState', 'applyBrainAction', 'syncLivePlanReminders', 'expo-sqlite']) {
   ok(!questions.includes(forbidden), 'preguntas puras nunca deben ejecutar: ' + forbidden);
 }
+const foodLog = fs.readFileSync('src/assistant/foodLog.ts', 'utf8');
+ok(parser.includes('parseConsumedFood(input)'), 'Asistente debe reconocer declaración explícita de consumo');
+ok(parser.includes("kind: 'log-food-entry'"), 'Food se propone con Brain Action tipada y confirmable');
+ok(controller.includes('saveFoodEntry(record, now)'), 'guardar comida usa mismo Food manual canónico');
+ok(controller.includes('removeFoodEntry(lastReceipt.proposalId, recordDate)'), 'deshacer Food elimina solo registro del recibo');
+ok(controller.includes("pendingProposal.kind !== 'log-food-entry'"), 'registrar Food no cambia recordatorios de jornadas');
+ok(controller.includes("lastReceipt.before.target === 'food-day'"), 'deshacer distingue Food de Week/DayState');
+ok(actions.includes("target: 'food-day'"), 'Brain Action usa recibo de Food para detectar conflictos');
+ok(actions.includes("localDateKey(now) !== proposal.payload.date"), 'cambio de día se bloquea');
+ok(foodLog.includes('pan') === false && foodLog.includes('margarina') === false, 'parser no tiene alimentos codificados como valores prefijados');
+ok(!foodLog.includes('saveFoodEntry') && !foodLog.includes('sqlite'), 'parser no persiste nada');
 console.log('Assistant conversation structure tests passed.');
