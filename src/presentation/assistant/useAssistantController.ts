@@ -17,6 +17,8 @@ import { syncLivePlanReminders } from '@/src/services/notifications';
 import {
   loadDayState,
   loadFoodDay,
+  saveFoodEntry,
+  removeFoodEntry,
   loadMoveHistory,
   loadUserProfile,
   loadWeekState,
@@ -153,11 +155,12 @@ export function useAssistantController() {
   const confirmProposal = useCallback(() => {
     if (!pendingProposal) return false;
 
+    const now = new Date();
     const state = {
       dayState: loadDayState(),
       weekState: loadWeekState(),
+      foodDay: loadFoodDay(now),
     };
-    const now = new Date();
     const actualExitContext = pendingProposal.kind === 'record-actual-exit'
       ? (() => {
         const view = getNowView({
@@ -184,7 +187,11 @@ export function useAssistantController() {
       return false;
     }
 
-    if (pendingProposal.kind === 'set-energy' || pendingProposal.kind === 'record-actual-exit') {
+    if (pendingProposal.kind === 'log-food-entry') {
+      const record = result.state.foodDay?.entries.find((entry) => entry.id === pendingProposal.id);
+      if (!record) throw new Error('Confirmed Food entry missing');
+      saveFoodEntry(record, now);
+    } else if (pendingProposal.kind === 'set-energy' || pendingProposal.kind === 'record-actual-exit') {
       saveDayState(result.state.dayState);
     } else {
       saveWeekState(result.state.weekState);
@@ -197,21 +204,27 @@ export function useAssistantController() {
       ? nextContext.needsExitReview
         ? 'Salida registrada. Confirma el reajuste en Ahora.'
         : 'Salida real registrada.'
-      : result.message);
+      : pendingProposal.kind === 'log-food-entry'
+        ? 'Registrado en Food: ' + pendingProposal.payload.title + '.'
+        : result.message);
     setContext(nextContext);
 
-    void syncLivePlanReminders().catch((error) => {
-      console.warn('Could not refresh WeekFlow reminders after Assistant action', error);
-    });
+    if (pendingProposal.kind !== 'log-food-entry') {
+      void syncLivePlanReminders().catch((error) => {
+        console.warn('Could not refresh WeekFlow reminders after Assistant action', error);
+      });
+    }
     return true;
   }, [pendingProposal]);
 
   const undoLastChange = useCallback(() => {
     if (!lastReceipt) return false;
 
+    const recordDate = new Date(lastReceipt.appliedAt);
     const state = {
       dayState: loadDayState(),
       weekState: loadWeekState(),
+      foodDay: loadFoodDay(recordDate),
     };
     const result = undoBrainAction(state, lastReceipt);
     // A stale receipt must never remain actionable after a conflict or successful undo.
@@ -222,16 +235,21 @@ export function useAssistantController() {
       return false;
     }
 
-    if (lastReceipt.before.target === 'day-state') {
+    if (lastReceipt.before.target === 'food-day') {
+      // This removes only the confirmed manual entry, never other Food entries.
+      removeFoodEntry(lastReceipt.proposalId, recordDate);
+    } else if (lastReceipt.before.target === 'day-state') {
       saveDayState(result.state.dayState);
     } else {
       saveWeekState(result.state.weekState);
     }
 
     setContext(readAssistantContext());
-    void syncLivePlanReminders().catch((error) => {
-      console.warn('Could not refresh WeekFlow reminders after Assistant undo', error);
-    });
+    if (lastReceipt.before.target !== 'food-day') {
+      void syncLivePlanReminders().catch((error) => {
+        console.warn('Could not refresh WeekFlow reminders after Assistant undo', error);
+      });
+    }
     return true;
   }, [lastReceipt]);
 
