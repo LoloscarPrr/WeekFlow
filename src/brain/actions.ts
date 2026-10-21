@@ -7,8 +7,10 @@ import {
 } from '../application/useCases/updateWeekSchedule';
 import type { DayState, Energy } from '../domain/entities/DailyState';
 import type { WeekSchedule } from '../domain/entities/Shift';
+import type { FoodDayRecord, FoodEntry } from '../food/history';
+import { localDateKey } from '../domain/services/shiftSchedule';
 
-export type BrainActionKind = 'set-energy' | 'update-week-shift' | 'record-actual-exit';
+export type BrainActionKind = 'set-energy' | 'update-week-shift' | 'record-actual-exit' | 'log-food-entry';
 export type BrainActionStatus =
   | 'applied'
   | 'confirmation-required'
@@ -18,6 +20,7 @@ export type BrainActionStatus =
 export type BrainActionState = {
   dayState: DayState;
   weekState: WeekSchedule;
+  foodDay?: FoodDayRecord;
 };
 
 type ProposalBase = {
@@ -50,10 +53,16 @@ export type RecordActualExitProposal = ProposalBase & {
   };
 };
 
+export type LogFoodEntryProposal = ProposalBase & {
+  kind: 'log-food-entry';
+  payload: { title: string; date: string };
+};
+
 export type BrainActionProposal =
   | SetEnergyProposal
   | UpdateWeekShiftProposal
-  | RecordActualExitProposal;
+  | RecordActualExitProposal
+  | LogFoodEntryProposal;
 
 export type ActualExitActionContext = {
   shiftKey: string;
@@ -71,7 +80,8 @@ type BrainActionOptions = {
 
 export type BrainActionTargetSnapshot =
   | { target: 'day-state'; value: DayState }
-  | { target: 'week-state'; value: WeekSchedule };
+  | { target: 'week-state'; value: WeekSchedule }
+  | { target: 'food-day'; value: FoodDayRecord };
 
 export type BrainActionReceipt = {
   proposalId: string;
@@ -130,6 +140,14 @@ export function createBrainActionProposal(
     throw new Error('Invalid actual exit proposal');
   }
 
+  if (proposal.kind === 'log-food-entry' && (
+    !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(proposal.payload.date)
+    || !proposal.payload.title.trim()
+    || proposal.payload.title.trim().length > 120
+  )) {
+    throw new Error('Invalid Food entry proposal');
+  }
+
   return {
     ...proposal,
     id,
@@ -149,6 +167,9 @@ function targetBefore(
   if (proposal.kind === 'set-energy' || proposal.kind === 'record-actual-exit') {
     return { target: 'day-state', value: state.dayState };
   }
+  if (proposal.kind === 'log-food-entry') {
+    return { target: 'food-day', value: state.foodDay! };
+  }
   return { target: 'week-state', value: state.weekState };
 }
 
@@ -158,6 +179,9 @@ function targetAfter(
 ): BrainActionTargetSnapshot {
   if (proposal.kind === 'set-energy' || proposal.kind === 'record-actual-exit') {
     return { target: 'day-state', value: state.dayState };
+  }
+  if (proposal.kind === 'log-food-entry') {
+    return { target: 'food-day', value: state.foodDay! };
   }
   return { target: 'week-state', value: state.weekState };
 }
@@ -171,6 +195,25 @@ function applyProposal(
     return {
       ...state,
       dayState: updateNowEnergy(state.dayState, proposal.payload.energy),
+    };
+  }
+
+  if (proposal.kind === 'log-food-entry') {
+    const now = options.now ?? new Date();
+    const record: FoodEntry = {
+      id: proposal.id,
+      at: now.toISOString(),
+      title: proposal.payload.title.trim(),
+      kind: 'other',
+      source: 'manual',
+    };
+    return {
+      ...state,
+      foodDay: {
+        date: state.foodDay!.date,
+        entries: [...state.foodDay!.entries.filter((entry) => entry.id !== record.id), record]
+          .sort((a, b) => a.at.localeCompare(b.at)),
+      },
     };
   }
 
@@ -251,6 +294,21 @@ export function applyBrainAction(
     }
   }
 
+  if (proposal.kind === 'log-food-entry') {
+    const now = options.now ?? new Date();
+    if (!state.foodDay
+      || state.foodDay.date !== proposal.payload.date
+      || localDateKey(now) !== proposal.payload.date
+      || state.foodDay.entries.some((entry) => entry.id === proposal.id)) {
+      return {
+        status: 'conflict',
+        state,
+        receipt: null,
+        message: 'El día cambió o el registro ya existe. No agregué comida.',
+      };
+    }
+  }
+
   const before = targetBefore(state, proposal);
   const next = applyProposal(state, proposal, options);
   const after = targetAfter(next, proposal);
@@ -276,6 +334,11 @@ function currentTarget(
   state: BrainActionState,
   receipt: BrainActionReceipt,
 ): BrainActionTargetSnapshot {
+  if (receipt.after.target === 'food-day') {
+    return state.foodDay
+      ? { target: 'food-day', value: state.foodDay }
+      : { target: 'food-day', value: { date: '', entries: [] } };
+  }
   return receipt.after.target === 'day-state'
     ? { target: 'day-state', value: state.dayState }
     : { target: 'week-state', value: state.weekState };
@@ -301,7 +364,9 @@ export function undoBrainAction(
 
   const reverted: BrainActionState = receipt.before.target === 'day-state'
     ? { ...state, dayState: receipt.before.value }
-    : { ...state, weekState: receipt.before.value };
+    : receipt.before.target === 'food-day'
+      ? { ...state, foodDay: receipt.before.value }
+      : { ...state, weekState: receipt.before.value };
 
   return {
     status: 'reverted',
