@@ -234,7 +234,10 @@ export function getNowView({ dayState, weekState, moveDoneToday, now }: GetNowVi
     && todayShift.type !== 'off',
   );
   const exitImpact = hasActualExit && dayState.actualExit
-    ? assessExitReplanImpact(snapshot, basePlan, dayState.actualExit)
+    ? assessExitReplanImpact(snapshot, basePlan, dayState.actualExit, {
+      actualExitAt: dayState.actualExitAt ? new Date(dayState.actualExitAt) : undefined,
+      scheduledEndAt: shiftContext.endAt ? new Date(shiftContext.endAt) : undefined,
+    })
     : null;
   const needsExitReview = Boolean(exitImpact?.requiresConfirmation && !dayState.actualExitReplanConfirmed);
   const plan = hasActualExit && dayState.actualExit
