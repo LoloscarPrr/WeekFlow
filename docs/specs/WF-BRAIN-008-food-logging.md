@@ -1,6 +1,6 @@
 # WF-BRAIN-008 — Registrar lo comido desde Asistente
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Requested: 2026-10-21
 Product: WeekFlow Blueprint Maestro v4.0
@@ -53,4 +53,12 @@ No schema migration, no new permissions. `FoodDayRecord` se añade opcionalmente
 - Abre Food desde Asistente tras registro: historial se actualiza vía focus.
 
 ## Verification
-PENDING.
+- AC1: PASS — parser y prueba `assistant-food-log.test.ts` reconocen «Comí pan tostado con margarina», conservan su texto y crean propuesta confirmable sin escritura.
+- AC2: PASS — test incluye desayuno, almuerzo, cena y tildes, conservando descripción sin nutrición inferida.
+- AC3: PASS — casos negativos, preguntas, fecha ajena, incompletos y dos acciones se rechazan; consultas Food existentes siguen read-only.
+- AC4: PASS — `applyBrainAction` produce FoodDay y solo controller confirmado llama `saveFoodEntry`, sin escribir DayState/WeekSchedule.
+- AC5: PASS por inspección de contrato — `app/food.tsx` refresca `loadFoodDay` al enfocar y preguntas leen estado fresco; QA visual en dispositivo pendiente.
+- AC6: PASS — `undoBrainAction` compara snapshot de FoodDay, `removeFoodEntry` borra solo ID de propuesta; test cubre cambios posteriores y deshacer.
+- AC7: PASS — pruebas previas Brain/Assistant/Food y nuevo test puro ejecutados por CI.
+- AC8: Quality PR #39546790022 PASS. Android Release firmado 0.5.17 y QA física: PENDING.
+- Sin migraciones SQLite; versión técnica 0.5.17, Android source versionCode 109 y package/firma existentes.
