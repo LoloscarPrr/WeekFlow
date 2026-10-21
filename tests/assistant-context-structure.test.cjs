@@ -31,7 +31,16 @@ for (const forbidden of ['sqliteStateStore', 'saveDayState', 'saveWeekState', 's
   ok(!context.includes(forbidden), `builder puro no debe usar ${forbidden}`);
 }
 ok(!controller.includes('sqliteStateStore'), 'controller no debe acceder SQLite directamente');
-ok(!controller.includes('saveFood'), 'controller no debe escribir Food');
+// WF-BRAIN-008: el Asistente puede escribir Food SOLO después de confirmar.
+const readContext = controller.slice(controller.indexOf('function readAssistantContext'), controller.indexOf('export function useAssistantController'));
+ok(!readContext.includes('saveFoodEntry') && !readContext.includes('removeFoodEntry'),
+  'leer Estado real nunca modifica Food');
+const queryHandler = controller.slice(controller.indexOf('if (question) {'), controller.indexOf('const now = new Date();'));
+ok(!queryHandler.includes('saveFoodEntry') && !queryHandler.includes('removeFoodEntry'),
+  'una pregunta sigue siendo de solo lectura para Food');
+ok(controller.includes("if (pendingProposal.kind === 'log-food-entry')") && controller.includes('saveFoodEntry(record, now)'),
+  'Food solo se guarda tras confirmación de Brain Action');
+
 ok(!controller.includes('saveMove'), 'controller no debe escribir Move');
 
 console.log('Assistant real-state structure tests passed.');
