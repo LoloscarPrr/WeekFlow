@@ -12,6 +12,6 @@ export function parseConsumedFood(input: string): string | null {
   const title = match[1].trim();
   if (!title || title.length > 120 || !/[a-záéíóúüñ]/i.test(title)) return null;
   if (/^(?:nada|algo|lo mismo|cualquier cosa|no s[eé]|ninguna cosa)$/i.test(title)) return null;
-  if (/\b(?:y\s+(?:com[ií]|desayun[eé]|almorc[eé]|cen[eé]|sal[ií]|entro|salgo|estoy)|pero\s+no)\b/i.test(title)) return null;
+  if (/(?:^|\s)y\s+(?:com[ií]|desayun[eé]|almorc[eé]|cen[eé]|sal[ií]|entro|salgo|estoy)(?=\s|$|[.,;!?])/i.test(title) || /\bpero\s+no\b/i.test(title)) return null;
   return title;
 }
