@@ -65,6 +65,7 @@ export function useNowController() {
     const result = registerActualExit({
       state: dayState,
       shiftKey: view.shiftContext.key,
+      shiftEndAt: view.shiftContext.endAt,
       snapshot: view.snapshot,
       currentPlan: view.basePlan,
     });
@@ -80,6 +81,7 @@ export function useNowController() {
     const result = correctActualExitTimeUseCase({
       state: dayState,
       shiftKey: view.shiftContext.key,
+      shiftEndAt: view.shiftContext.endAt,
       snapshot: view.snapshot,
       currentPlan: view.basePlan,
       time,
