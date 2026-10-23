@@ -1,6 +1,6 @@
 # WF-SMART-001 — Transacción canónica de Smart Import
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Requested: 2026-10-23
 Blueprint: WeekFlow Blueprint Maestro v4.0, §15 y roadmap 0.8.x
@@ -43,5 +43,14 @@ Tras leer un archivo, Brain crea una propuesta transaccional de la semana detect
 ## Future 0.8.x
 Integrar proveedor de comprensión visual multimodal real sobre este contrato con identidad/fechas/ambigüedad explícitas y comparación de día/semana, sin duplicar el importador. Hasta entonces las lecturas de captura dependen de OCR local y no se venden como IA multimodal.
 
-## Verification
-PENDING.
+## Verification — 2026-10-23
+- AC1: PASS — ambos componentes `ScheduleImportCard` y `SchedulePdfImportCard` llaman `confirmReviewedImport`, que es la única ruta de escritura.
+- AC2: PASS — `smart-import-transaction.test.ts` valida siete días únicos, HH:MM, colación, libres, jornada nocturna y rechazos.
+- AC3: PASS — se rechaza un día falsamente laborable con `00:00`/ `00:00`; colación cero no se trata como jornada por sí sola. Los parsers originales no se modificaron.
+- AC4: PASS — `applySmartImport` exige `confirmed` y detecta cambio de `WeekSchedule` desde snapshot previo. Las pantallas capturan el estado al leer.
+- AC5: PASS — caso de uso persiste solo `WeekSchedule`, conserva `importantMoments`, marca `organizedAt:null` y resincroniza notificaciones. Otros pilares siguen en sus propias fuentes.
+- AC6: PASS — `undoSmartImport` compara el estado entero antes de restaurar; regresión impide sobrescribir edición de otro módulo y guarda la semana original.
+- AC7: PASS (código/estructura) — ambas pantallas exponen `Deshacer importación` y `Ver Semana` tras aplicar; no se exige editar todos los días salvo problema real.
+- AC8: Quality PR #39950471179 PASS (TypeScript + suite completa incluidas pruebas nuevas). Android APK/AAB firmada 0.5.19 PENDING al momento de la revisión; QA física agrupar con siguiente bloque.
+- Frontera de capacidad: extracción fotográfica sigue siendo ML Kit OCR; IA multimodal no conectada. No se afirma completion integral de Smart Import 0.8.x.
+
