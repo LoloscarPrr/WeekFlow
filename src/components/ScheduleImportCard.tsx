@@ -6,12 +6,9 @@ import { router } from 'expo-router';
 import { recognizeText } from '@infinitered/react-native-mlkit-text-recognition';
 import { readScheduleExcel } from '@/src/import/scheduleExcel';
 import { parseScheduleOcr, type ReviewShift } from '@/src/import/scheduleOcr';
-import {
-  loadUserProfile,
-  loadWeekState,
-  saveUserProfile,
-  saveWeekState,
-} from '@/src/state/persistence';
+import { loadUserProfile, loadWeekState } from '@/src/state/persistence';
+import { confirmReviewedImport, undoReviewedImport, type ConfirmedImportReceipt } from '@/src/brain/smartImportPersistence';
+import type { WeekSchedule } from '@/src/domain/entities/Shift';
 import { colors } from '@/src/theme/colors';
 
 export type PendingScheduleImport = {
@@ -61,12 +58,16 @@ export function ScheduleImportCard() {
   const [matchedName, setMatchedName] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [review, setReview] = useState<ReviewShift[] | null>(null);
+  const [baseline, setBaseline] = useState<WeekSchedule | null>(null);
+  const [savedReceipt, setSavedReceipt] = useState<ConfirmedImportReceipt | null>(null);
 
   function preparePending(next: PendingScheduleImport) {
     setPending(next);
     setReview(null);
     setWarnings([]);
     setMatchedName(null);
+    setBaseline(null);
+    setSavedReceipt(null);
   }
 
   function useImageAsset(asset: ImagePicker.ImagePickerAsset, source: 'library' | 'camera') {
@@ -141,6 +142,7 @@ export function ScheduleImportCard() {
       return;
     }
 
+    setBaseline(loadWeekState());
     setReading(true);
     setReview(null);
     setWarnings([]);
@@ -239,25 +241,51 @@ export function ScheduleImportCard() {
       return;
     }
 
-    const cleanName = scheduleName.trim();
-    const currentWeek = loadWeekState();
-    saveUserProfile({ ...loadUserProfile(), scheduleName: cleanName });
-    saveWeekState({
-      shifts: review.map((shift) => ({
-        day: shift.day,
-        start: shift.off ? '' : shift.start,
-        end: shift.off ? '' : shift.end,
-        breakMinutes: shift.off ? 0 : shift.breakMinutes ?? 0,
-        type: shift.off ? 'off' : inferType(shift.start, shift.end),
-      })),
-      importantMoments: currentWeek.importantMoments,
-      organizedAt: null,
-      source: pending?.source ?? 'library',
+    if (!baseline || !pending) {
+      Alert.alert('Falta la lectura', 'Vuelve a leer el archivo para confirmar con datos actuales.');
+      return;
+    }
+    const result = confirmReviewedImport({
+      baseline,
+      shifts: review,
+      source: pending.source,
+      matchedName,
+      configuredName: scheduleName,
     });
+    if (result.status !== 'applied') {
+      Alert.alert('No guardé el horario', result.message);
+      return;
+    }
+    setSavedReceipt(result.receipt);
+    setReview(null);
+  }
 
-    Alert.alert('Horario guardado', 'Tu horario quedó listo. Puedes corregir cualquier día desde Semana.', [
-      { text: 'Continuar', onPress: () => router.replace('/week') },
-    ]);
+  if (savedReceipt) {
+    return (
+      <View style={styles.reviewBox}>
+        <Text style={styles.reviewEyebrow}>SEMANA ACTUALIZADA</Text>
+        <Text style={styles.reviewTitle}>Horario confirmado</Text>
+        <Text style={styles.reviewCopy}>La nueva semana ya organiza tu calendario y recordatorios. Tus momentos importantes siguen protegidos.</Text>
+        <View style={styles.actions}>
+          <Pressable style={styles.secondary} onPress={() => {
+            const result = undoReviewedImport(savedReceipt);
+            if (result.status === 'conflict') {
+              Alert.alert('No pude deshacer', result.message);
+              return;
+            }
+            setSavedReceipt(null);
+            setPending(null);
+            setBaseline(null);
+            Alert.alert('Importación deshecha', 'Se restauró tu semana anterior.');
+          }}>
+            <Text style={styles.secondaryText}>Deshacer importación</Text>
+          </Pressable>
+          <Pressable style={styles.primarySmall} onPress={() => router.replace('/week')}>
+            <Text style={styles.primaryText}>Ver Semana</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
   }
 
   if (review) {
