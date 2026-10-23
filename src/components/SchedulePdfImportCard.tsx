@@ -4,7 +4,9 @@ import * as DocumentPicker from 'expo-document-picker';
 import { router } from 'expo-router';
 import { readSchedulePdf } from '@/src/import/schedulePdf';
 import type { ReviewShift } from '@/src/import/scheduleOcr';
-import { loadUserProfile, loadWeekState, saveUserProfile, saveWeekState } from '@/src/state/persistence';
+import { loadUserProfile, loadWeekState } from '@/src/state/persistence';
+import type { WeekSchedule } from '@/src/domain/entities/Shift';
+import { confirmReviewedImport, undoReviewedImport, type ConfirmedImportReceipt } from '@/src/brain/smartImportPersistence';
 import { colors } from '@/src/theme/colors';
 
 function validTime(value: string) {
@@ -27,6 +29,8 @@ export function SchedulePdfImportCard() {
   const [file, setFile] = useState<{ uri: string; name: string } | null>(null);
   const [reading, setReading] = useState(false);
   const [review, setReview] = useState<ReviewShift[] | null>(null);
+  const [baseline, setBaseline] = useState<WeekSchedule | null>(null);
+  const [savedReceipt, setSavedReceipt] = useState<ConfirmedImportReceipt | null>(null);
   const [matchedName, setMatchedName] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
 
@@ -39,6 +43,8 @@ export function SchedulePdfImportCard() {
     if (result.canceled || !result.assets[0]) return;
     const asset = result.assets[0];
     setFile({ uri: asset.uri, name: asset.name });
+    setBaseline(null);
+    setSavedReceipt(null);
     setReview(null);
     setWarnings([]);
     setMatchedName(null);
@@ -52,6 +58,7 @@ export function SchedulePdfImportCard() {
       return;
     }
 
+    setBaseline(loadWeekState());
     setReading(true);
     setReview(null);
     setWarnings([]);
@@ -109,23 +116,51 @@ export function SchedulePdfImportCard() {
       Alert.alert('Revisa la semana', 'Corrige los días pendientes antes de confirmar.');
       return;
     }
-    const currentWeek = loadWeekState();
-    saveUserProfile({ ...loadUserProfile(), scheduleName: scheduleName.trim() });
-    saveWeekState({
-      shifts: review.map((shift) => ({
-        day: shift.day,
-        start: shift.off ? '' : shift.start,
-        end: shift.off ? '' : shift.end,
-        breakMinutes: shift.off ? 0 : shift.breakMinutes ?? 0,
-        type: shift.off ? 'off' : inferType(shift.start, shift.end),
-      })),
-      importantMoments: currentWeek.importantMoments,
-      organizedAt: null,
+    if (!baseline) {
+      Alert.alert('Falta la lectura', 'Vuelve a leer el PDF para confirmar con el horario actual.');
+      return;
+    }
+    const result = confirmReviewedImport({
+      baseline,
+      shifts: review,
       source: 'pdf',
+      matchedName,
+      configuredName: scheduleName,
     });
-    Alert.alert('Horario guardado', 'Tu horario quedó listo. Puedes corregir cualquier día desde Semana.', [
-      { text: 'Continuar', onPress: () => router.replace('/week') },
-    ]);
+    if (result.status !== 'applied') {
+      Alert.alert('No guardé el horario', result.message);
+      return;
+    }
+    setSavedReceipt(result.receipt);
+    setReview(null);
+  }
+
+  if (savedReceipt) {
+    return (
+      <View style={styles.reviewBox}>
+        <Text style={styles.eyebrow}>SEMANA ACTUALIZADA</Text>
+        <Text style={styles.title}>Horario confirmado</Text>
+        <Text style={styles.copy}>El calendario y recordatorios usan el horario nuevo. Tus momentos importantes se conservaron.</Text>
+        <View style={styles.actions}>
+          <Pressable style={styles.secondary} onPress={() => {
+            const result = undoReviewedImport(savedReceipt);
+            if (result.status === 'conflict') {
+              Alert.alert('No pude deshacer', result.message);
+              return;
+            }
+            setSavedReceipt(null);
+            setFile(null);
+            setBaseline(null);
+            Alert.alert('Importación deshecha', 'La Semana anterior fue restaurada.');
+          }}>
+            <Text style={styles.secondaryText}>Deshacer importación</Text>
+          </Pressable>
+          <Pressable style={styles.primary} onPress={() => router.replace('/week')}>
+            <Text style={styles.primaryText}>Ver Semana</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
   }
 
   if (review) {
