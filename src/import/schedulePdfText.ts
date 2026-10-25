@@ -137,7 +137,7 @@ export function parseSchedulePdfText(text: string, configuredName: string): Pars
   let times = parseTimes(rowText);
   for (let index = nameIndex + 1; index < lines.length && index <= nameIndex + 7 && times.length < 21; index += 1) {
     const continuation = lines[index];
-    if (!/^[\d\s:.,hH\-/]+$/.test(continuation)) break;
+    if (!/^[\d\s:.,hH\/-]+$/.test(continuation)) break;
     rowText += ' ' + continuation;
     times = parseTimes(rowText);
   }
