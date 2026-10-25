@@ -5,7 +5,14 @@
     "baseUrl": ".",
     "ignoreDeprecations": "6.0",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": [
+        "./*"
+      ]
     }
-  }
+  },
+  "exclude": [
+    "supabase/**",
+    "node_modules",
+    ".test-build"
+  ]
 }

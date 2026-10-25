@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { recognizeText } from '@infinitered/react-native-mlkit-text-recognition';
 import { readScheduleExcel } from '@/src/import/scheduleExcel';
 import { parseScheduleOcr, type ReviewShift } from '@/src/import/scheduleOcr';
+import { readVisionSchedule, visionOnlineConfigured } from '@/src/import/visionGateway';
 import { loadUserProfile, loadWeekState } from '@/src/state/persistence';
 import { confirmReviewedImport, undoReviewedImport, type ConfirmedImportReceipt } from '@/src/brain/smartImportPersistence';
 import type { WeekSchedule } from '@/src/domain/entities/Shift';
@@ -174,6 +175,50 @@ export function ScheduleImportCard() {
     } finally {
       setReading(false);
     }
+  }
+
+  async function readWithVision() {
+    if (!pending || pending.source === 'excel' || reading) return;
+    const cleanName = scheduleName.trim();
+    if (cleanName.length < 2) {
+      setEditingName(true);
+      Alert.alert('Falta tu nombre', 'Escribe cómo apareces en la planilla.');
+      return;
+    }
+    setBaseline(loadWeekState());
+    setReading(true);
+    setReview(null);
+    setWarnings([]);
+    setMatchedName(null);
+    setEditingName(false);
+    try {
+      const parsed = await readVisionSchedule(pending.uri, cleanName);
+      setMatchedName(parsed.matchedNameText);
+      setWarnings(parsed.warnings);
+      if (!parsed.nameFound) {
+        Alert.alert('No identifiqué tu fila', parsed.warnings[0] ?? 'No se pudo comprobar tu nombre en esta captura.');
+        return;
+      }
+      setReview(parsed.shifts);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo analizar con IA visual.';
+      setWarnings([message]);
+      Alert.alert('No se pudo usar IA visual', message + ' Tu semana no cambió; puedes usar la lectura local.');
+    } finally {
+      setReading(false);
+    }
+  }
+
+  function requestVisionConsent() {
+    if (!pending || pending.source === 'excel' || !visionOnlineConfigured || reading) return;
+    Alert.alert(
+      'Enviar imagen a IA visual',
+      'Esta captura laboral puede mostrar nombres y turnos de tus compañeros. Solo si autorizas, se enviará la imagen elegida a un servidor WeekFlow y al proveedor externo de IA para leer tu horario. No se guardará nada hasta que confirmes la semana. Evita compartir datos confidenciales sin permiso.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Enviar esta foto', onPress: () => { void readWithVision(); } },
+      ],
+    );
   }
 
   function patchShift(day: number, patch: Partial<ReviewShift>) {
@@ -437,6 +482,13 @@ export function ScheduleImportCard() {
           <Pressable style={[styles.readButton, reading && styles.disabled]} onPress={readSchedule} disabled={reading}>
             {reading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryText}>Leer mi horario</Text>}
           </Pressable>
+          {visionOnlineConfigured && pending.source !== 'excel' ? (
+            <Pressable style={[styles.visionButton, reading && styles.disabled]}
+              onPress={requestVisionConsent} disabled={reading}
+              accessibilityRole="button" accessibilityLabel="Interpretar imagen con IA visual opcional">
+              <Text style={styles.visionText}>Interpretar con IA visual (opcional)</Text>
+            </Pressable>
+          ) : null}
           <Text style={styles.safetyText}>La lectura prepara una propuesta. Tu semana actual sigue intacta hasta confirmar.</Text>
         </>
       )}
@@ -476,6 +528,8 @@ const styles = StyleSheet.create({
   primaryText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900' },
   safetyText: { color: colors.muted, fontSize: 12, textAlign: 'center', lineHeight: 18 },
   disabled: { opacity: 0.45 },
+  visionButton: { borderColor: '#347C85', backgroundColor: '#10333B', borderWidth: 1, borderRadius: 17, minHeight: 50, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
+  visionText: { color: '#9CF1D9', fontWeight: '900', fontSize: 13, textAlign: 'center' },
   warning: { color: '#E7C67A', fontSize: 12, lineHeight: 18 },
   reviewBox: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 24, padding: 16 },
   reviewEyebrow: { color: '#76AFFF', fontWeight: '900', letterSpacing: 2.1, fontSize: 10 },
