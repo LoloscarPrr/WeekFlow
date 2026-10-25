@@ -8,6 +8,7 @@ import { loadUserProfile, loadWeekState } from '@/src/state/persistence';
 import type { WeekSchedule } from '@/src/domain/entities/Shift';
 import { confirmReviewedImport, undoReviewedImport, type ConfirmedImportReceipt } from '@/src/brain/smartImportPersistence';
 import { colors } from '@/src/theme/colors';
+import { summarizeWeekReview } from '@/src/import/reviewSummary';
 
 function validTime(value: string) {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
@@ -31,6 +32,7 @@ export function SchedulePdfImportCard() {
   const [review, setReview] = useState<ReviewShift[] | null>(null);
   const [baseline, setBaseline] = useState<WeekSchedule | null>(null);
   const [savedReceipt, setSavedReceipt] = useState<ConfirmedImportReceipt | null>(null);
+  const [expandedDays, setExpandedDays] = useState<number[]>([]);
   const [matchedName, setMatchedName] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
 
@@ -48,6 +50,7 @@ export function SchedulePdfImportCard() {
     setReview(null);
     setWarnings([]);
     setMatchedName(null);
+    setExpandedDays([]);
   }
 
   async function readPdf() {
@@ -61,6 +64,7 @@ export function SchedulePdfImportCard() {
     setBaseline(loadWeekState());
     setReading(true);
     setReview(null);
+    setExpandedDays([]);
     setWarnings([]);
     try {
       const parsed = await readSchedulePdf(file.uri, cleanName);
@@ -71,6 +75,8 @@ export function SchedulePdfImportCard() {
         return;
       }
       setReview(parsed.shifts);
+      const initialReview = summarizeWeekReview(parsed.shifts, null);
+      setExpandedDays(initialReview.rows.filter((row) => row.status === 'review').map((row) => row.day));
     } catch (error) {
       console.error('WeekFlow PDF import failed', error);
       const message = error instanceof Error && error.message === 'PDF_NO_TEXT'
@@ -102,14 +108,21 @@ export function SchedulePdfImportCard() {
       : { ...shift, off: true, type: 'off', start: '', end: '', breakMinutes: 0, issue: null, confidence: 'high' }) ?? null);
   }
 
-  const ready = Boolean(review?.length === 7 && review.every((shift) => shift.off || (
-    validTime(shift.start)
-    && validTime(shift.end)
-    && shift.breakMinutes !== null
-    && shift.breakMinutes >= 0
-    && shift.breakMinutes <= 180
-    && !shift.issue
-  )));
+  const reviewSummary = review ? summarizeWeekReview(review, baseline) : null;
+  const ready = Boolean(reviewSummary?.valid && matchedName);
+
+  function toggleDayDetails(day: number) {
+    setExpandedDays((current) => current.includes(day)
+      ? current.filter((savedDay) => savedDay !== day)
+      : [...current, day]);
+  }
+  function showAllDays() {
+    setExpandedDays(review?.map((shift) => shift.day) ?? []);
+  }
+  function hideCompletedDays() {
+    setExpandedDays(reviewSummary?.rows.filter((row) => row.status === 'review')
+      .map((row) => row.day) ?? []);
+  }
 
   function confirm() {
     if (!review || !ready) {
@@ -168,20 +181,47 @@ export function SchedulePdfImportCard() {
       <View style={styles.reviewBox}>
         <Text style={styles.eyebrow}>PDF · REVISAR ANTES DE GUARDAR</Text>
         <Text style={styles.title}>{matchedName ? `Encontré a ${matchedName}` : 'Revisa tu semana'}</Text>
-        <Text style={styles.copy}>El PDF solo prepara una propuesta. Nada cambia hasta que confirmes.</Text>
+        <Text style={styles.copy}>Compara los siete días con tu Semana actual. Abre solo los que debas corregir.</Text>
+        <Text style={styles.reviewCount}>{reviewSummary?.reviewCount ?? 0} por revisar · {reviewSummary?.changeCount ?? 0} cambios · {reviewSummary?.unchangedCount ?? 0} sin cambios</Text>
+        <View style={styles.reviewToolbar}>
+          <Pressable onPress={showAllDays} accessibilityRole="button" accessibilityLabel="Editar todos los días del PDF">
+            <Text style={styles.editText}>Editar todos</Text>
+          </Pressable>
+          <Pressable onPress={hideCompletedDays} accessibilityRole="button" accessibilityLabel="Ocultar editores de días resueltos">
+            <Text style={styles.editText}>Ocultar listos</Text>
+          </Pressable>
+        </View>
         {warnings.map((warning) => <Text key={warning} style={styles.warning}>• {warning}</Text>)}
         {review.map((shift) => (
           <View key={shift.day} style={styles.shiftRow}>
             <View style={styles.shiftHead}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.day}>{shift.label}</Text>
-                <Text style={shift.issue ? styles.issue : styles.ok}>{shift.issue ?? 'Listo para confirmar'}</Text>
+                <Text style={reviewSummary?.rows.find((row) => row.day === shift.day)?.status === 'review' ? styles.issue : styles.ok}>
+                  {reviewSummary?.rows.find((row) => row.day === shift.day)?.status === 'review'
+                    ? 'Revisar · ' + (reviewSummary?.rows.find((row) => row.day === shift.day)?.issue ?? '')
+                    : reviewSummary?.rows.find((row) => row.day === shift.day)?.status === 'changed'
+                      ? 'Cambió respecto a Semana' : 'Sin cambios'}
+                </Text>
               </View>
-              <Pressable style={[styles.offButton, shift.off && styles.offActive]} onPress={() => toggleOff(shift.day)}>
-                <Text style={styles.offText}>Día libre</Text>
+              <Pressable onPress={() => toggleDayDetails(shift.day)} accessibilityRole="button"
+                accessibilityLabel={(expandedDays.includes(shift.day) ? 'Ocultar editor de ' : 'Editar ') + shift.label}>
+                <Text style={styles.editText}>{expandedDays.includes(shift.day) ? 'Ocultar' : 'Editar'}</Text>
               </Pressable>
             </View>
-            {!shift.off ? (
+            <Text style={styles.shiftSummary}>{reviewSummary?.rows.find((row) => row.day === shift.day)?.proposed}</Text>
+            {reviewSummary?.rows.find((row) => row.day === shift.day)?.status === 'changed' ? (
+              <Text style={styles.shiftPrevious}>Antes: {reviewSummary?.rows.find((row) => row.day === shift.day)?.previous}</Text>
+            ) : null}
+            {expandedDays.includes(shift.day) || reviewSummary?.rows.find((row) => row.day === shift.day)?.status === 'review' ? (
+              <Pressable style={[styles.offButton, shift.off && styles.offActive]}
+                onPress={() => toggleOff(shift.day)} accessibilityRole="button"
+                accessibilityLabel={shift.off ? 'Cambiar ' + shift.label + ' a jornada laboral' : 'Marcar ' + shift.label + ' libre'}>
+                <Text style={styles.offText}>{shift.off ? 'Libre · Cambiar a trabajo' : 'Marcar como libre'}</Text>
+              </Pressable>
+            ) : null}
+            {!shift.off && (expandedDays.includes(shift.day)
+              || reviewSummary?.rows.find((row) => row.day === shift.day)?.status === 'review') ? (
               <View style={styles.times}>
                 <TextInput value={shift.start} onChangeText={(start) => patchShift(shift.day, { start })} placeholder="Entrada" placeholderTextColor="#60728E" style={styles.input} maxLength={5} />
                 <TextInput value={shift.breakMinutes === null ? '' : String(shift.breakMinutes)} onChangeText={(value) => patchShift(shift.day, { breakMinutes: value ? Number(value.replace(/\D/g, '').slice(0, 3)) : null })} placeholder="Colación" placeholderTextColor="#60728E" keyboardType="number-pad" style={styles.input} maxLength={3} />
@@ -229,6 +269,11 @@ const styles = StyleSheet.create({
   fileTitle: { color: colors.text, fontWeight: '900', fontSize: 14 },
   fileSub: { color: colors.muted, fontSize: 11, marginTop: 4 },
   warning: { color: '#E7C67A', fontSize: 12, lineHeight: 18, marginTop: 6 },
+  editText: { color: '#78B7FF', fontSize: 12, fontWeight: '900' },
+  reviewCount: { color: '#8BD9CD', fontSize: 12, fontWeight: '800', marginTop: 10 },
+  reviewToolbar: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, gap: 12 },
+  shiftSummary: { color: colors.text, fontSize: 13, marginTop: 7, fontWeight: '700' },
+  shiftPrevious: { color: colors.muted, fontSize: 11, marginTop: 4 },
   shiftRow: { marginTop: 10, padding: 11, borderRadius: 15, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.line },
   shiftHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   day: { color: colors.text, fontWeight: '900', fontSize: 13 },

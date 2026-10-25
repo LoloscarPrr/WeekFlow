@@ -33,7 +33,7 @@ function minutes(time: string) {
   return h * 60 + m;
 }
 
-function validateDay(shift: ReviewShift): string | null {
+export function validateSmartImportShift(shift: ReviewShift): string | null {
   if (shift.issue) return shift.issue;
   if (shift.confidence === 'low') return 'La lectura todavía es incierta.';
   if (shift.off) {
@@ -77,7 +77,7 @@ export function prepareSmartImport(
   }
   const ordered = [...shifts].sort((a, b) => a.day - b.day);
   for (const shift of ordered) {
-    const issue = validateDay(shift);
+    const issue = validateSmartImportShift(shift);
     if (issue) problems.push(shift.label + ': ' + issue);
   }
   if (problems.length) return { status: 'review-required', problems };

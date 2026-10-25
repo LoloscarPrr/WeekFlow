@@ -10,6 +10,7 @@ import { readVisionSchedule, visionOnlineConfigured } from '@/src/import/visionG
 import { loadUserProfile, loadWeekState } from '@/src/state/persistence';
 import { confirmReviewedImport, undoReviewedImport, type ConfirmedImportReceipt } from '@/src/brain/smartImportPersistence';
 import type { WeekSchedule } from '@/src/domain/entities/Shift';
+import { summarizeWeekReview } from '@/src/import/reviewSummary';
 import { colors } from '@/src/theme/colors';
 
 export type PendingScheduleImport = {
@@ -61,6 +62,7 @@ export function ScheduleImportCard() {
   const [review, setReview] = useState<ReviewShift[] | null>(null);
   const [baseline, setBaseline] = useState<WeekSchedule | null>(null);
   const [savedReceipt, setSavedReceipt] = useState<ConfirmedImportReceipt | null>(null);
+  const [expandedDays, setExpandedDays] = useState<number[]>([]);
 
   function preparePending(next: PendingScheduleImport) {
     setPending(next);
@@ -69,6 +71,7 @@ export function ScheduleImportCard() {
     setMatchedName(null);
     setBaseline(null);
     setSavedReceipt(null);
+    setExpandedDays([]);
   }
 
   function useImageAsset(asset: ImagePicker.ImagePickerAsset, source: 'library' | 'camera') {
@@ -132,6 +135,7 @@ export function ScheduleImportCard() {
     setReview(null);
     setWarnings([]);
     setMatchedName(null);
+    setExpandedDays([]);
   }
 
   async function readSchedule() {
@@ -146,6 +150,7 @@ export function ScheduleImportCard() {
     setBaseline(loadWeekState());
     setReading(true);
     setReview(null);
+    setExpandedDays([]);
     setWarnings([]);
     setMatchedName(null);
     setEditingName(false);
@@ -161,6 +166,8 @@ export function ScheduleImportCard() {
         return;
       }
       setReview(parsed.shifts);
+      const initialReview = summarizeWeekReview(parsed.shifts, null);
+      setExpandedDays(initialReview.rows.filter((row) => row.status === 'review').map((row) => row.day));
     } catch (error) {
       console.error('WeekFlow schedule import failed', error);
       const excel = pending.source === 'excel';
@@ -200,6 +207,8 @@ export function ScheduleImportCard() {
         return;
       }
       setReview(parsed.shifts);
+      const initialReview = summarizeWeekReview(parsed.shifts, null);
+      setExpandedDays(initialReview.rows.filter((row) => row.status === 'review').map((row) => row.day));
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudo analizar con IA visual.';
       setWarnings([message]);
@@ -270,15 +279,23 @@ export function ScheduleImportCard() {
     }) ?? null);
   }
 
-  const readyToConfirm = Boolean(
-    review?.length === 7
-      && review.every((shift) => shift.off || (
-        validTime(shift.start)
-        && validTime(shift.end)
-        && validBreakMinutes(shift.breakMinutes)
-        && !shift.issue
-      )),
-  );
+  const reviewSummary = review ? summarizeWeekReview(review, baseline) : null;
+  const readyToConfirm = Boolean(reviewSummary?.valid && matchedName);
+
+  function toggleDayDetails(day: number) {
+    setExpandedDays((current) => current.includes(day)
+      ? current.filter((savedDay) => savedDay !== day)
+      : [...current, day]);
+  }
+
+  function showAllDays() {
+    setExpandedDays(review?.map((shift) => shift.day) ?? []);
+  }
+
+  function hideCompletedDays() {
+    setExpandedDays(reviewSummary?.rows.filter((row) => row.status === 'review')
+      .map((row) => row.day) ?? []);
+  }
 
   function confirmWeek() {
     if (!review || !readyToConfirm) {
@@ -338,7 +355,16 @@ export function ScheduleImportCard() {
       <View style={styles.reviewBox}>
         <Text style={styles.reviewEyebrow}>REVISAR ANTES DE GUARDAR</Text>
         <Text style={styles.reviewTitle}>{matchedName ? `Encontré a ${matchedName}` : 'Revisa tu semana'}</Text>
-        <Text style={styles.reviewCopy}>WeekFlow propone. Tú confirmas. Solo se guardará la semana cuando pulses “Confirmar semana”.</Text>
+        <Text style={styles.reviewCopy}>Comprueba los siete días. Solo abre los que quieras corregir; nada cambia hasta que confirmes.</Text>
+        <Text style={styles.reviewCount}>{reviewSummary?.reviewCount ?? 0} por revisar · {reviewSummary?.changeCount ?? 0} cambios · {reviewSummary?.unchangedCount ?? 0} sin cambios</Text>
+        <View style={styles.reviewToolbar}>
+          <Pressable onPress={showAllDays} accessibilityRole="button" accessibilityLabel="Editar todos los días">
+            <Text style={styles.editText}>Editar todos</Text>
+          </Pressable>
+          <Pressable onPress={hideCompletedDays} accessibilityRole="button" accessibilityLabel="Ocultar editores de días resueltos">
+            <Text style={styles.editText}>Ocultar listos</Text>
+          </Pressable>
+        </View>
 
         {warnings.map((warning) => <Text key={warning} style={styles.warning}>• {warning}</Text>)}
 
@@ -347,13 +373,34 @@ export function ScheduleImportCard() {
             <View style={styles.shiftHead}>
               <View style={styles.dayColumn}>
                 <Text style={styles.day}>{shift.label}</Text>
-                <Text style={shift.issue ? styles.issue : styles.ok}>{shift.issue ? shift.issue : 'Listo para confirmar'}</Text>
+                <Text style={reviewSummary?.rows.find((row) => row.day === shift.day)?.status === 'review' ? styles.issue : styles.ok}>
+                  {reviewSummary?.rows.find((row) => row.day === shift.day)?.status === 'review'
+                    ? 'Revisar · ' + (reviewSummary?.rows.find((row) => row.day === shift.day)?.issue ?? '')
+                    : reviewSummary?.rows.find((row) => row.day === shift.day)?.status === 'changed'
+                      ? 'Cambió respecto a Semana' : 'Sin cambios'}
+                </Text>
               </View>
-              <Pressable style={[styles.offButton, shift.off && styles.offButtonActive]} onPress={() => toggleOff(shift.day)}>
-                <Text style={[styles.offText, shift.off && styles.offTextActive]}>Día libre</Text>
+              <Pressable onPress={() => toggleDayDetails(shift.day)}
+                accessibilityRole="button"
+                accessibilityLabel={(expandedDays.includes(shift.day) ? 'Ocultar editor de ' : 'Editar ') + shift.label}>
+                <Text style={styles.editText}>{expandedDays.includes(shift.day) ? 'Ocultar' : 'Editar'}</Text>
               </Pressable>
             </View>
-            {!shift.off ? (
+            <Text style={styles.shiftSummary}>{reviewSummary?.rows.find((row) => row.day === shift.day)?.proposed}</Text>
+            {reviewSummary?.rows.find((row) => row.day === shift.day)?.status === 'changed' ? (
+              <Text style={styles.shiftPrevious}>Antes: {reviewSummary?.rows.find((row) => row.day === shift.day)?.previous}</Text>
+            ) : null}
+            {expandedDays.includes(shift.day) || reviewSummary?.rows.find((row) => row.day === shift.day)?.status === 'review' ? (
+              <Pressable style={[styles.offButton, shift.off && styles.offButtonActive]}
+                onPress={() => toggleOff(shift.day)} accessibilityRole="button"
+                accessibilityLabel={shift.off ? 'Cambiar ' + shift.label + ' a jornada laboral' : 'Marcar ' + shift.label + ' libre'}>
+                <Text style={[styles.offText, shift.off && styles.offTextActive]}>
+                  {shift.off ? 'Libre · Cambiar a trabajo' : 'Marcar como libre'}
+                </Text>
+              </Pressable>
+            ) : null}
+            {!shift.off && (expandedDays.includes(shift.day)
+              || reviewSummary?.rows.find((row) => row.day === shift.day)?.status === 'review') ? (
               <View style={styles.reviewTimes}>
                 <View style={styles.reviewField}>
                   <Text style={styles.reviewLabel}>ENTRADA</Text>
@@ -531,6 +578,10 @@ const styles = StyleSheet.create({
   visionButton: { borderColor: '#347C85', backgroundColor: '#10333B', borderWidth: 1, borderRadius: 17, minHeight: 50, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
   visionText: { color: '#9CF1D9', fontWeight: '900', fontSize: 13, textAlign: 'center' },
   warning: { color: '#E7C67A', fontSize: 12, lineHeight: 18 },
+  reviewCount: { color: '#8BD9CD', fontSize: 12, fontWeight: '800', marginTop: 10 },
+  reviewToolbar: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 11, gap: 12 },
+  shiftSummary: { color: colors.text, fontSize: 13, marginTop: 7, fontWeight: '700' },
+  shiftPrevious: { color: colors.muted, fontSize: 11, marginTop: 4 },
   reviewBox: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 24, padding: 16 },
   reviewEyebrow: { color: '#76AFFF', fontWeight: '900', letterSpacing: 2.1, fontSize: 10 },
   reviewTitle: { color: colors.text, fontSize: 22, fontWeight: '900', marginTop: 7 },
