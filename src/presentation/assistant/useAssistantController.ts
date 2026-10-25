@@ -315,6 +315,7 @@ export function useAssistantController() {
       dayState: loadDayState(),
       weekState: loadWeekState(),
       foodDay: loadFoodDay(recordDate),
+      movePreferences: loadMovePreferences(),
     };
     const result = undoBrainAction(state, lastReceipt);
     // A stale receipt must never remain actionable after a conflict or successful undo.
