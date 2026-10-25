@@ -1,6 +1,6 @@
 # WF-SMART-004 — Revisión concentrada en cambios y dudas
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Requested: 2026-10-25
 Product: WeekFlow Blueprint Maestro v4.0, §15 Smart Import
@@ -47,5 +47,14 @@ No schema/persistence changes. `ReviewShift` and `WeekSchedule` unchanged. Solo 
 ## Edge cases
 Días duplicados/no siete, off con horas, horas inválidas, colación faltante, 00:00 en laborable, cambio solo colación, cruce 22–06, edición local del usuario antes de confirmar, cambio externo en Semana desde lectura (se mantiene conflicto en Brain).
 
-## Verification
-PENDING.
+## Verification (2026-10-25)
+- AC1: PASS — `smart-import-focused-review.test.ts` comprueba siete días ordenados, libre ↔ trabajo, 22:00–06:00, y diferencia solo colación 0/30; `sourceText` y confianza no se confunden con un cambio de turno.
+- AC2: PASS — misma prueba verifica entrada inválida, colación desconocida, confianza baja, libre contradictorio y fecha duplicada, todo bloquea confirmación mediante el mismo `validateSmartImportShift`.
+- AC3: PASS por estructura — ambos componentes mantienen los siete resúmenes visibles y solo muestran editores en días pendientes/abiertos. QA visual física PENDING.
+- AC4: PASS por estructura — controles de edición individual, libre y colación, «Editar todos»/«Ocultar listos». QA interacción física PENDING.
+- AC5: PASS — ambas pantallas consumen `summarizeWeekReview` y `validateSmartImportShift`, sin duplicar Brain/SQLite.
+- AC6: PASS — único flujo de `confirmReviewedImport`, `undoReviewedImport`, validación de 7 días; pruebas anteriores de transacción, undo/conflicto y notificaciones permanecen verdes.
+- AC7: Quality PR #40212701598 PASS, incluyendo TypeScript, OCR/PDF/Excel, visión no LIVE, Brain y nueva regresión. Android firmado de main PENDING hasta build posterior al merge; QA física agrupada NOT RUN.
+- AC8: PASS por arquitectura — mejora local independiente de Supabase, OCR ML Kit/Excel/PDF siguen disponibles sin red.
+- No migración SQLite, sin permisos nuevos, fuente `com.weekflow.app` y firma existentes.
+
