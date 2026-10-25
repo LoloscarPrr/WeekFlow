@@ -1,3 +1,5 @@
+import { MOVE_MUSCLE_GROUPS, MOVE_MUSCLE_LABELS, describeTargetMuscles } from './muscles';
+import { compatibleTargetedExercises } from './library';
 import { KeyboardAwareTextInput as TextInput } from '@/src/components/KeyboardAwareScrollView';
 import { useState } from 'react';
 import { router } from 'expo-router';
@@ -93,6 +95,7 @@ export function MovePlan({ move }: { move: MoveController }) {
     setExtraOpen,
     preferences,
     setFocus,
+    setTargetMuscles,
     setExperience,
     setGoal,
     setTrainingStyle,
@@ -115,6 +118,7 @@ export function MovePlan({ move }: { move: MoveController }) {
 
   const goalLabel = optionLabel(MOVE_GOAL_OPTIONS, preferences.goal);
   const experienceLabel = optionLabel(MOVE_EXPERIENCE_OPTIONS, preferences.experience);
+  const hasCompatibleTarget = !preferences.targetMuscles.length || compatibleTargetedExercises(preferences, adaptiveIntensity).length > 0;
 
   return (
     <>
@@ -306,6 +310,35 @@ export function MovePlan({ move }: { move: MoveController }) {
               })}
             </View>
 
+            <Text style={styles.smallLabel}>Músculos de la sesión · {describeTargetMuscles(preferences.targetMuscles)}</Text>
+            <View style={styles.profileChips}>
+              <Pressable
+                disabled={Boolean(move.activeSession)}
+                style={[styles.profileChip, !preferences.targetMuscles.length && styles.profileChipActive]}
+                onPress={() => setTargetMuscles([])}
+              >
+                <Text style={[styles.profileChipText, !preferences.targetMuscles.length && styles.profileChipTextActive]}>Cuerpo completo</Text>
+              </Pressable>
+              {MOVE_MUSCLE_GROUPS.map((group) => {
+                const active = preferences.targetMuscles.includes(group);
+                return (
+                  <Pressable
+                    key={group}
+                    disabled={Boolean(move.activeSession)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Entrenar ${MOVE_MUSCLE_LABELS[group]}`}
+                    style={[styles.profileChip, active && styles.profileChipActive]}
+                    onPress={() => setTargetMuscles(active ? preferences.targetMuscles.filter((value) => value !== group) : [...preferences.targetMuscles, group])}
+                  >
+                    <Text style={[styles.profileChipText, active && styles.profileChipTextActive]}>{MOVE_MUSCLE_LABELS[group]}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            {!hasCompatibleTarget ? (
+              <Text style={styles.preferenceCopy}>No hay ejercicios compatibles con el equipo y las restricciones actuales. Revisa el perfil antes de empezar.</Text>
+            ) : null}
+
             <Text style={styles.smallLabel}>Formato de sesión</Text>
             <View style={styles.profileChips}>
               {TRAINING_STYLES.map((item) => {
@@ -332,7 +365,9 @@ export function MovePlan({ move }: { move: MoveController }) {
               ))}
             </View>
 
-            <Pressable style={styles.primaryButton} onPress={startSession}><Text style={styles.primaryButtonText}>Empezar sesión guiada</Text></Pressable>
+            <Pressable disabled={!hasCompatibleTarget} style={[styles.primaryButton, !hasCompatibleTarget && { opacity: 0.45 }]} onPress={startSession}>
+              <Text style={styles.primaryButtonText}>Empezar sesión guiada</Text>
+            </Pressable>
           </View>
 
           <Text style={styles.section}>VISTA PREVIA</Text>
