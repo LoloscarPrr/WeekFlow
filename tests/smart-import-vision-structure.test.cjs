@@ -27,5 +27,5 @@ ok(server.includes('store: false')&&server.includes("type: 'input_image'"),'visi
 ok(server.includes('json_schema')&&server.includes('additionalProperties: false'),'strict model shape');
 ok(config.includes('verify_jwt = false')&&server.includes('verifyUser(req)'),'Firebase JWT verified by handler');
 ok(workflow.includes('vars.WEEKFLOW_VISION_URL'),'build exposes only optional public endpoint');
-ok(privacy.includes('únicamente si se habilita')&&privacy.includes('datos de compañeros'),'privacy of workplace images disclosed');
+ok(privacy.includes('únicamente si se habilita')&&privacy.includes('nombres y turnos de compañeros'),'privacy of workplace images disclosed');
 console.log('Smart Import vision gateway security and UI structure tests passed.');
