@@ -81,7 +81,7 @@ export function normalizeVisionSchedule(input: unknown, configuredName: string):
       || (!start || !end ? 'No pude identificar entrada y salida.' : '')
       || (!duration || duration < 180 || duration > 840 ? 'Verifica estas horas: la duración no es coherente.' : '')
       || (breakMinutes === null ? 'No pude leer la colación, confirma su duración.' : '')
-      || (breakMinutes >= duration ? 'La colación no puede durar más que la jornada.' : '')
+      || (breakMinutes !== null && breakMinutes >= duration ? 'La colación no puede durar más que la jornada.' : '')
       || (confidence === 'low' ? 'La imagen no permite confirmar este día.' : '');
     return {
       day, label, start, end, breakMinutes, type: start && end ? classifyShift(start,end) : 'custom',
