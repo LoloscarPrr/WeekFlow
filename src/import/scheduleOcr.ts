@@ -217,6 +217,17 @@ function fromStructuredSlots(
 ): ReviewShift {
   const { start, breakTime, end, sourceText } = slots;
   const readValues = [start, breakTime, end].filter((value): value is string => Boolean(value));
+  const markedFree = /\b(?:LIBRE|DESCANSO|OFF)\b/.test(normalize(sourceText));
+
+  if (markedFree && readValues.some((value) => value !== '00:00')) {
+    return emptyShift(day, 'La celda dice LIBRE, pero también contiene horas. Confirma este día.', sourceText);
+  }
+  if (markedFree && (!readValues.length || readValues.every((value) => value === '00:00'))) {
+    return {
+      day, label: DAYS[day], start: '', end: '', breakMinutes: 0,
+      type: 'off', off: true, confidence, issue: reviewIssueForConfidence(confidence), sourceText,
+    };
+  }
 
   if (readValues.length >= 2 && readValues.every((value) => value === '00:00')) {
     return {
@@ -254,26 +265,25 @@ function fromStructuredSlots(
     };
   }
 
-  if (isLikelyBreakDuration(start) || isLikelyBreakDuration(end)) {
-    return emptyShift(day, 'Una duración corta cayó en Entrada o Salida. Revisa este día.', sourceText);
-  }
-
   const duration = shiftMinutes(start, end);
   if (duration < 180 || duration > 840) {
     return emptyShift(day, 'La entrada y salida leídas no forman una jornada razonable.', sourceText);
   }
 
-  const breakLooksValid = !breakTime || breakTime === '00:00' || isLikelyBreakDuration(breakTime);
-  const issue = !breakLooksValid
-    ? 'La celda central no parece una colación; revisa este día.'
-    : reviewIssueForConfidence(confidence);
+  const breakLooksValid = breakTime !== null
+    && (breakTime === '00:00' || isLikelyBreakDuration(breakTime));
+  const issue = !breakTime
+    ? 'No pude leer la colación. Confirma su duración antes de guardar.'
+    : !breakLooksValid
+      ? 'La celda central no parece una colación; revisa este día.'
+      : reviewIssueForConfidence(confidence);
 
   return {
     day,
     label: DAYS[day],
     start,
     end,
-    breakMinutes: breakTime ? toMinutes(breakTime) : 0,
+    breakMinutes: breakTime ? toMinutes(breakTime) : null,
     type: shiftType(start, end),
     off: false,
     confidence,
@@ -359,14 +369,12 @@ function timeEntries(rowItems: PositionedText[]): TimeEntry[] {
 function readDaySlots(rowItems: PositionedText[], dayCenter: number, dayGap: number): DaySlots {
   const left = dayCenter - dayGap * 0.5;
   const right = dayCenter + dayGap * 0.5;
-  const entries = timeEntries(rowItems)
-    .filter((entry) => entry.x >= left && entry.x < right);
-
-  const sourceItems = entries
-    .map((entry) => entry.item)
-    .filter((item, index, array) => array.indexOf(item) === index)
-    .sort((a, b) => centerX(a.frame) - centerX(b.frame));
-  const sourceText = sourceItems.map((item) => item.text).join(' ');
+  const columnItems = rowItems
+    .filter((item) => centerX(item.frame) >= left && centerX(item.frame) < right);
+  const entries = timeEntries(columnItems);
+  const sourceText = columnItems
+    .sort((a, b) => centerX(a.frame) - centerX(b.frame))
+    .map((item) => item.text).join(' ');
 
   if (entries.length >= 3) {
     return {
@@ -381,6 +389,7 @@ function readDaySlots(rowItems: PositionedText[], dayCenter: number, dayGap: num
     return { start: '00:00', breakTime: '00:00', end: null, sourceText };
   }
 
+  // A true missing colación is not 00:00. It remains an unresolved field.
   return {
     start: entries[0]?.time ?? null,
     breakTime: null,
