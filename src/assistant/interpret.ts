@@ -1,10 +1,13 @@
 import type { BrainActionProposal } from '../brain/actions';
 import { parseRelativeExitOffset } from './relativeExit';
 import { parseConsumedFood } from './foodLog';
+import { parseMoveTargetRequest } from './moveIntent';
+import type { MoveMuscleGroup } from '../move/muscles';
 import { localDateKey } from '../domain/services/shiftSchedule';
 
 export type ConversationInterpretation =
   | { status: 'proposal'; proposal: BrainActionProposal }
+  | { status: 'move-target-intent'; targetMuscles: MoveMuscleGroup[] }
   | { status: 'actual-exit-intent'; time: string }
   | { status: 'actual-exit-relative-intent'; deltaMinutes: number }
   | { status: 'unsupported'; message: string };
@@ -75,6 +78,14 @@ export function interpretAssistantText(input: string, now = new Date()): Convers
         payload: { title: consumedFood, date: localDateKey(now) },
       },
     };
+  }
+
+  const targetMuscles = parseMoveTargetRequest(input);
+  if (targetMuscles !== null) {
+    if (parseEnergy(text) || /\b(entro|salgo|salí|sali|mañana|lunes|martes|miercoles|miércoles|jueves|viernes|sabado|sábado|domingo)\b/.test(text)) {
+      return { status: 'unsupported', message: 'Puedo elegir músculos para Move, pero todavía no combinarlo con cambios de energía, horario o fecha. Pídemelo por separado.' };
+    }
+    return { status: 'move-target-intent', targetMuscles };
   }
 
   const isActualExit = /\b(?:salí|sali|terminé\s+(?:mi\s+)?turno|termine\s+(?:mi\s+)?turno)(?=\s|$|[.,;!?])/.test(text);
