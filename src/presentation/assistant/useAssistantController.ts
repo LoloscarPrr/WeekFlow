@@ -9,6 +9,9 @@ import { buildAssistantRealState } from '@/src/assistant/context';
 import { interpretAssistantText } from '@/src/assistant/interpret';
 import { interpretAssistantQuestion, answerAssistantQuestion } from '@/src/assistant/questions';
 import { relativeExitFromShiftEnd } from '@/src/assistant/relativeExit';
+import { recommendMoveIntensity } from '@/src/move/adaptation';
+import { compatibleTargetedExercises } from '@/src/move/library';
+import { describeTargetMuscles } from '@/src/move/muscles';
 import {
   applyBrainAction,
   receiptHasEffectiveChange,
@@ -23,6 +26,9 @@ import {
   saveFoodEntry,
   removeFoodEntry,
   loadMoveHistory,
+  loadMovePreferences,
+  loadActiveMoveSession,
+  saveMovePreferences,
   loadUserProfile,
   loadWeekState,
   moveSessionDoneToday,
@@ -64,7 +70,7 @@ export function useAssistantController() {
   const [pendingProposal, setPendingProposal] = useState<BrainActionProposal | null>(null);
   const [lastReceipt, setLastReceipt] = useState<BrainActionReceipt | null>(null);
   const [assistantMessage, setAssistantMessage] = useState(
-    'Puedes contarme un cambio simple de energía o de horario.',
+    'Puedes consultar tu día o pedirme una rutina por músculos, por ejemplo: quiero entrenar espalda y bíceps.',
   );
 
   const refresh = useCallback(() => {
@@ -90,6 +96,46 @@ export function useAssistantController() {
 
     const now = new Date();
     const result = interpretAssistantText(input, now);
+    if (result.status === 'move-target-intent') {
+      if (loadActiveMoveSession()) {
+        setPendingProposal(null);
+        setAssistantMessage('Ya tienes una sesión guiada en curso. Termínala antes de cambiar los músculos.');
+        return false;
+      }
+      const preferences = loadMovePreferences();
+      const history = loadMoveHistory();
+      const lastRecord = history[0];
+      const intensity = recommendMoveIntensity(
+        loadDayState().energy,
+        preferences.experience,
+        lastRecord?.feedback,
+        Boolean(lastRecord?.endedEarly),
+      );
+      const compatible = result.targetMuscles.length
+        ? compatibleTargetedExercises({ ...preferences, targetMuscles: result.targetMuscles }, intensity)
+        : [];
+      if (result.targetMuscles.length && !compatible.length) {
+        setPendingProposal(null);
+        setAssistantMessage('No encontré ejercicios compatibles para esos músculos con tus restricciones y equipo actuales. Revisa tu perfil en Move.');
+        return false;
+      }
+      setPendingProposal({
+        id: `assistant-move-${now.getTime()}`,
+        kind: 'set-move-target',
+        title: 'Preparar Move por músculos',
+        explanation: result.targetMuscles.length
+          ? `Enfoque: ${describeTargetMuscles(result.targetMuscles)}. Hay ${compatible.length} ejercicios compatibles con tu perfil e intensidad de hoy. Tras confirmar, podrás revisar duración, series y la sesión en Move.`
+          : 'Volver a cuerpo completo. Move conservará tu perfil y adaptará intensidad y ejercicios al contexto real.',
+        createdAt: now.toISOString(),
+        requiresConfirmation: true,
+        payload: {
+          targetMuscles: result.targetMuscles,
+          expectedTargetMuscles: preferences.targetMuscles,
+        },
+      });
+      setAssistantMessage('');
+      return true;
+    }
     if (result.status === 'actual-exit-intent' || result.status === 'actual-exit-relative-intent') {
       const dayState = loadDayState();
       const weekState = loadWeekState();
@@ -179,12 +225,18 @@ export function useAssistantController() {
 
   const confirmProposal = useCallback(() => {
     if (!pendingProposal) return false;
+    if (pendingProposal.kind === 'set-move-target' && loadActiveMoveSession()) {
+      setPendingProposal(null);
+      setAssistantMessage('Se inició una sesión Move antes de confirmar. No cambié el objetivo.');
+      return false;
+    }
 
     const now = new Date();
     const state = {
       dayState: loadDayState(),
       weekState: loadWeekState(),
       foodDay: loadFoodDay(now),
+      movePreferences: loadMovePreferences(),
     };
     const actualExitContext = pendingProposal.kind === 'record-actual-exit'
       ? (() => {
@@ -213,7 +265,9 @@ export function useAssistantController() {
       return false;
     }
 
-    if (pendingProposal.kind === 'log-food-entry') {
+    if (pendingProposal.kind === 'set-move-target') {
+      saveMovePreferences(result.state.movePreferences!);
+    } else if (pendingProposal.kind === 'log-food-entry') {
       const record = result.state.foodDay?.entries.find((entry) => entry.id === pendingProposal.id);
       if (!record) throw new Error('Confirmed Food entry missing');
       saveFoodEntry(record, now);
@@ -234,7 +288,9 @@ export function useAssistantController() {
         now,
       })
       : null;
-    setAssistantMessage(pendingProposal.kind === 'record-actual-exit'
+    setAssistantMessage(pendingProposal.kind === 'set-move-target'
+      ? 'Move preparado: ' + describeTargetMuscles(pendingProposal.payload.targetMuscles) + '. Abre Move para revisar y empezar la sesión.'
+      : pendingProposal.kind === 'record-actual-exit'
       ? afterView?.exitImpact
         ? describeExitImpact(pendingProposal.payload.time, afterView.exitImpact, true)
         : 'Salida registrada. La planificación de Ahora está actualizada.'
@@ -243,7 +299,7 @@ export function useAssistantController() {
         : result.message);
     setContext(nextContext);
 
-    if (pendingProposal.kind !== 'log-food-entry') {
+    if (pendingProposal.kind !== 'log-food-entry' && pendingProposal.kind !== 'set-move-target') {
       void syncLivePlanReminders().catch((error) => {
         console.warn('Could not refresh WeekFlow reminders after Assistant action', error);
       });
@@ -259,6 +315,7 @@ export function useAssistantController() {
       dayState: loadDayState(),
       weekState: loadWeekState(),
       foodDay: loadFoodDay(recordDate),
+      movePreferences: loadMovePreferences(),
     };
     const result = undoBrainAction(state, lastReceipt);
     // A stale receipt must never remain actionable after a conflict or successful undo.
@@ -269,7 +326,9 @@ export function useAssistantController() {
       return false;
     }
 
-    if (lastReceipt.before.target === 'food-day') {
+    if (lastReceipt.before.target === 'move-preferences') {
+      saveMovePreferences(result.state.movePreferences!);
+    } else if (lastReceipt.before.target === 'food-day') {
       // This removes only the confirmed manual entry, never other Food entries.
       removeFoodEntry(lastReceipt.proposalId, recordDate);
     } else if (lastReceipt.before.target === 'day-state') {
@@ -279,7 +338,7 @@ export function useAssistantController() {
     }
 
     setContext(readAssistantContext());
-    if (lastReceipt.before.target !== 'food-day') {
+    if (lastReceipt.before.target !== 'food-day' && lastReceipt.before.target !== 'move-preferences') {
       void syncLivePlanReminders().catch((error) => {
         console.warn('Could not refresh WeekFlow reminders after Assistant undo', error);
       });

@@ -1,4 +1,6 @@
 import type { Energy } from '@/src/domain/entities/DailyState';
+import { sanitizeTargetMuscles, type MoveMuscleGroup } from './muscles';
+export type { MoveMuscleGroup } from './muscles';
 import type { Shift } from '@/src/domain/entities/Shift';
 
 export type MoveFocus = 'equilibrado' | 'activar' | 'fuerza' | 'movilidad';
@@ -45,6 +47,7 @@ export type MoveEquipmentToggleField =
 
 export type MovePreferences = {
   focus: MoveFocus;
+  targetMuscles: MoveMuscleGroup[];
   floorAllowed: boolean;
   chairAvailable: boolean;
   avoidAreas: MoveAvoidArea[];
@@ -79,6 +82,7 @@ export const DEFAULT_MOVE_EQUIPMENT: MoveEquipment = {
 
 export const DEFAULT_MOVE_PREFERENCES: MovePreferences = {
   focus: 'equilibrado',
+  targetMuscles: [],
   floorAllowed: false,
   chairAvailable: true,
   avoidAreas: [],
@@ -298,6 +302,7 @@ export function sanitizeMovePreferences(value: unknown): MovePreferences {
 
   return {
     focus,
+    targetMuscles: sanitizeTargetMuscles(candidate.targetMuscles),
     floorAllowed: Boolean(candidate.floorAllowed),
     chairAvailable: candidate.chairAvailable !== false,
     avoidAreas: Array.from(new Set(avoidAreas)),

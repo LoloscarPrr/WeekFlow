@@ -88,6 +88,15 @@ export default function AssistantScreen() {
               <Text style={styles.reviewExitButtonText}>Revisar reajuste en Ahora →</Text>
             </Pressable>
           ) : null}
+          {lastReceipt?.kind === 'set-move-target' && !pendingProposal ? (
+            <Pressable
+              style={styles.reviewExitButton}
+              accessibilityRole="button"
+              onPress={() => router.push('/pillars')}
+            >
+              <Text style={styles.reviewExitButtonText}>Ver rutina en Move →</Text>
+            </Pressable>
+          ) : null}
           {lastReceipt && !pendingProposal ? (
             <Pressable
               style={styles.undoButton}

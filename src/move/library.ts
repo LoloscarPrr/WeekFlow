@@ -9,6 +9,7 @@ import {
   type MovePreferences,
   type MoveResolvedTrainingStyle,
 } from './adaptation';
+import { MOVE_MUSCLE_EXERCISE_IDS } from './muscles';
 import {
   MOVE_EXERCISE_BY_ID,
   MOVE_EXERCISE_LIBRARY,
@@ -223,7 +224,30 @@ function loadPriorityCount(preferences: MovePreferences) {
   return 1;
 }
 
+// Alterna grupos musculares, usa solo ejercicios realmente compatibles
+// y no confunde zona de entrenamiento con las zonas que el usuario evita.
+export function compatibleTargetedExercises(preferences: MovePreferences, intensity: MoveIntensity) {
+  const groups = preferences.targetMuscles.map((group) =>
+    MOVE_MUSCLE_EXERCISE_IDS[group]
+      .map((id) => MOVE_EXERCISE_BY_ID[id])
+      .filter((exercise): exercise is MoveExercise => Boolean(exercise))
+      .filter((exercise) => moveExerciseCompatible(exercise, preferences, intensity)),
+  );
+  const ordered: MoveExercise[] = [];
+  const max = Math.max(0, ...groups.map((items) => items.length));
+  for (let index = 0; index < max; index += 1) {
+    for (const items of groups) {
+      const item = items[index];
+      if (item && !ordered.some((existing) => existing.id === item.id)) ordered.push(item);
+    }
+  }
+  return ordered;
+}
+
 function orderedIds(preferences: MovePreferences, intensity: MoveIntensity) {
+  if (preferences.targetMuscles.length) {
+    return compatibleTargetedExercises(preferences, intensity).map((exercise) => exercise.id);
+  }
   let order = [...(FOCUS_ORDER[preferences.focus] ?? FOCUS_ORDER.equilibrado)];
   if (preferences.focus === 'equilibrado' && preferences.goal === 'condicion') order = [...CONDITIONING_PREFIX, ...order];
   if (preferences.focus === 'equilibrado' && preferences.goal === 'movilidad') order = [...MOBILITY_PREFIX, ...order];
@@ -256,7 +280,7 @@ function idsFor(
     selected.push(compatibleExercise(base, preferences, intensity, progression));
     cursor += 1;
   }
-  if (selected.length) selected[selected.length - 1] = firstSafeFallback(preferences, intensity);
+  if (selected.length && !preferences.targetMuscles.length) selected[selected.length - 1] = firstSafeFallback(preferences, intensity);
   return selected;
 }
 
@@ -275,6 +299,7 @@ export function resolveMoveTrainingStyle(
 ): MoveResolvedTrainingStyle {
   const targetMinutes = supportedDuration(value);
   if (intensity === 'recuperacion' || preferences.focus === 'movilidad' || preferences.goal === 'movilidad') return 'intervalos';
+  if (preferences.targetMuscles.length && preferences.trainingStyle === 'auto') return targetMinutes >= 10 ? 'series' : 'intervalos';
 
   if (preferences.trainingStyle === 'intervalos') return 'intervalos';
   if (preferences.trainingStyle === 'series') return targetMinutes >= 10 ? 'series' : 'intervalos';
@@ -505,6 +530,81 @@ function extendStructuredRoutine(
   return { ...routine, steps: [...routine.steps, ...fillers], totalSeconds: targetMinutes * 60 };
 }
 
+// Respeta el enfoque muscular incluso en sesiones estructuradas. El volumen
+// sigue adaptándose a duración, intensidad, equipamiento y feedback.
+function targetedSeriesRoutine(
+  targetMinutes: number,
+  preferences: MovePreferences,
+  intensity: MoveIntensity,
+  progression: MoveProgressionContext,
+): MoveRoutine | null {
+  const exercises = compatibleTargetedExercises(preferences, intensity)
+    .slice(0, targetMinutes >= 45 ? 6 : 4)
+    .map((exercise) => progressionAdjustedExercise(exercise, preferences, intensity, progression) ?? exercise);
+  const unique = exercises.filter((exercise, i) => exercises.findIndex((item) => item.id === exercise.id) === i);
+  if (!unique.length) return null;
+  const setCount = intensity === 'suave' ? 2 : targetMinutes >= 45 ? 4 : 3;
+  const restSec = intensity === 'suave' ? 60 : TRAINER_SOURCE_RULES.structuredRestSec;
+  const steps: MoveStep[] = [];
+  for (const exercise of unique) {
+    for (let setNumber = 1; setNumber <= setCount; setNumber += 1) {
+      steps.push({
+        slot: steps.length,
+        exercise,
+        durationSec: 45,
+        restAfterSec: restSec,
+        mode: 'set',
+        setNumber,
+        setCount,
+        repsLabel: intensity === 'suave' ? '8-10' : '8-12',
+        blockLabel: 'Grupos musculares seleccionados',
+      });
+    }
+  }
+  steps[steps.length - 1].restAfterSec = 0;
+  return {
+    id: `move-muscles-${preferences.targetMuscles.join('-')}-${targetMinutes}-${intensity}-series`,
+    targetMinutes,
+    intensity,
+    style: 'series',
+    steps,
+    totalSeconds: steps.reduce((sum, step) => sum + step.durationSec + step.restAfterSec, 0),
+    sourceTemplate: 'muscle-target',
+  };
+}
+
+function targetedAmrapRoutine(
+  targetMinutes: number,
+  preferences: MovePreferences,
+  intensity: MoveIntensity,
+  progression: MoveProgressionContext,
+): MoveRoutine | null {
+  const exercises = compatibleTargetedExercises(preferences, intensity).slice(0, 6);
+  if (exercises.length < 3) return null;
+  const circuit = exercises.map((exercise) => ({
+    exercise: progressionAdjustedExercise(exercise, preferences, intensity, progression) ?? exercise,
+    repsLabel: '8-12',
+  }));
+  const roundCount = targetMinutes >= 20 ? 3 : 1;
+  const steps: MoveStep[] = Array.from({ length: roundCount }, (_, index) => ({
+    slot: index,
+    exercise: circuit[0].exercise,
+    durationSec: TRAINER_SOURCE_RULES.amrapWorkSec,
+    restAfterSec: index === roundCount - 1 ? 0 : TRAINER_SOURCE_RULES.amrapRestSec,
+    mode: 'amrap',
+    roundNumber: index + 1,
+    roundCount,
+    circuit,
+    blockLabel: 'AMRAP por músculos',
+  }));
+  return {
+    id: `move-muscles-${preferences.targetMuscles.join('-')}-${targetMinutes}-amrap`,
+    targetMinutes, intensity, style: 'amrap', steps,
+    totalSeconds: steps.reduce((sum, step) => sum + step.durationSec + step.restAfterSec, 0),
+    sourceTemplate: 'muscle-amrap',
+  };
+}
+
 export function routineForDuration(
   value: number,
   preferences: MovePreferences = DEFAULT_MOVE_PREFERENCES,
@@ -513,6 +613,18 @@ export function routineForDuration(
 ): MoveRoutine {
   const targetMinutes = supportedDuration(value);
   const requestedStyle = resolveMoveTrainingStyle(targetMinutes, preferences, intensity);
+
+  if (preferences.targetMuscles.length) {
+    if (requestedStyle === 'series') {
+      const focused = targetedSeriesRoutine(targetMinutes, preferences, intensity, progression);
+      if (focused) return extendStructuredRoutine(focused, targetMinutes, preferences, intensity, progression);
+    }
+    if (requestedStyle === 'amrap') {
+      const focused = targetedAmrapRoutine(targetMinutes, preferences, intensity, progression);
+      if (focused) return extendStructuredRoutine(focused, targetMinutes, preferences, intensity, progression);
+    }
+    return intervalRoutine(targetMinutes, preferences, intensity, progression);
+  }
 
   if (requestedStyle === 'series') {
     const structured = seriesRoutine(targetMinutes, preferences, intensity, progression);
