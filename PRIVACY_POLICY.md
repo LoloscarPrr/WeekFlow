@@ -34,6 +34,12 @@ En la versión actual esos datos de planificación no se sincronizan con Firebas
 
 La cámara y el selector de archivos se usan únicamente cuando la persona elige importar un horario o revisar ingredientes dentro de Food. Las imágenes, PDF y planillas seleccionadas para horarios se procesan en el dispositivo para reconocer o extraer la información.
 
+### IA visual de horarios, únicamente si se habilita
+
+En una versión futura puede habilitarse un botón separado «Interpretar con IA visual (opcional)». Este botón **no aparece ni transmite datos** si el servidor de visión no está configurado. Si se habilita, la app requiere una sesión de Cuenta WeekFlow y pide autorización explícita **para cada imagen** antes de subir esa imagen y el nombre buscado a un servidor WeekFlow (Supabase) que la envía al proveedor de IA (OpenAI) para extraer siete jornadas. La imagen puede mostrar nombres y turnos de compañeros; no se debe enviar material de terceros sin autorización. No se transmiten otros documentos ni el calendario guardado. El servidor está diseñado sin almacenamiento deliberado de fotos y solicita `store:false` al proveedor; esto no equivale a asegurar que toda la infraestructura carece de retención técnica. La persona puede seguir usando siempre OCR local, y WeekFlow no guarda ningún horario importado sin confirmación.
+
+**Esta capacidad remota aún no está activada en la versión que se prepara**: Supabase WeekFlow y las credenciales/costos de IA deben habilitarse y verificarse por separado. El flujo normal de captura se mantiene local.
+
 En Food, una foto elegida o tomada se procesa localmente para leer nombres o etiquetas visibles y proponer candidatos de despensa. La foto no se guarda como parte de la despensa ni se sube a servidores de WeekFlow. Los candidatos solo se incorporan cuando la persona los revisa y confirma; si la imagen no permite reconocer suficiente texto, se puede completar manualmente.
 
 WeekFlow no adjunta deliberadamente estas imágenes a informes de fallos.
