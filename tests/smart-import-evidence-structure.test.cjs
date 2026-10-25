@@ -12,7 +12,7 @@ ok(ocr.includes('LIBRE|DESCANSO|OFF'), 'OCR reconoce texto libre por celda');
 ok(pdf.includes('No pude leer la colación.'), 'PDF obliga aclarar duración');
 ok(pdf.includes('breakMinutes: breakLooksValid ? breakMinutes : null'), 'PDF no inventa 0 min');
 ok(pdf.includes('if (nameCandidates.length > 1)'), 'PDF bloquea nombre ambiguo');
-ok(pdf.includes('if (!/^[\\d\\s:.,hH\\-/]+$/.test(continuation)) break;'), 'PDF no cruza a siguiente fila de persona');
+ok(pdf.includes('if (!/^[\\d\\s:.,hH\\/-]+$/.test(continuation)) break;'), 'PDF no cruza a siguiente fila de persona');
 ok(pdfAdapter.includes("export { parseSchedulePdfText }"), 'PDF mantiene API previa');
 ok(photos.includes('confirmReviewedImport({') && digital.includes('confirmReviewedImport({'), 'ambos formatos usan mismo Brain');
 ok(importer.includes('if (shift.issue) return shift.issue'), 'transacción respeta incertidumbre');
