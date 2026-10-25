@@ -1,6 +1,6 @@
 # WF-SMART-002 — Evidencia y seguridad en lectura de horarios
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Requested: 2026-10-25
 Blueprint: WeekFlow Blueprint Maestro v4.0 §15, fase 0.8.x
@@ -45,5 +45,13 @@ No changes to WeekSchedule schema; `ReviewShift.issue` and `breakMinutes:null` a
 - OCR text-only LIBRE vs LIBRE + 09:00–17:00; missing middle cell; midnight start; other name with more times, name matching duplicates; scanned PDFs continue to route user to image OCR; digital PDF may have times wrapped across multiple lines.
 - A partial or cropped screenshot must fail closed, not synthesize hours or import another worker's row.
 
-## Verification
-CI and APK pending. No physical device QA in this microversion.
+## Verification — 2026-10-25
+- AC1: PASS — `smart-import-evidence.test.ts` comprueba LIBRE aislado y contradicción LIBRE+horas. Se anuló fallback secuencial cuando hay marcador libre textual.
+- AC2: PASS — jornada de dos horas sin colación conserva `breakMinutes:null` y `issue`; la transacción `prepareSmartImport` la rechaza hasta edición.
+- AC3: PASS — prueba 00:30–08:30 con 30 min de colación y cruce nocturno previo sin regresiones.
+- AC4: PASS — PDF solo acepta continuidad numérica y corta al comenzar otra persona; prueba no mezcla OSCAR/DANIELA.
+- AC5: PASS — varias filas de OSCAR quedan sin nombre seleccionado, sin guardado; prueba cubre nombres similares.
+- AC6: PASS — PDF 14 horas sin colación deja campo nulo con revisión explícita; no se guarda sin corregir.
+- AC7: PASS — PDF completo conserva colaciones, libres, turnos y total semanal fuera; OCR comprimido anterior sigue en regresiones.
+- AC8: Quality PR #40159094835 PASS, TypeScript y suite completa incluidas nuevas pruebas puras/estructurales. Android release 0.5.20: PENDING al redactar; QA física agrupada NOT RUN.
+- El proveedor sigue siendo OCR local/PDF texto; integración de IA visual multimodal aún pendiente de configuración real. Sin migración ni servicio nuevo.
