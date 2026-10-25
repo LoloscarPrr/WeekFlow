@@ -191,9 +191,6 @@ function targetBefore(
   if (proposal.kind === 'set-move-target') {
     return { target: 'move-preferences', value: state.movePreferences! };
   }
-  if (proposal.kind === 'set-move-target') {
-    return { target: 'move-preferences', value: state.movePreferences! };
-  }
   return { target: 'week-state', value: state.weekState };
 }
 
@@ -206,6 +203,9 @@ function targetAfter(
   }
   if (proposal.kind === 'log-food-entry') {
     return { target: 'food-day', value: state.foodDay! };
+  }
+  if (proposal.kind === 'set-move-target') {
+    return { target: 'move-preferences', value: state.movePreferences! };
   }
   return { target: 'week-state', value: state.weekState };
 }
