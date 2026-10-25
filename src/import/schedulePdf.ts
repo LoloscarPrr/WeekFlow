@@ -1,5 +1,6 @@
 import { extractText, isAvailable } from 'expo-pdf-text-extract';
 import { parseSchedulePdfText } from './schedulePdfText';
+import type { ParsedSchedule } from './scheduleOcr';
 export { parseSchedulePdfText } from './schedulePdfText';
 
 export async function readSchedulePdf(uri: string, configuredName: string): Promise<ParsedSchedule> {
