@@ -525,7 +525,10 @@ export function parseScheduleOcr(
     ));
   }
 
-  const sequentialWeek = readSequentialWeek(rowItems);
+  // A free-day label is structural evidence: numeric fallback would erase a
+  // contradictory «LIBRE + horas» cell and shift the rest of the week.
+  const hasTextualFree = rowItems.some((item) => /\b(?:LIBRE|DESCANSO|OFF)\b/.test(normalize(item.text)));
+  const sequentialWeek = hasTextualFree ? null : readSequentialWeek(rowItems);
   if (sequentialWeek && issueCount(sequentialWeek) < issueCount(shifts)) {
     shifts = sequentialWeek;
     warnings.push(
