@@ -41,6 +41,12 @@ ok(!queryHandler.includes('saveFoodEntry') && !queryHandler.includes('removeFood
 ok(controller.includes("if (pendingProposal.kind === 'log-food-entry')") && controller.includes('saveFoodEntry(record, now)'),
   'Food solo se guarda tras confirmación de Brain Action');
 
-ok(!controller.includes('saveMove'), 'controller no debe escribir Move');
+// WF-BRAIN Move: actualizar objetivos solo tras confirmación, nunca al construir contexto ni responder.
+ok(!readContext.includes('saveMovePreferences') && !queryHandler.includes('saveMovePreferences'),
+  'consultas y estado real deben ser de solo lectura para Move');
+ok(controller.includes("if (pendingProposal.kind === 'set-move-target')") && controller.includes('saveMovePreferences(result.state.movePreferences!)'),
+  'Move solo se guarda después de aplicar una propuesta confirmada por Brain');
+ok(controller.includes("lastReceipt.before.target === 'move-preferences'"),
+  'deshacer Move distingue la fuente canónica de preferencias');
 
 console.log('Assistant real-state structure tests passed.');
