@@ -78,19 +78,21 @@ function buildShift(day: number, values: string[], sourceText: string): ReviewSh
     return emptyShift(day, 'La lectura no forma una jornada razonable. Revisa este día.', sourceText);
   }
 
-  const breakMinutes = breakTime ? toMinutes(breakTime) : 0;
-  const breakLooksValid = breakMinutes >= 0 && breakMinutes <= 180;
+  const breakMinutes = breakTime ? toMinutes(breakTime) : null;
+  const breakLooksValid = breakMinutes !== null && breakMinutes >= 0 && breakMinutes <= 180;
 
   return {
     day,
     label: DAYS[day],
     start,
     end,
-    breakMinutes: breakLooksValid ? breakMinutes : 0,
+    breakMinutes: breakLooksValid ? breakMinutes : null,
     type: shiftType(start, end),
     off: false,
     confidence: third && breakLooksValid ? 'high' : 'medium',
-    issue: breakLooksValid ? null : 'La colación detectada parece ambigua. Revisa este día.',
+    issue: !breakTime
+      ? 'No pude leer la colación. Confirma su duración antes de guardar.'
+      : breakLooksValid ? null : 'La colación detectada parece ambigua. Revisa este día.',
     sourceText,
   };
 }
@@ -102,30 +104,42 @@ export function parseSchedulePdfText(text: string, configuredName: string): Pars
     .filter(Boolean);
   const needle = normalize(configuredName);
 
-  const nameIndex = lines.findIndex((line) => {
-    const hay = normalize(line);
-    if (!needle) return false;
-    if (hay === needle || hay.includes(needle)) return true;
-    const tokens = needle.split(' ').filter((token) => token.length >= 2);
-    return tokens.length >= 2 && tokens.every((token) => hay.split(' ').includes(token));
+  // A candidate must start with the configured identity, not merely mention it
+  // in a footer or in another worker's name. Never choose between two matches.
+  const nameCandidates = lines
+    .map((line, index) => {
+      const beforeTimes = line.split(/\b(?:[01]?\d|2[0-3]):[0-5]\d\b/)[0];
+      const namePart = normalize(beforeTimes);
+      const tokens = needle.split(' ').filter((token) => token.length >= 2);
+      const strongMatch = Boolean(needle)
+        && (namePart === needle || namePart.startsWith(needle + ' ')
+          || (tokens.length >= 2 && tokens.every((token) => namePart.split(' ').includes(token))));
+      return strongMatch ? index : -1;
+    })
+    .filter((index) => index >= 0);
+
+  const failure = (warning: string): ParsedSchedule => ({
+    nameFound: false,
+    matchedNameText: null,
+    rowText: '',
+    shifts: DAYS.map((_, day) => emptyShift(day, warning)),
+    warnings: [warning],
   });
-
-  if (nameIndex < 0) {
-    const warning = 'No encontré tu nombre en el PDF. Revisa cómo apareces en la planilla.';
-    return {
-      nameFound: false,
-      matchedNameText: null,
-      rowText: '',
-      shifts: DAYS.map((_, day) => emptyShift(day, warning)),
-      warnings: [warning],
-    };
+  if (!nameCandidates.length) {
+    return failure('No encontré tu nombre en el PDF. Revisa cómo apareces en la planilla.');
   }
-
-  const nearby = lines.slice(nameIndex, Math.min(lines.length, nameIndex + 8));
-  let rowText = nearby[0];
+  if (nameCandidates.length > 1) {
+    return failure('Encontré varias filas compatibles con tu nombre. No elegí ninguna automáticamente.');
+  }
+  const nameIndex = nameCandidates[0];
+  // Continuation is permitted only for lines made of clock values/separators.
+  // Crossing into another name would silently import a coworker's schedule.
+  let rowText = lines[nameIndex];
   let times = parseTimes(rowText);
-  for (let index = 1; index < nearby.length && times.length < 14; index += 1) {
-    rowText += ` ${nearby[index]}`;
+  for (let index = nameIndex + 1; index < lines.length && index <= nameIndex + 7 && times.length < 21; index += 1) {
+    const continuation = lines[index];
+    if (!/^[\d\s:.,hH\-/]+$/.test(continuation)) break;
+    rowText += ' ' + continuation;
     times = parseTimes(rowText);
   }
 
