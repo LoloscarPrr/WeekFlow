@@ -1,0 +1,5 @@
+# Firebase ID tokens are NOT Supabase Auth JWTs. The Edge Function verifies
+# their RS256 signature, issuer, audience, expiry and email verification itself.
+# Do not enable this endpoint without secrets and abuse/cost controls.
+[functions.vision-schedule]
+verify_jwt = false
