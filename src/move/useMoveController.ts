@@ -29,7 +29,8 @@ import {
   type MoveEquipmentToggleField,
   type MoveTrainingStyle,
 } from '@/src/move/adaptation';
-import { alternateExercise, exerciseById, previewForDuration, routineForDuration } from '@/src/move/library';
+import { alternateExercise, compatibleTargetedExercises, exerciseById, previewForDuration, routineForDuration } from '@/src/move/library';
+import { sanitizeTargetMuscles, type MoveMuscleGroup } from '@/src/move/muscles';
 import {
   clearMoveRuntime,
   createMoveRuntime,
@@ -197,6 +198,12 @@ export function useMoveController() {
     setPreferences(sanitized);
   }
 
+  function setTargetMuscles(next: MoveMuscleGroup[]) {
+    // Cambiar el objetivo durante una sesión alteraría los pasos del reproductor.
+    if (activeSession) return;
+    updatePreferences({ ...preferences, targetMuscles: sanitizeTargetMuscles(next) });
+  }
+
   function setFocus(focus: MoveFocus) {
     updatePreferences({ ...preferences, focus });
   }
@@ -265,6 +272,7 @@ export function useMoveController() {
   }
 
   function startSession() {
+    if (preferences.targetMuscles.length && !compatibleTargetedExercises(preferences, adaptiveIntensity).length) return;
     const nowMs = Date.now();
     const id = `${nowMs}`;
     const plannedMinutes = Math.max(30, duration);
@@ -458,6 +466,7 @@ export function useMoveController() {
     setExtraOpen,
     preferences,
     setFocus,
+    setTargetMuscles,
     setExperience,
     setGoal,
     setTrainingStyle,
