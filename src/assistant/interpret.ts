@@ -8,6 +8,7 @@ import { localDateKey } from '../domain/services/shiftSchedule';
 export type ConversationInterpretation =
   | { status: 'proposal'; proposal: BrainActionProposal }
   | { status: 'move-target-intent'; targetMuscles: MoveMuscleGroup[] }
+  | { status: 'energy-move-intent'; targetMuscles: MoveMuscleGroup[]; energy: 'vigoroso' | 'bien' | 'cansado' | 'agotado' }
   | { status: 'actual-exit-intent'; time: string }
   | { status: 'actual-exit-relative-intent'; deltaMinutes: number }
   | { status: 'unsupported'; message: string };
@@ -33,6 +34,8 @@ function mondayBasedDay(date: Date) {
 }
 
 function parseEnergy(text: string) {
+  // No convertir una negación en un registro de energía falso.
+  if (/\b(no estoy|no me siento|no ando|no tengo)\s+(?:tan\s+)?(cansad[oa]|agotad[oa]|bien|con energia|con energía)\b/.test(text)) return null;
   if (/\b(agotado|agotada|muerto|muerta)\b/.test(text)) return 'agotado' as const;
   if (/\b(cansado|cansada|poca energia|poca energía)\b/.test(text)) return 'cansado' as const;
   if (/\b(vigoroso|vigorosa|harta energia|harta energía|mucha energia|mucha energía|con energia|con energía)\b/.test(text)) return 'vigoroso' as const;
@@ -82,9 +85,19 @@ export function interpretAssistantText(input: string, now = new Date()): Convers
 
   const targetMuscles = parseMoveTargetRequest(input);
   if (targetMuscles !== null) {
-    if (parseEnergy(text) || /\b(entro|salgo|salí|sali|mañana|lunes|martes|miercoles|miércoles|jueves|viernes|sabado|sábado|domingo)\b/.test(text)) {
-      return { status: 'unsupported', message: 'Puedo elegir músculos para Move, pero todavía no combinarlo con cambios de energía, horario o fecha. Pídemelo por separado.' };
+    // Los turnos, las fechas futuras y la duración no están autorizados en una
+    // acción conjunta. No interpretar una fracción de la solicitud silenciosamente.
+    if (/\b(entro|salgo|sali|salí|ayer|anteayer|mañana|lunes|martes|miercoles|miércoles|jueves|viernes|sabado|sábado|domingo|turno|trabajo|trabajaré|trabajare)\b/.test(text)) {
+      return { status: 'unsupported', message: 'Todavía no puedo combinar cambios de trabajo o días futuros con Move. Dime el entrenamiento de hoy por separado.' };
     }
+    if (/\b\d+\s*(?:minutos?|min|horas?|hrs?)\b/.test(text)) {
+      return { status: 'unsupported', message: 'Entendí que quieres una duración específica, pero todavía debes elegirla dentro de Move (30, 45 o 60 min).' };
+    }
+    if (/\b(no estoy|no me siento|no ando|no tengo|si estoy|cuando estoy)\b/.test(text)) {
+      return { status: 'unsupported', message: 'Necesito una afirmación clara de tu energía actual antes de preparar Move.' };
+    }
+    const energy = parseEnergy(text);
+    if (energy) return { status: 'energy-move-intent', targetMuscles, energy };
     return { status: 'move-target-intent', targetMuscles };
   }
 
