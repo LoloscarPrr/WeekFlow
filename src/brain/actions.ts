@@ -173,15 +173,6 @@ export function createBrainActionProposal(
     throw new Error('Invalid Food entry proposal');
   }
 
-  if (proposal.kind === 'set-energy-move' && (
-    !state.movePreferences
-    || localDateKey(options.now ?? new Date()) !== proposal.payload.dayKey
-    || !sameValue(state.dayState, proposal.payload.expectedDayState)
-    || !sameValue(state.movePreferences, proposal.payload.expectedMovePreferences)
-  )) {
-    return { status: 'conflict', state, receipt: null, message: 'Cambió tu energía, el perfil Move o el día. No apliqué nada; vuelve a pedirlo.' };
-  }
-
   if (proposal.kind === 'set-move-target' && (
     !Array.isArray(proposal.payload.targetMuscles)
     || !Array.isArray(proposal.payload.expectedTargetMuscles)
@@ -378,6 +369,15 @@ export function applyBrainAction(
         message: 'La hora indicada no corresponde a una salida ya ocurrida en esta jornada.',
       };
     }
+  }
+
+  if (proposal.kind === 'set-energy-move' && (
+    !state.movePreferences
+    || localDateKey(options.now ?? new Date()) !== proposal.payload.dayKey
+    || !sameValue(state.dayState, proposal.payload.expectedDayState)
+    || !sameValue(state.movePreferences, proposal.payload.expectedMovePreferences)
+  )) {
+    return { status: 'conflict', state, receipt: null, message: 'Cambió tu energía, el perfil Move o el día. No apliqué nada; vuelve a pedirlo.' };
   }
 
   if (proposal.kind === 'set-move-target' && (
