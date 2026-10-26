@@ -24,6 +24,8 @@ jobs:
     env:
       # Public endpoint only. Never put an AI secret in EXPO_PUBLIC_ variables.
       EXPO_PUBLIC_WEEKFLOW_VISION_URL: ${{ vars.WEEKFLOW_VISION_URL }}
+      # Optional public endpoint; never inject the OpenAI secret into Android.
+      EXPO_PUBLIC_WEEKFLOW_BRAIN_URL: ${{ vars.WEEKFLOW_BRAIN_URL }}
 
     steps:
       - name: Checkout
