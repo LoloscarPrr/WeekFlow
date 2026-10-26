@@ -8,6 +8,7 @@ import { getRestView } from '@/src/application/useCases/getRestView';
 import { buildAssistantRealState } from '@/src/assistant/context';
 import { interpretAssistantText } from '@/src/assistant/interpret';
 import { interpretAssistantQuestion, answerAssistantQuestion } from '@/src/assistant/questions';
+import { interpretDayAdviceQuestion, answerDayAdvice } from '@/src/assistant/dayAdvice';
 import { relativeExitFromShiftEnd } from '@/src/assistant/relativeExit';
 import { recommendMoveIntensity } from '@/src/move/adaptation';
 import { compatibleTargetedExercises } from '@/src/move/library';
@@ -92,6 +93,39 @@ export function useAssistantController() {
       setContext(fresh);
       setPendingProposal(null);
       setAssistantMessage(answerAssistantQuestion(question, fresh));
+      return 'answered' as const;
+    }
+
+    const guidance = interpretDayAdviceQuestion(input);
+    if (guidance) {
+      // Síntesis de solo lectura de Ahora, Rest y Move. Nunca crear propuestas
+      // ni aceptar tiempos inventados ni cambiar el calendario desde una pregunta.
+      const now = new Date();
+      const dayState = loadDayState();
+      const weekState = loadWeekState();
+      const doneToday = moveSessionDoneToday(now);
+      const nowView = getNowView({ dayState, weekState, moveDoneToday: doneToday, now });
+      const restView = getRestView(dayState, weekState, now);
+      const preferences = loadMovePreferences();
+      const last = loadMoveHistory()[0];
+      const answer = answerDayAdvice(guidance, {
+        energy: dayState.energy,
+        phase: nowView.phase,
+        mode: nowView.plan.mode,
+        jornadaLabel: nowView.jornadaLabel,
+        needsExitReview: nowView.needsExitReview,
+        moveDoneToday: doneToday,
+        upcomingMoments: nowView.upcomingMoments,
+        restTitle: restView.contextTitle,
+        restMeta: restView.contextMeta,
+        postNightRecovery: restView.contextTitle === 'Recuperación post-turno nocturno',
+        preferences,
+        previousFeedback: last?.feedback,
+        previousEndedEarly: last?.endedEarly,
+      });
+      setContext(readAssistantContext(now));
+      setPendingProposal(null);
+      setAssistantMessage(answer);
       return 'answered' as const;
     }
 
