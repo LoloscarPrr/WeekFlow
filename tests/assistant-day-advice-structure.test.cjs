@@ -11,6 +11,7 @@ ok(controller.includes('nowView.upcomingMoments') && controller.includes('restVi
 ok(controller.includes("postNightRecovery: restView.contextTitle === 'Recuperación post-turno nocturno'"),
   'reconoce recuperación después del turno nocturno');
 ok(controller.includes("return 'answered' as const"), 'consulta no solicita confirmación');
+ok(controller.includes("if (/[¿?]/.test(input))"), 'preguntas desconocidas no pueden crear acciones de escritura');
 for (const forbidden of ['saveDayState', 'saveWeekState', 'applyBrainAction', 'saveMovePreferences', 'sqliteStateStore', 'fetch(']) {
   ok(!advice.includes(forbidden), 'consulta pura nunca debe ejecutar '+forbidden);
 }
