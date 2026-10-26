@@ -7,7 +7,7 @@ import {
   saveWeekSchedule as saveWeekScheduleUseCase,
 } from '@/src/application/useCases/coreState';
 import { sqliteStateStore } from '@/src/data/local/sqlite/SQLiteStateStore';
-import { sqliteDayStateRepository } from '@/src/data/repositories/SQLiteDayStateRepository';
+import { DAY_STATE_KEY, sqliteDayStateRepository } from '@/src/data/repositories/SQLiteDayStateRepository';
 import { sqliteUserProfileRepository } from '@/src/data/repositories/SQLiteUserProfileRepository';
 import { sqliteWeekScheduleRepository } from '@/src/data/repositories/SQLiteWeekScheduleRepository';
 import {
@@ -162,6 +162,15 @@ export function loadMovePreferences(): MovePreferences {
 
 export function saveMovePreferences(preferences: MovePreferences) {
   sqliteStateStore.write(MOVE_PREFERENCES_KEY, normalizeMovePreferences(preferences));
+}
+
+// Brain: energía + objetivo Move se confirman o deshacen juntos; no hay
+// estado duplicado, se guardan los mismos dos registros canónicos.
+export function saveAssistantEnergyMove(dayState: PersistedDayState, preferences: MovePreferences) {
+  sqliteStateStore.writeBatch([
+    { key: DAY_STATE_KEY, value: dayState },
+    { key: MOVE_PREFERENCES_KEY, value: normalizeMovePreferences(preferences) },
+  ]);
 }
 
 export function loadActiveMoveSession(): ActiveMoveSession | null {

@@ -12,6 +12,10 @@ export function parseMoveTargetRequest(input: string): MoveMuscleGroup[] | null 
   if (/\b(no quiero|no puedo|no voy|no alcanzo|evitar|evita|dolor|duele|lesion|lesionado|lesionada)\b/.test(text)) return null;
   if (/\b(cuerpo completo|todo el cuerpo|full body|fullbody)\b/.test(text)) return [];
   const chosen = new Set<MoveMuscleGroup>();
+  if (/\b(brazos?|antebrazos?)\b/.test(text)) {
+    chosen.add('biceps');
+    chosen.add('triceps');
+  }
   if (/\b(tren superior|parte superior|upper body)\b/.test(text)) {
     (['pecho', 'espalda', 'hombros', 'biceps', 'triceps'] as const).forEach((g) => chosen.add(g));
   }

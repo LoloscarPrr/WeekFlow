@@ -26,7 +26,7 @@ equal(sanitizeMovePreferences({ focus: 'fuerza' }).targetMuscles, [], 'perfil an
 const request = interpretAssistantText('Quiero entrenar espalda y bíceps');
 equal(request.status, 'move-target-intent', 'Asistente entiende intención de entrenamiento');
 equal(interpretAssistantText('Mañana quiero entrenar espalda').status, 'unsupported', 'no convierte pedido de fecha en objetivo permanente');
-equal(interpretAssistantText('Estoy cansado y quiero entrenar piernas').status, 'unsupported', 'no mezcla energía con selección de músculos');
+equal(interpretAssistantText('Estoy cansado y quiero entrenar piernas').status, 'energy-move-intent', 'Brain reconoce energía y músculos en una solicitud');
 
 const preferences = sanitizeMovePreferences({
   ...DEFAULT_MOVE_PREFERENCES,

@@ -57,6 +57,26 @@ export class SQLiteStateStore {
     );
   }
 
+  // Guarda cambios entre módulos como una única transacción SQLite.
+  // Si alguna escritura falla, SQLite revierte todas.
+  writeBatch(entries: ReadonlyArray<{ key: string; value: unknown }>) {
+    if (!entries.length) return;
+    this.ensureSchema();
+    const now = new Date().toISOString();
+    this.db.withTransactionSync(() => {
+      for (const entry of entries) {
+        this.db.runSync(
+          `INSERT INTO weekflow_state (key, value, updated_at)
+           VALUES (?, ?, ?)
+           ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at;`,
+          entry.key,
+          JSON.stringify(entry.value),
+          now,
+        );
+      }
+    });
+  }
+
   delete(key: string) {
     this.ensureSchema();
     this.db.runSync('DELETE FROM weekflow_state WHERE key = ?;', key);
