@@ -116,7 +116,8 @@ export default function AssistantScreen() {
                 IA opcional: al tocar «Conversar con IA», tu texto, hasta 6 mensajes recientes
                 y un resumen de energía, jornada, Move, Food (solo cantidad) y Rest
                 se envían a WeekFlow en Supabase y al proveedor OpenAI.
-                No se envían fotos, nombres ni el horario semanal completo.
+                No adjuntamos fotos, nombre de perfil ni el horario semanal completo.
+                Evita escribir datos sensibles o de otras personas.
               </Text>
               <Pressable
                 style={[styles.cloudButton, (cloudBusy || Boolean(pendingProposal) || !input.trim()) && { opacity: 0.45 }]}
