@@ -12,7 +12,7 @@ import { localDateKey } from '../domain/services/shiftSchedule';
 import { sanitizeMovePreferences, type MovePreferences } from '../move/adaptation';
 import { sanitizeTargetMuscles, type MoveMuscleGroup } from '../move/muscles';
 
-export type BrainActionKind = 'set-energy' | 'update-week-shift' | 'record-actual-exit' | 'log-food-entry' | 'set-move-target';
+export type BrainActionKind = 'set-energy' | 'update-week-shift' | 'record-actual-exit' | 'log-food-entry' | 'set-move-target' | 'set-energy-move';
 export type BrainActionStatus =
   | 'applied'
   | 'confirmation-required'
@@ -66,12 +66,25 @@ export type SetMoveTargetProposal = ProposalBase & {
   payload: { targetMuscles: MoveMuscleGroup[]; expectedTargetMuscles: MoveMuscleGroup[] };
 };
 
+// Dos fuentes canónicas actualizadas como una única propuesta confirmable.
+export type SetEnergyMoveProposal = ProposalBase & {
+  kind: 'set-energy-move';
+  payload: {
+    energy: Energy;
+    targetMuscles: MoveMuscleGroup[];
+    dayKey: string;
+    expectedDayState: DayState;
+    expectedMovePreferences: MovePreferences;
+  };
+};
+
 export type BrainActionProposal =
   | SetEnergyProposal
   | UpdateWeekShiftProposal
   | RecordActualExitProposal
   | LogFoodEntryProposal
-  | SetMoveTargetProposal;
+  | SetMoveTargetProposal
+  | SetEnergyMoveProposal;
 
 export type ActualExitActionContext = {
   shiftKey: string;
@@ -92,7 +105,8 @@ export type BrainActionTargetSnapshot =
   | { target: 'day-state'; value: DayState }
   | { target: 'week-state'; value: WeekSchedule }
   | { target: 'food-day'; value: FoodDayRecord }
-  | { target: 'move-preferences'; value: MovePreferences };
+  | { target: 'move-preferences'; value: MovePreferences }
+  | { target: 'day-move'; value: { dayState: DayState; movePreferences: MovePreferences } };
 
 export type BrainActionReceipt = {
   proposalId: string;
@@ -159,12 +173,31 @@ export function createBrainActionProposal(
     throw new Error('Invalid Food entry proposal');
   }
 
+  if (proposal.kind === 'set-energy-move' && (
+    !state.movePreferences
+    || localDateKey(options.now ?? new Date()) !== proposal.payload.dayKey
+    || !sameValue(state.dayState, proposal.payload.expectedDayState)
+    || !sameValue(state.movePreferences, proposal.payload.expectedMovePreferences)
+  )) {
+    return { status: 'conflict', state, receipt: null, message: 'Cambió tu energía, el perfil Move o el día. No apliqué nada; vuelve a pedirlo.' };
+  }
+
   if (proposal.kind === 'set-move-target' && (
     !Array.isArray(proposal.payload.targetMuscles)
     || !Array.isArray(proposal.payload.expectedTargetMuscles)
     || JSON.stringify(sanitizeTargetMuscles(proposal.payload.targetMuscles)) !== JSON.stringify(proposal.payload.targetMuscles)
     || JSON.stringify(sanitizeTargetMuscles(proposal.payload.expectedTargetMuscles)) !== JSON.stringify(proposal.payload.expectedTargetMuscles)
   )) throw new Error('Invalid Move muscle targets');
+
+  if (proposal.kind === 'set-energy-move' && (
+    !['vigoroso', 'bien', 'cansado', 'agotado'].includes(proposal.payload.energy)
+    || !/^\d{4}-\d{2}-\d{2}$/.test(proposal.payload.dayKey)
+    || !Array.isArray(proposal.payload.targetMuscles)
+    || JSON.stringify(sanitizeTargetMuscles(proposal.payload.targetMuscles)) !== JSON.stringify(proposal.payload.targetMuscles)
+    || !proposal.payload.expectedDayState
+    || !proposal.payload.expectedMovePreferences
+    || !Array.isArray(proposal.payload.expectedMovePreferences.targetMuscles)
+  )) throw new Error('Invalid combined Energy/Move action');
 
   return {
     ...proposal,
@@ -182,6 +215,9 @@ function targetBefore(
   state: BrainActionState,
   proposal: BrainActionProposal,
 ): BrainActionTargetSnapshot {
+  if (proposal.kind === 'set-energy-move') {
+    return { target: 'day-move', value: { dayState: state.dayState, movePreferences: state.movePreferences! } };
+  }
   if (proposal.kind === 'set-energy' || proposal.kind === 'record-actual-exit') {
     return { target: 'day-state', value: state.dayState };
   }
@@ -198,6 +234,9 @@ function targetAfter(
   state: BrainActionState,
   proposal: BrainActionProposal,
 ): BrainActionTargetSnapshot {
+  if (proposal.kind === 'set-energy-move') {
+    return { target: 'day-move', value: { dayState: state.dayState, movePreferences: state.movePreferences! } };
+  }
   if (proposal.kind === 'set-energy' || proposal.kind === 'record-actual-exit') {
     return { target: 'day-state', value: state.dayState };
   }
@@ -215,6 +254,17 @@ function applyProposal(
   proposal: BrainActionProposal,
   options: BrainActionOptions,
 ): BrainActionState {
+  if (proposal.kind === 'set-energy-move') {
+    return {
+      ...state,
+      dayState: updateNowEnergy(state.dayState, proposal.payload.energy),
+      movePreferences: sanitizeMovePreferences({
+        ...state.movePreferences!,
+        targetMuscles: proposal.payload.targetMuscles,
+      }),
+    };
+  }
+
   if (proposal.kind === 'set-energy') {
     return {
       ...state,
@@ -377,6 +427,9 @@ function currentTarget(
   state: BrainActionState,
   receipt: BrainActionReceipt,
 ): BrainActionTargetSnapshot {
+  if (receipt.after.target === 'day-move') {
+    return { target: 'day-move', value: { dayState: state.dayState, movePreferences: state.movePreferences! } };
+  }
   if (receipt.after.target === 'move-preferences') {
     return { target: 'move-preferences', value: state.movePreferences! };
   }
@@ -405,6 +458,15 @@ export function undoBrainAction(
       state,
       receipt: null,
       message: 'No deshice el cambio porque ese estado cambió después.',
+    };
+  }
+
+  if (receipt.before.target === 'day-move') {
+    return {
+      status: 'reverted',
+      state: { ...state, dayState: receipt.before.value.dayState, movePreferences: receipt.before.value.movePreferences },
+      receipt: null,
+      message: 'Cambio conjunto deshecho.',
     };
   }
 
