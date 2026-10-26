@@ -17,6 +17,8 @@ export function interpretDayAdviceQuestion(input: string): DayAdviceQuestion | n
   const text = normalized(input);
   if (!text || /\b(manana|pasado manana|ayer|anteayer|lunes|martes|miercoles|jueves|viernes|sabado|domingo|semana|semanal)\b/.test(text)) return null;
   if (/\b(cambia|cambiar|modifica|registrar|registra|mueve|programa|agendar|agendame|ponme|hazme|preparame|armame|salgo|sali|entro)\b/.test(text)) return null;
+  // No responder como si una lesión o falta de sueño ya estuviera reflejada en el estado local.
+  if (/\b(dolor|duele|lesion|lesionado|lesionada|enfermo|enferma|sin dormir|no dormi|dormi poco)\b/.test(text)) return null;
   // No absorber pedidos de rutinas específicas o mensajes con datos nuevos.
   if (/\b(quiero entrenar|quiero ejercitar|rutina de|ejercicios de|estoy cansad[oa]|estoy agotad[oa])\b/.test(text)) return null;
   const question = /[¿?]/.test(input) || /^(que|como|cuando|puedo|conviene|deberia|entreno o|tengo tiempo|me da tiempo|vale la pena|es mejor|priorizo)/.test(text);
