@@ -9,6 +9,7 @@ const workflow=fs.readFileSync('.github/workflows/build-weekflow-native.yml','ut
 const quota=fs.readFileSync('supabase/sql/brain-chat-quota.sql','utf8');
 ok(client.includes("getAuth().currentUser")&&client.includes("getIdToken()"),'Firebase auth protects cloud client');
 ok(client.includes('EXPO_PUBLIC_WEEKFLOW_BRAIN_URL'),'endpoint URL is public and optional');
+ok(client.includes('fkgccemweaqkdrjozgml.supabase.co'),'Firebase bearer is sent only to expected server');
 ok(!client.includes('OPENAI_API_KEY'),'no secret client-side');
 ok(ui.includes('brainCloudConfigured ?'),'chat hidden when backend unconfigured');
 ok(ui.includes('Conversar con IA · enviar')&&ui.includes('se envían a WeekFlow'),'user explicitly chooses transmission');
@@ -20,7 +21,7 @@ ok(handler.includes('ENABLE_WEEKFLOW_BRAIN')&&handler.includes('claimDailyQuota(
 ok(handler.includes('store: false')&&handler.includes('json_schema'),'provider requests not stored and typed');
 ok(handler.includes('No model response writes app state'),'server never changes user state');
 ok(quota.includes('enable row level security')&&quota.includes('grant execute on function public.claim_weekflow_brain_slot(text) to service_role'),'quota is service-only');
-ok(quota.includes('on conflict') && quota.includes('request_count < 12'),'atomic daily cap');
+ok(quota.includes('on conflict') && quota.includes('request_count < 12') && quota.includes('request_count < 120'),'atomic account and global daily caps');
 ok(config.includes('[functions.brain-chat]')&&config.includes('verify_jwt = false'),'Firebase tokens are separately verified by handler');
 ok(workflow.includes('WEEKFLOW_BRAIN_URL')&&!workflow.includes('OPENAI_API_KEY'),'Android build has public URL only');
 console.log('Brain cloud security structural tests passed.');
