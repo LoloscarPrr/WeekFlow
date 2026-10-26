@@ -12,12 +12,12 @@ Dejar de depender exclusivamente de frases rígidas. Activar, cuando infraestruc
 - Política de privacidad ampliada. Quality CI incluye contrato y seguridad estructural.
 
 ## Estado de infraestructura
-El proyecto Supabase `fkgccemweaqkdrjozgml` está **INACTIVE**. No se restauró, no se desplegó la función, no se introdujo `OPENAI_API_KEY` y no se ha facturado ninguna llamada por este cambio. Por seguridad, el Android no inyecta ningún secreto y la función devuelve 503 salvo configuración completa.
+Se solicitó la restauración del proyecto Supabase `fkgccemweaqkdrjozgml` (organización LifeFlow, **plan Free**); Supabase indicó **COMING_UP** en la última comprobación. La función `brain-chat` fue desplegada como **ACTIVE** (versión 1) pero permanece desactivada para OpenAI por ausencia de opt-in/credenciales. La migración `brain_chat_daily_quota_v1` fue registrada; ejecutar SQL de verificación en cuanto la base esté accesible. No se introdujo `OPENAI_API_KEY` y no hubo llamadas facturables. El APK no incluye secretos y la función devuelve 503 salvo configuración completa.
 
 ## Activación con autorización y presupuesto
-1. Confirmar costos de restauración de Supabase y presupuesto/cuotas de OpenAI API con quien pague el servicio. Un límite diario de solicitudes **no sustituye** un límite de gasto monetario.
-2. Restaurar el proyecto existente si el costo fue aceptado; revisar facturación y alarmas de gasto de ambos proveedores.
-3. Revisar/aplicar `supabase/sql/brain-chat-quota.sql` en la base con rol administrador. Verificar RLS, `revoke` para `anon`/`authenticated`, permisos `service_role` y que RPC retorna `true` hasta el límite y `false` al superarlo.
+1. Confirmar presupuesto/cuotas de OpenAI API y límites de la organización Supabase Free con quien pague el servicio. Supabase aceptó la restauración en Free, sin contratar Pro. Un límite diario de solicitudes **no sustituye** un límite de gasto monetario.
+2. Comprobar que el proyecto restaurado llegue a estado ACTIVE y revisar facturación y alarmas de gasto de ambos proveedores.
+3. Revisar/verificar la migración `brain_chat_daily_quota_v1` aplicada desde `supabase/sql/brain-chat-quota.sql` en la base con rol administrador. Verificar RLS, `revoke` para `anon`/`authenticated`, permisos `service_role` y que RPC retorna `true` hasta el límite y `false` al superarlo.
 4. Configurar secretos **solo en Edge Function**: `OPENAI_API_KEY`, `FIREBASE_PROJECT_ID=weekflow-84a82`, `WEEKFLOW_BRAIN_QUOTA_SALT` aleatorio largo. `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` son variables del entorno administrado, confirmarlas antes. Mantener `ENABLE_WEEKFLOW_BRAIN=false`.
 5. Desplegar `brain-chat` con `verify_jwt=false` deliberadamente: Firebase JWT no es JWT Supabase; el handler verifica Firebase y correo confirmado. Probar 401, 413, 429 y 503; revisar cabeceras, latencia, fallos del proveedor, y llamadas reales a OpenAI con una cuenta de prueba verificada.
 6. Solo al validar los límites y el costo, activar `ENABLE_WEEKFLOW_BRAIN=true` en Supabase y GitHub repo variable pública `WEEKFLOW_BRAIN_URL=https://fkgccemweaqkdrjozgml.supabase.co/functions/v1/brain-chat`. Se necesita nuevo APK compilado con esa variable (el build anterior está apagado).
