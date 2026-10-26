@@ -22,7 +22,7 @@ for (const phrase of [
   'quiero entrenar pecho', 'estoy cansado', 'salí una hora tarde',
   'mañana quiero entrenar', '¿Me conviene entrenar mañana?',
   '¿Cómo organizo mi semana?', 'Cambia el turno y programa Move',
-  '¿Qué ejercicios de espalda debo hacer?', 'no alcanzo a entrenar', '',
+  '¿Qué ejercicios de espalda debo hacer?', '¿Me conviene entrenar si me duele la rodilla?', '¿Puedo entrenar aunque no dormí?', 'no alcanzo a entrenar', '',
 ]) equal(interpretDayAdviceQuestion(phrase), null, 'no convertir una orden/futuro en consulta actual: ' + phrase);
 
 const base: DayAdviceState = {
