@@ -10,6 +10,8 @@ on:
       - "assets/brand/**"
       - "app.json"
       - "package.json"
+      - "package-lock.json"
+      - ".npmrc"
       - "tests/**"
       - "google-services.json"
       - ".github/workflows/build-weekflow-native.yml"
@@ -117,7 +119,7 @@ jobs:
           NODE
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Normalize third-party Expo module publication metadata
         shell: bash
