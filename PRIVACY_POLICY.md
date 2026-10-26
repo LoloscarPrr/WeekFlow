@@ -34,6 +34,14 @@ En la versión actual esos datos de planificación no se sincronizan con Firebas
 
 La cámara y el selector de archivos se usan únicamente cuando la persona elige importar un horario o revisar ingredientes dentro de Food. Las imágenes, PDF y planillas seleccionadas para horarios se procesan en el dispositivo para reconocer o extraer la información.
 
+### WeekFlow Brain conversacional (opcional; aún no activado)
+
+La app puede ofrecer en una próxima actualización un botón separado «Conversar con IA · enviar» **solo si el servidor está configurado**. Al tocarlo, la persona autoriza el envío de su mensaje y un máximo de seis intervenciones recientes, junto a un resumen mínimo del estado actual: fecha, energía, descripción de jornada, estado de Move, título de Rest y cantidad de registros de Food. Se envían a un servidor WeekFlow (Supabase) que consulta a OpenAI. **No se envían deliberadamente nombre, fotos, horarios completos de compañeros ni títulos de alimentos**. No se transmiten mensajes al escribir sin tocar el botón.
+
+El historial de la conversación existe solo en memoria mientras la pantalla está abierta; no se guarda en SQLite ni se usa para entrenar modelos desde WeekFlow. El backend solicita `store:false` a OpenAI, pero esto no implica ausencia absoluta de retención técnica por los proveedores, que operan bajo sus políticas. El servicio requiere Cuenta WeekFlow autenticada con correo verificado. El asistente no ejecuta acciones sugeridas por IA: el motor local las valida y exige confirmación explícita.
+
+Sin servidor activo, la aplicación conserva «Interpretar» de funcionamiento local y no transmite datos de la conversación. Antes de poner el servicio en producción deben verificarse gastos, límites de uso, privacidad y funcionamiento de extremo a extremo.
+
 ### IA visual de horarios, únicamente si se habilita
 
 En una versión futura puede habilitarse un botón separado «Interpretar con IA visual (opcional)». Este botón **no aparece ni transmite datos** si el servidor de visión no está configurado. Si se habilita, la app requiere una sesión de Cuenta WeekFlow y pide autorización explícita **para cada imagen** antes de subir esa imagen y el nombre buscado a un servidor WeekFlow (Supabase) que la envía al proveedor de IA (OpenAI) para extraer siete jornadas. La imagen puede mostrar nombres y turnos de compañeros; no se debe enviar material de terceros sin autorización. No se transmiten otros documentos ni el calendario guardado. El servidor está diseñado sin almacenamiento deliberado de fotos y solicita `store:false` al proveedor; esto no equivale a asegurar que toda la infraestructura carece de retención técnica. La persona puede seguir usando siempre OCR local, y WeekFlow no guarda ningún horario importado sin confirmación.
