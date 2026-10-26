@@ -6,7 +6,7 @@ import { createRemoteJWKSet, jwtVerify } from 'npm:jose@5.9.6';
 const enabled = Deno.env.get('ENABLE_WEEKFLOW_BRAIN') === 'true';
 const firebaseProject = Deno.env.get('FIREBASE_PROJECT_ID') ?? '';
 const apiKey = Deno.env.get('OPENAI_API_KEY') ?? '';
-const model = Deno.env.get('OPENAI_BRAIN_MODEL') || 'gpt-4.1-mini';
+const model = Deno.env.get('OPENAI_BRAIN_MODEL') || 'gpt-6-luna';
 const quotaSalt = Deno.env.get('WEEKFLOW_BRAIN_QUOTA_SALT') ?? '';
 const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
       method: 'POST',
       headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model, store: false, max_output_tokens: 550,
+        model, store: false, max_output_tokens: 900,
         input: [
           { role: 'developer', content: SYSTEM_PROMPT },
           ...data.history.map(turn => ({ role: turn.role, content: turn.text })),
