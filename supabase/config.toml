@@ -3,3 +3,8 @@
 # Do not enable this endpoint without secrets and abuse/cost controls.
 [functions.vision-schedule]
 verify_jwt = false
+
+# Firebase tokens are verified by the handler, not Supabase Auth.
+# The function fails closed unless server secrets, quota RPC and opt-in flag exist.
+[functions.brain-chat]
+verify_jwt = false

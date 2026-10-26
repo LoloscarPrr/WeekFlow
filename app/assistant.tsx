@@ -1,5 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
+import { brainCloudConfigured, talkToBrainAI } from '@/src/assistant/cloudGateway';
+import { brainSuggestionLabel, brainSuggestionToLocalCommand, type BrainChatSuggestion, type BrainChatTurn } from '@/src/assistant/cloudContract';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Brand } from '@/src/components/Brand';
@@ -51,6 +53,36 @@ export default function AssistantScreen() {
     undoLastChange,
   } = useAssistantController();
   const [input, setInput] = useState('');
+  // Local ephemeral conversation only: no transcript is persisted to SQLite.
+  const [cloudHistory, setCloudHistory] = useState<BrainChatTurn[]>([]);
+  const [cloudBusy, setCloudBusy] = useState(false);
+  const [cloudError, setCloudError] = useState('');
+  const [cloudSuggestion, setCloudSuggestion] = useState<BrainChatSuggestion | null>(null);
+
+  async function askCloudBrain() {
+    if (cloudBusy || !input.trim() || pendingProposal) return;
+    const message = input.trim();
+    setCloudBusy(true);
+    setCloudError('');
+    setCloudSuggestion(null);
+    try {
+      const result = await talkToBrainAI(message, {
+        date: context.generatedAt,
+        energy: context.energy,
+        jornada: context.jornadaLabel,
+        move: context.move.label,
+        rest: context.rest.title,
+        foodCount: context.food.countToday,
+      }, cloudHistory);
+      setCloudHistory(previous => [...previous, { role: 'user', text: message }, { role: 'assistant', text: result.reply }].slice(-6) as BrainChatTurn[]);
+      setCloudSuggestion(result.suggestion.kind === 'none' ? null : result.suggestion);
+      setInput('');
+    } catch (error) {
+      setCloudError(error instanceof Error ? error.message : 'No se pudo usar IA. Interpretar local sigue disponible.');
+    } finally {
+      setCloudBusy(false);
+    }
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -78,6 +110,49 @@ export default function AssistantScreen() {
           >
             <Text style={styles.interpretButtonText}>Interpretar</Text>
           </Pressable>
+          {brainCloudConfigured ? (
+            <View style={styles.cloudArea}>
+              <Text style={styles.cloudNotice}>
+                IA opcional: al tocar «Conversar con IA», tu texto, hasta 6 mensajes recientes
+                y un resumen de energía, jornada, Move, Food (solo cantidad) y Rest
+                se envían a WeekFlow en Supabase y al proveedor OpenAI.
+                No adjuntamos fotos, nombre de perfil ni el horario semanal completo.
+                Evita escribir datos sensibles o de otras personas.
+              </Text>
+              <Pressable
+                style={[styles.cloudButton, (cloudBusy || Boolean(pendingProposal) || !input.trim()) && { opacity: 0.45 }]}
+                disabled={cloudBusy || Boolean(pendingProposal) || !input.trim()}
+                onPress={() => { void askCloudBrain(); }}
+                accessibilityRole="button"
+                accessibilityLabel="Conversar con IA y enviar mensaje y contexto mínimo"
+              >
+                <Text style={styles.cloudButtonText}>{cloudBusy ? 'Consultando IA…' : 'Conversar con IA · enviar'}</Text>
+              </Pressable>
+              {cloudHistory.length > 0 ? (
+                <View style={styles.cloudConversation}>
+                  {cloudHistory.map((turn, index) => (
+                    <View key={index} style={styles.cloudTurn}>
+                      <Text style={styles.cloudSpeaker}>{turn.role === 'user' ? 'TÚ' : 'WEEKFLOW BRAIN'}</Text>
+                      <Text style={styles.cloudReply}>{turn.text}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+              {cloudSuggestion ? (
+                <View style={styles.cloudSuggestion}>
+                  <Text style={styles.cloudReply}>La IA sugiere revisar: {brainSuggestionLabel(cloudSuggestion)}</Text>
+                  <Pressable style={styles.reviewExitButton} onPress={() => {
+                    const command = brainSuggestionToLocalCommand(cloudSuggestion);
+                    setCloudSuggestion(null);
+                    if (command) interpret(command);
+                  }}>
+                    <Text style={styles.reviewExitButtonText}>Revisar propuesta en WeekFlow →</Text>
+                  </Pressable>
+                </View>
+              ) : null}
+              {cloudError ? <Text style={styles.assistantMessage}>{cloudError}</Text> : null}
+            </View>
+          ) : null}
           {assistantMessage ? <Text style={styles.assistantMessage}>{assistantMessage}</Text> : null}
           {context.needsExitReview && !pendingProposal ? (
             <Pressable
@@ -187,6 +262,15 @@ const styles = StyleSheet.create({
   interpretButton: { alignSelf: 'flex-start', marginTop: 12, backgroundColor: '#245D9C', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14 },
   interpretButtonText: { color: '#FFFFFF', fontWeight: '900', fontSize: 13 },
   assistantMessage: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 10 },
+  cloudArea: { marginTop: 15, borderTopWidth: 1, borderColor: colors.line, paddingTop: 12 },
+  cloudNotice: { color: colors.muted, fontSize: 11, lineHeight: 17 },
+  cloudButton: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center', marginTop: 10, backgroundColor: '#245D9C', paddingHorizontal: 14, borderRadius: 14 },
+  cloudButtonText: { color: '#FFFFFF', fontWeight: '800', fontSize: 13 },
+  cloudConversation: { marginTop: 12, gap: 9 },
+  cloudTurn: { backgroundColor: colors.bg, borderRadius: 10, padding: 10 },
+  cloudSpeaker: { color: '#8BBEFF', fontSize: 10, letterSpacing: 1.3, fontWeight: '900' },
+  cloudReply: { color: colors.text, marginTop: 5, fontSize: 13, lineHeight: 19 },
+  cloudSuggestion: { backgroundColor: colors.bg, borderRadius: 10, padding: 10, marginTop: 10 },
   reviewExitButton: { alignSelf: 'flex-start', marginTop: 8, minHeight: 44, justifyContent: 'center', paddingVertical: 8, paddingRight: 12 },
   reviewExitButtonText: { color: '#8BBEFF', fontWeight: '800', fontSize: 13 },
   undoButton: { alignSelf: 'flex-start', marginTop: 8, minHeight: 44, justifyContent: 'center', paddingVertical: 8, paddingRight: 12 },
