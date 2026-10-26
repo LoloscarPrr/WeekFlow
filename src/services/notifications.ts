@@ -12,6 +12,11 @@ import {
   type SmartSilenceReminderKind,
 } from '@/src/notifications/smartSilence';
 import { loadDayState, loadWeekState } from '@/src/state/persistence';
+import {
+  isLegacyEquivalent,
+  logicalReminderId,
+  reconcileScheduledReminders,
+} from '@/src/notifications/reconciliation';
 
 export const WEEKFLOW_NOTIFICATION_CHANNEL = 'weekflow-reminders-v2';
 
@@ -50,29 +55,6 @@ export async function initializeNotifications(): Promise<boolean> {
   return requested.granted;
 }
 
-function logicalReminderId(notification: Notifications.NotificationRequest) {
-  const value = notification.content.data?.weekflowReminderId;
-  return typeof value === 'string' ? value : null;
-}
-
-function notificationDate(notification: Notifications.NotificationRequest): number | null {
-  const trigger = notification.trigger as { date?: number | string | Date } | null;
-  if (!trigger?.date) return null;
-  const value = new Date(trigger.date).getTime();
-  return Number.isFinite(value) ? value : null;
-}
-
-function isLegacyEquivalent(notification: Notifications.NotificationRequest, reminder: WeekFlowReminder) {
-  if (logicalReminderId(notification) !== null) return false;
-  const scheduledAt = notificationDate(notification);
-  if (scheduledAt === null || Math.abs(scheduledAt - reminder.at.getTime()) >= 1000) return false;
-
-  if (notification.content.title === reminder.title && notification.content.body === reminder.body) return true;
-  if (reminder.kind === 'departure' && notification.content.title === 'Tu jornada empieza pronto') return true;
-  if (reminder.kind === 'important' && notification.content.title === 'Momento importante') return true;
-  return false;
-}
-
 async function cancelEquivalentReminder(reminder: WeekFlowReminder): Promise<void> {
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
   const matches = scheduled.filter((notification) => {
@@ -82,10 +64,8 @@ async function cancelEquivalentReminder(reminder: WeekFlowReminder): Promise<voi
   await Promise.all(matches.map((notification) => Notifications.cancelScheduledNotificationAsync(notification.identifier)));
 }
 
-async function scheduleAllowedReminder(reminder: WeekFlowReminder): Promise<string | null> {
+async function scheduleNewReminder(reminder: WeekFlowReminder): Promise<string | null> {
   if (reminder.at.getTime() <= Date.now()) return null;
-
-  await cancelEquivalentReminder(reminder);
 
   return Notifications.scheduleNotificationAsync({
     content: {
@@ -101,6 +81,12 @@ async function scheduleAllowedReminder(reminder: WeekFlowReminder): Promise<stri
       channelId: Platform.OS === 'android' ? WEEKFLOW_NOTIFICATION_CHANNEL : undefined,
     },
   });
+}
+
+async function scheduleAllowedReminder(reminder: WeekFlowReminder): Promise<string | null> {
+  if (reminder.at.getTime() <= Date.now()) return null;
+  await cancelEquivalentReminder(reminder);
+  return scheduleNewReminder(reminder);
 }
 
 export async function scheduleReminder(reminder: WeekFlowReminder): Promise<string | null> {
@@ -185,21 +171,17 @@ async function performLivePlanReminderSync(now: Date): Promise<number> {
   const reminders = [...allReminders.filter(reminder => isReminderKindEnabled(preferences, reminder.kind)), ...habitReminders]
     .filter(reminder => interruptionDecision(preferences, reminder.kind ?? 'general', reminder.at, windows).allowed);
 
-  const desiredIds = new Set(reminders.map((reminder) => reminder.id));
+  // Reconcile once against the native snapshot. Unchanged alarms are kept,
+  // avoiding repeated enumerate/cancel/recreate cycles on every resume.
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  const reconciliation = reconcileScheduledReminders(scheduled, reminders, allReminders);
   await Promise.all(
-    scheduled
-      .filter((notification) => {
-        const id = logicalReminderId(notification);
-        if (id !== null) return !desiredIds.has(id);
-        return allReminders.some((reminder) => isLegacyEquivalent(notification, reminder));
-      })
-      .map((notification) => Notifications.cancelScheduledNotificationAsync(notification.identifier)),
+    reconciliation.cancelIds.map((id) => Notifications.cancelScheduledNotificationAsync(id)),
   );
 
   let scheduledCount = 0;
-  for (const reminder of reminders) {
-    const id = await scheduleAllowedReminder(reminder);
+  for (const reminder of reconciliation.toSchedule) {
+    const id = await scheduleNewReminder(reminder);
     if (id) scheduledCount += 1;
   }
   return scheduledCount;

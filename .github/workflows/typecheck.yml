@@ -23,7 +23,7 @@ jobs:
           package-manager-cache: false
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Typecheck and regression tests
         run: npm run quality
