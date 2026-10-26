@@ -29,6 +29,7 @@ import {
   loadMovePreferences,
   loadActiveMoveSession,
   saveMovePreferences,
+  saveAssistantEnergyMove,
   loadUserProfile,
   loadWeekState,
   moveSessionDoneToday,
@@ -96,6 +97,51 @@ export function useAssistantController() {
 
     const now = new Date();
     const result = interpretAssistantText(input, now);
+    if (result.status === 'energy-move-intent') {
+      if (loadActiveMoveSession()) {
+        setPendingProposal(null);
+        setAssistantMessage('Ya tienes una sesión guiada activa. Termínala antes de cambiar tu energía y el enfoque de Move.');
+        return false;
+      }
+      const dayState = loadDayState();
+      const preferences = loadMovePreferences();
+      const lastRecord = loadMoveHistory()[0];
+      const intensity = recommendMoveIntensity(
+        result.energy,
+        preferences.experience,
+        lastRecord?.feedback,
+        Boolean(lastRecord?.endedEarly),
+      );
+      const candidate = { ...preferences, targetMuscles: result.targetMuscles };
+      const compatible = result.targetMuscles.length
+        ? compatibleTargetedExercises(candidate, intensity)
+        : [];
+      if (result.targetMuscles.length && !compatible.length) {
+        setPendingProposal(null);
+        setAssistantMessage('Con esa energía, equipo y restricciones no hay ejercicios compatibles. No cambié tu energía ni Move.');
+        return false;
+      }
+      const dayKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+      setPendingProposal({
+        id: `assistant-energy-move-${now.getTime()}`,
+        kind: 'set-energy-move',
+        title: 'Ajustar energía y entrenamiento',
+        explanation: `Energía de hoy: ${result.energy}. Move: ${describeTargetMuscles(result.targetMuscles)}. Intensidad adaptada: ${intensity}.` +
+          (result.targetMuscles.length ? ` Encontré ${compatible.length} ejercicios compatibles.` : '') +
+          ' No modificaré tus turnos ni compromisos; confirma ambos cambios juntos.',
+        createdAt: now.toISOString(),
+        requiresConfirmation: true,
+        payload: {
+          energy: result.energy,
+          targetMuscles: result.targetMuscles,
+          dayKey,
+          expectedDayState: dayState,
+          expectedMovePreferences: preferences,
+        },
+      });
+      setAssistantMessage('');
+      return true;
+    }
     if (result.status === 'move-target-intent') {
       if (loadActiveMoveSession()) {
         setPendingProposal(null);
@@ -225,7 +271,7 @@ export function useAssistantController() {
 
   const confirmProposal = useCallback(() => {
     if (!pendingProposal) return false;
-    if (pendingProposal.kind === 'set-move-target' && loadActiveMoveSession()) {
+    if ((pendingProposal.kind === 'set-move-target' || pendingProposal.kind === 'set-energy-move') && loadActiveMoveSession()) {
       setPendingProposal(null);
       setAssistantMessage('Se inició una sesión Move antes de confirmar. No cambié el objetivo.');
       return false;
@@ -265,7 +311,9 @@ export function useAssistantController() {
       return false;
     }
 
-    if (pendingProposal.kind === 'set-move-target') {
+    if (pendingProposal.kind === 'set-energy-move') {
+      saveAssistantEnergyMove(result.state.dayState, result.state.movePreferences!);
+    } else if (pendingProposal.kind === 'set-move-target') {
       saveMovePreferences(result.state.movePreferences!);
     } else if (pendingProposal.kind === 'log-food-entry') {
       const record = result.state.foodDay?.entries.find((entry) => entry.id === pendingProposal.id);
@@ -288,7 +336,9 @@ export function useAssistantController() {
         now,
       })
       : null;
-    setAssistantMessage(pendingProposal.kind === 'set-move-target'
+    setAssistantMessage(pendingProposal.kind === 'set-energy-move'
+      ? 'Energía de hoy registrada: ' + pendingProposal.payload.energy + '. Move: ' + describeTargetMuscles(pendingProposal.payload.targetMuscles) + '. Abre Move para revisar y comenzar.'
+      : pendingProposal.kind === 'set-move-target'
       ? 'Move preparado: ' + describeTargetMuscles(pendingProposal.payload.targetMuscles) + '. Abre Move para revisar y empezar la sesión.'
       : pendingProposal.kind === 'record-actual-exit'
       ? afterView?.exitImpact
@@ -309,6 +359,10 @@ export function useAssistantController() {
 
   const undoLastChange = useCallback(() => {
     if (!lastReceipt) return false;
+    if ((lastReceipt.before.target === 'move-preferences' || lastReceipt.before.target === 'day-move') && loadActiveMoveSession()) {
+      setAssistantMessage('No puedo deshacer el enfoque Move durante una sesión activa. Termínala antes.');
+      return false;
+    }
 
     const recordDate = new Date(lastReceipt.appliedAt);
     const state = {
@@ -326,7 +380,9 @@ export function useAssistantController() {
       return false;
     }
 
-    if (lastReceipt.before.target === 'move-preferences') {
+    if (lastReceipt.before.target === 'day-move') {
+      saveAssistantEnergyMove(result.state.dayState, result.state.movePreferences!);
+    } else if (lastReceipt.before.target === 'move-preferences') {
       saveMovePreferences(result.state.movePreferences!);
     } else if (lastReceipt.before.target === 'food-day') {
       // This removes only the confirmed manual entry, never other Food entries.
