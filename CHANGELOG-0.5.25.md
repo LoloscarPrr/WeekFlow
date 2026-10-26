@@ -10,7 +10,7 @@
 - Regresiones automáticas de contrato y flujo de seguridad; política de privacidad actualizada.
 
 ## Importante
-La versión **NO habilita todavía** la IA online. El Supabase WeekFlow está inactivo, no se configuró ninguna clave OpenAI y no se ejecutaron solicitudes facturables. El botón solo será visible en un APK compilado tras establecer el endpoint, la función, el presupuesto y las cuotas verificadas. «Interpretar» local se conserva íntegro.
+La versión **NO habilita todavía** la IA online. Supabase WeekFlow está restaurándose en el plan Free; la función fue desplegada con IA desactivada. No se configuró ninguna clave OpenAI ni se ejecutaron solicitudes facturables. El botón solo será visible en un APK compilado tras establecer el endpoint, la función, el presupuesto y las cuotas verificadas. «Interpretar» local se conserva íntegro.
 
 ## Próximos hitos
 Restauración autorizada (tras presupuesto), SQL/rate limit, secretos, despliegue, configuración GitHub, QA real, publicación de APK con IA conectada. Guía: `docs/specs/WF-BRAIN-011-cloud-conversation.md`.
