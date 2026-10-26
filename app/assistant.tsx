@@ -95,7 +95,7 @@ export default function AssistantScreen() {
           <TextInput
             value={input}
             onChangeText={setInput}
-            placeholder="Ej: ¿ya entrené hoy?"
+            placeholder="Ej: ¿Me conviene entrenar hoy?"
             placeholderTextColor={colors.muted}
             multiline
             style={styles.input}
@@ -109,6 +109,14 @@ export default function AssistantScreen() {
             disabled={!input.trim()}
           >
             <Text style={styles.interpretButtonText}>Interpretar</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Consultar prioridades de hoy sin conexión"
+            style={styles.reviewExitButton}
+            onPress={() => { interpret('¿Qué priorizo hoy?'); setInput(''); }}
+          >
+            <Text style={styles.reviewExitButtonText}>¿Qué priorizo hoy? · Sin conexión</Text>
           </Pressable>
           {brainCloudConfigured ? (
             <View style={styles.cloudArea}>
