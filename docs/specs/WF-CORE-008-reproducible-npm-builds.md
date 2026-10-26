@@ -1,6 +1,6 @@
 # WF-CORE-008 — Builds npm reproducibles
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Blueprint: WeekFlow Blueprint Maestro v4.0
 Approved scope: optimización técnica de la auditoría · 2026-10-26
@@ -26,11 +26,11 @@ Un lockfile verificado fija las resoluciones; ambas pipelines instalan exactamen
 - Cambiar la versión pública de la app.
 
 ## Acceptance criteria
-- [ ] AC1 — `package-lock.json` existe, coincide con manifest y fue generado por npm.
+- [x] AC1 — `package-lock.json` existe, coincide con manifest y fue generado por npm.
 - [ ] AC2 — `npm ci` ejecuta Quality (typecheck + tests) en PR.
 - [ ] AC3 — Pipeline Android usa `npm ci` y puede generar APK/AAB firmados.
-- [ ] AC4 — No se modifica `package.json` fuera del script de pruebas ya alterado por WF-NOTIFY-005 ni ninguna dependencia directa.
-- [ ] AC5 — Workflow temporal de bootstrapping retirado del branch antes de merge.
+- [x] AC4 — No se modifica `package.json` fuera del script de pruebas ya alterado por WF-NOTIFY-005 ni ninguna dependencia directa.
+- [x] AC5 — Workflow temporal de bootstrapping retirado del branch antes de merge.
 
 ## Data / persistence impact
 None. No hay cambio en SQLite, migraciones ni estado del usuario.
@@ -50,8 +50,9 @@ None.
 - [ ] Verificar diff de `package.json` y retiro de workflow temporal.
 
 ## Verification result
-- AC1: PENDING
-- AC2: PENDING
-- AC3: PENDING
-- AC4: PENDING
-- AC5: PENDING
+- AC1: PASS — GitHub Actions bootstrap #40350557639 generó lockfile v3 para WeekFlow 0.5.25; `npm ci --ignore-scripts` completó con éxito.
+- AC2: PENDING — falta Quality del PR con npm ci completo.
+- AC3: BLOCKED — build Android firmado posterior a merge no ejecutado para esta rama.
+- AC4: PASS — dependencias directas y versión técnica de main 0.5.25 conservadas; solo se inserta nuevo test en npm script.
+- AC5: PASS — eliminado `.github/workflows/bootstrap-lockfile.yml` del branch.
+- Nota: `.npmrc` fija `legacy-peer-deps=true` por conflicto de react-dom opcional y React native 19.2.3; revaluar al actualizar el stack.
