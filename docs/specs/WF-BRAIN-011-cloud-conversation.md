@@ -12,7 +12,7 @@ Dejar de depender exclusivamente de frases rígidas. Activar, cuando infraestruc
 - Política de privacidad ampliada. Quality CI incluye contrato y seguridad estructural.
 
 ## Estado de infraestructura
-Se solicitó la restauración del proyecto Supabase `fkgccemweaqkdrjozgml` (organización LifeFlow, **plan Free**); Supabase indicó **COMING_UP** en la última comprobación. La función `brain-chat` fue desplegada como **ACTIVE** (versión 1) pero permanece desactivada para OpenAI por ausencia de opt-in/credenciales. La migración `brain_chat_daily_quota_v1` fue registrada; ejecutar SQL de verificación en cuanto la base esté accesible. No se introdujo `OPENAI_API_KEY` y no hubo llamadas facturables. El APK no incluye secretos y la función devuelve 503 salvo configuración completa.
+El proyecto Supabase `fkgccemweaqkdrjozgml` (organización LifeFlow, plan **Free**) fue restaurado y llegó a **ACTIVE_HEALTHY**. La función `brain-chat` está desplegada en versión 1 (ACTIVE), pero OpenAI sigue apagado por falta de habilitación explícita/clave. Tras estabilizar el proyecto se aplicó de nuevo la migración `brain_chat_daily_quota_v1` y se verificó: RLS habilitado, anon/authenticated sin SELECT ni EXECUTE y service_role autorizado. Pruebas transaccionales reversibles: 12 solicitudes por cuenta aceptadas + 13ª rechazada; 120 globales aceptadas + 121ª rechazada. No se introdujo `OPENAI_API_KEY` ni hubo llamadas facturables. El APK no incluye secretos.
 
 ## Activación con autorización y presupuesto
 1. Confirmar presupuesto/cuotas de OpenAI API y límites de la organización Supabase Free con quien pague el servicio. Supabase aceptó la restauración en Free, sin contratar Pro. Un límite diario de solicitudes **no sustituye** un límite de gasto monetario.
