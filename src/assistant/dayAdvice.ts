@@ -15,7 +15,7 @@ function normalized(input: string) {
 
 export function interpretDayAdviceQuestion(input: string): DayAdviceQuestion | null {
   const text = normalized(input);
-  if (!text || /\b(manana|pasado manana|ayer|anteayer|lunes|martes|miercoles|jueves|viernes|sabado|domingo)\b/.test(text)) return null;
+  if (!text || /\b(manana|pasado manana|ayer|anteayer|lunes|martes|miercoles|jueves|viernes|sabado|domingo|semana|semanal)\b/.test(text)) return null;
   if (/\b(cambia|cambiar|modifica|registrar|registra|mueve|programa|agendar|agendame|ponme|hazme|preparame|armame|salgo|sali|entro)\b/.test(text)) return null;
   // No absorber pedidos de rutinas específicas o mensajes con datos nuevos.
   if (/\b(quiero entrenar|quiero ejercitar|rutina de|ejercicios de|estoy cansad[oa]|estoy agotad[oa])\b/.test(text)) return null;
