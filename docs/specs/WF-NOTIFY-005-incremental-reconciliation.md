@@ -1,6 +1,6 @@
 # WF-NOTIFY-005 — Sincronización incremental de recordatorios
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Blueprint: WeekFlow Blueprint Maestro v4.0
 Approved scope: optimización técnica sin cambio de comportamiento visible · 2026-10-26
@@ -26,11 +26,11 @@ Una sincronización lee las solicitudes nativas una vez; conserva exactamente un
 - Generar package-lock sin un entorno de resolución verificable.
 
 ## Acceptance criteria
-- [ ] AC1 — Plan sin cambios conserva solicitud equivalente y no genera reprogramaciones.
-- [ ] AC2 — Duplicados por ID conservan solo un ejemplar; modificaciones de fecha/texto/categoría reemplazan el anterior.
-- [ ] AC3 — Recordatorios retirados del plan se cancelan y solicitudes no reconocidas como WeekFlow se conservan.
-- [ ] AC4 — Solicitudes legacy equivalentes se eliminan, incluyendo las de categorías desactivadas cuando el plan canónico aún las identifica.
-- [ ] AC5 — Una sincronización completa consulta `getAllScheduledNotificationsAsync` solo una vez sin alterar cola/permiso/preferencias/smart silence.
+- [x] AC1 — Plan sin cambios conserva solicitud equivalente y no genera reprogramaciones.
+- [x] AC2 — Duplicados por ID conservan solo un ejemplar; modificaciones de fecha/texto/categoría reemplazan el anterior.
+- [x] AC3 — Recordatorios retirados del plan se cancelan y solicitudes no reconocidas como WeekFlow se conservan.
+- [x] AC4 — Solicitudes legacy equivalentes se eliminan, incluyendo las de categorías desactivadas cuando el plan canónico aún las identifica.
+- [x] AC5 — Una sincronización completa consulta `getAllScheduledNotificationsAsync` solo una vez sin alterar cola/permiso/preferencias/smart silence.
 - [ ] AC6 — Quality (typecheck + regresiones) pasa; Android signed build verificado cuando esté disponible.
 
 ## Data / persistence impact
@@ -58,9 +58,10 @@ None. Se conservan la programación, títulos, textos, preferencias y permisos e
 Decisiones de implementación en PR; conservar el armado canónico del plan y la cola de serialización.
 
 ## Verification result
-- AC1: PENDING
-- AC2: PENDING
-- AC3: PENDING
-- AC4: PENDING
-- AC5: PENDING
-- AC6: PENDING
+- AC1: PASS — pruebas puras comprueban que se conserva el aviso nativo idéntico.
+- AC2: PASS — pruebas puras comprueban deduplicación y reemplazo de fecha, título, cuerpo y categoría.
+- AC3: PASS — pruebas verifican cancelación de obsoletos y preservación de solicitudes desconocidas.
+- AC4: PASS — pruebas cubren legacy equivalentes y categorías desactivadas.
+- AC5: PASS — revisión estática: performLivePlanReminderSync hace una consulta nativa y `scheduleNewReminder` no reenumera.
+- AC6: PARTIAL — Quality pasó en v0.5.24 (#40349197233); revalidación v0.5.25 pendiente. Android signed build de este PR pendiente de integración.
+- QA física: NOT RUN; requiere confirmación en dispositivo.
