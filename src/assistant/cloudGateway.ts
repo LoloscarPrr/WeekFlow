@@ -8,7 +8,19 @@ import {
 } from './cloudContract';
 
 const endpoint = (process.env.EXPO_PUBLIC_WEEKFLOW_BRAIN_URL ?? '').trim();
-export const brainCloudConfigured = /^https:\/\/[^\s]+$/i.test(endpoint);
+// Pin the service to this WeekFlow Supabase function to avoid ever forwarding
+// a Firebase user token to an unexpected URL from a misconfigured build.
+export function isValidBrainEndpoint(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && url.hostname === 'fkgccemweaqkdrjozgml.supabase.co'
+      && url.pathname === '/functions/v1/brain-chat'
+      && !url.search && !url.hash && !url.username && !url.password;
+  } catch {
+    return false;
+  }
+}
+export const brainCloudConfigured = isValidBrainEndpoint(endpoint);
 
 export async function requestBrainChat(input: {
   endpoint: string;
@@ -18,7 +30,7 @@ export async function requestBrainChat(input: {
   history: BrainChatTurn[];
   fetcher?: typeof fetch;
 }): Promise<BrainChatResult> {
-  if (!/^https:\/\/[^\s]+$/i.test(input.endpoint)) throw new Error('La IA conversacional no está configurada.');
+  if (!isValidBrainEndpoint(input.endpoint)) throw new Error('El endpoint oficial de IA conversacional no está configurado.');
   const message = input.message.trim();
   if (!input.idToken || !message || message.length > 1000) throw new Error('Inicia sesión y envía un mensaje de hasta 1000 caracteres.');
   const abort = new AbortController();
