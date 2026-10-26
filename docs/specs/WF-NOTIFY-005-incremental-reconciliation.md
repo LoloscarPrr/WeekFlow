@@ -1,6 +1,6 @@
 # WF-NOTIFY-005 — Sincronización incremental de recordatorios
 
-Status: VERIFYING
+Status: DONE
 Owner: WeekFlow
 Blueprint: WeekFlow Blueprint Maestro v4.0
 Approved scope: optimización técnica sin cambio de comportamiento visible · 2026-10-26
@@ -63,5 +63,5 @@ Decisiones de implementación en PR; conservar el armado canónico del plan y la
 - AC3: PASS — pruebas verifican cancelación de obsoletos y preservación de solicitudes desconocidas.
 - AC4: PASS — pruebas cubren legacy equivalentes y categorías desactivadas.
 - AC5: PASS — revisión estática: performLivePlanReminderSync hace una consulta nativa y `scheduleNewReminder` no reenumera.
-- AC6: PARTIAL — Quality pasó en v0.5.24 (#40349197233); revalidación v0.5.25 pendiente. Android signed build de este PR pendiente de integración.
-- QA física: NOT RUN; requiere confirmación en dispositivo.
+- AC6: PASS Quality — v0.5.25 PR run #40350975986 pasó después de migrar a npm ci. BLOCKED Android — compilación firmada nueva solo se dispara tras merge a main; no se declara APK verificado sin su resultado.
+- QA física: BLOCKED — no hubo prueba manual en dispositivo en esta sesión.
