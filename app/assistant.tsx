@@ -88,7 +88,7 @@ export default function AssistantScreen() {
               <Text style={styles.reviewExitButtonText}>Revisar reajuste en Ahora →</Text>
             </Pressable>
           ) : null}
-          {lastReceipt?.kind === 'set-move-target' && !pendingProposal ? (
+          {(lastReceipt?.kind === 'set-move-target' || lastReceipt?.kind === 'set-energy-move') && !pendingProposal ? (
             <Pressable
               style={styles.reviewExitButton}
               accessibilityRole="button"
