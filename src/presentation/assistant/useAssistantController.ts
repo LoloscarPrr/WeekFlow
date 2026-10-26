@@ -129,6 +129,14 @@ export function useAssistantController() {
       return 'answered' as const;
     }
 
+    // Una pregunta desconocida nunca debe convertirse accidentalmente en
+    // un registro de energía, comida o cambio de turno.
+    if (/[¿?]/.test(input)) {
+      setPendingProposal(null);
+      setAssistantMessage('No interpreté esta pregunta como un cambio. Por ahora puedo orientarte sobre tu día, entrenamiento y descanso, o consultar el estado de los pilares.');
+      return 'answered' as const;
+    }
+
     const now = new Date();
     const result = interpretAssistantText(input, now);
     if (result.status === 'energy-move-intent') {
