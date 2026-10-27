@@ -173,6 +173,9 @@ jobs:
       - name: Run release quality gate
         run: npm run quality
 
+      - name: Smoke-test Android Metro bundle
+        run: npx expo export --platform android --output-dir "${RUNNER_TEMP}/weekflow-bundle-smoke" --clear
+
       - name: Install lightweight brand image dependency
         run: python3 -m pip install --user --disable-pip-version-check Pillow
 
