@@ -3,6 +3,7 @@ import { compatibleTargetedExercises } from './library';
 import { KeyboardAwareTextInput as TextInput } from '@/src/components/KeyboardAwareScrollView';
 import { useState } from 'react';
 import { router } from 'expo-router';
+import { loadConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
 import { Pressable, Text, View } from 'react-native';
 import {
   MOVE_AVOID_AREA_OPTIONS,
@@ -96,6 +97,8 @@ export function MovePlan({ move }: { move: MoveController }) {
     preferences,
     setFocus,
     setTargetMuscles,
+    setWeeklyTargetSessions,
+    setPreferredSessionMinutes,
     setExperience,
     setGoal,
     setTrainingStyle,
@@ -119,9 +122,27 @@ export function MovePlan({ move }: { move: MoveController }) {
   const goalLabel = optionLabel(MOVE_GOAL_OPTIONS, preferences.goal);
   const experienceLabel = optionLabel(MOVE_EXPERIENCE_OPTIONS, preferences.experience);
   const hasCompatibleTarget = !preferences.targetMuscles.length || compatibleTargetedExercises(preferences, adaptiveIntensity).length > 0;
+  const plannedMove = (loadConfirmedWeeklyPlan()?.moveSlots ?? [])
+    .find(slot => new Date(slot.date + 'T' + slot.start + ':00').getTime() >= Date.now());
 
   return (
     <>
+      {plannedMove ? (
+        <View style={styles.recommendCard}>
+          <Text style={styles.smallLabel}>SESIÓN CONFIRMADA · PILAR MOVE</Text>
+          <Text style={styles.recommendTitle}>{plannedMove.date} · {plannedMove.start}–{plannedMove.end}</Text>
+          <Text style={styles.preferenceCopy}>{plannedMove.muscles} · {plannedMove.durationMin} min · intensidad orientativa {plannedMove.intensity}</Text>
+          <Text style={styles.preferenceCopy}>Brain reservó este momento en Semana. Al entrenar, Move recalcula intensidad y ejercicios con tu energía real.</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Usar la duración de la sesión semanal Move"
+            style={styles.recommendUseButton}
+            onPress={() => setDuration(plannedMove.durationMin)}
+          >
+            <Text style={styles.recommendUseText}>Preparar {plannedMove.durationMin} min en Move</Text>
+          </Pressable>
+        </View>
+      ) : null}
       {doneToday && !extraOpen && lastRecord ? (
         <View style={styles.doneTodayCard}>
           <Text style={styles.doneTodayIcon}>✓</Text>
@@ -305,6 +326,43 @@ export function MovePlan({ move }: { move: MoveController }) {
                 return (
                   <Pressable key={item.value} style={[styles.profileChip, active && styles.profileChipActive]} onPress={() => setFocus(item.value)}>
                     <Text style={[styles.profileChipText, active && styles.profileChipTextActive]}>{item.icon} {item.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <Text style={styles.smallLabel}>Plan semanal de Move · pilar independiente de Hábitos</Text>
+            <Text style={styles.preferenceCopy}>Elige cuántas sesiones quieres que Brain distribuya entre tus turnos y descanso. No necesitas crear el hábito «Ejercicios».</Text>
+            <View style={styles.profileChips}>
+              {[0, 1, 2, 3, 4, 5].map((count) => {
+                const selected = preferences.weeklyTargetSessions === count;
+                return (
+                  <Pressable
+                    key={count}
+                    accessibilityRole="button"
+                    accessibilityLabel={count === 0 ? 'No programar Move' : `Programar ${count} sesiones de Move por semana`}
+                    disabled={Boolean(move.activeSession)}
+                    style={[styles.profileChip, selected && styles.profileChipActive]}
+                    onPress={() => setWeeklyTargetSessions(count)}
+                  >
+                    <Text style={[styles.profileChipText, selected && styles.profileChipTextActive]}>{count === 0 ? 'Sin plan' : `${count}/sem`}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Text style={styles.smallLabel}>Duración preferida de la semana</Text>
+            <View style={styles.profileChips}>
+              {([30, 45, 60] as const).map((minutes) => {
+                const selected = preferences.preferredSessionMinutes === minutes;
+                return (
+                  <Pressable
+                    key={minutes}
+                    accessibilityRole="button"
+                    disabled={Boolean(move.activeSession)}
+                    style={[styles.profileChip, selected && styles.profileChipActive]}
+                    onPress={() => setPreferredSessionMinutes(minutes)}
+                  >
+                    <Text style={[styles.profileChipText, selected && styles.profileChipTextActive]}>{minutes} min</Text>
                   </Pressable>
                 );
               })}

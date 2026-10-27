@@ -11,7 +11,7 @@ import {
   interruptionDecision,
   type SmartSilenceReminderKind,
 } from '@/src/notifications/smartSilence';
-import { loadDayState, loadWeekState } from '@/src/state/persistence';
+import { loadDayState, loadWeekState, loadMoveHistory } from '@/src/state/persistence';
 import {
   isLegacyEquivalent,
   logicalReminderId,
@@ -167,8 +167,31 @@ async function performLivePlanReminderSync(now: Date): Promise<number> {
       at, kind: 'general' as const,
     }];
   });
+  // Move is a separate pillar, not a fictitious Habit. Respect native
+  // notification preferences and do not duplicate generic daily Move alerts.
+  const doneDates = new Set(loadMoveHistory()
+    .filter(item => !item.endedEarly)
+    .map(item => new Date(item.finishedAt).toDateString()));
+  const moveReminders: WeekFlowReminder[] = (confirmed?.moveSlots ?? []).flatMap(slot => {
+    const at = new Date(slot.date + 'T' + slot.start + ':00');
+    if (Number.isNaN(at.getTime()) || at <= now || at.getTime() > now.getTime() + 14 * 86400000
+      || doneDates.has(at.toDateString())) return [];
+    return [{
+      id: 'weekly-move-' + slot.id,
+      title: '🏃 Move · sesión programada',
+      body: slot.durationMin + ' min de entrenamiento planificado. Revisa tu energía real antes de empezar.',
+      at,
+      kind: 'move' as const,
+    }];
+  });
   const windows = buildProtectedRestWindows(dayState, weekState, now);
-  const reminders = [...allReminders.filter(reminder => isReminderKindEnabled(preferences, reminder.kind)), ...habitReminders]
+  const reminders = [
+    ...allReminders.filter(reminder => isReminderKindEnabled(preferences, reminder.kind)),
+    ...habitReminders,
+    // Confirming a weekly plan opts into its reminders; Smart Silence still
+    // suppresses Move during protected sleep windows.
+    ...moveReminders,
+  ]
     .filter(reminder => interruptionDecision(preferences, reminder.kind ?? 'general', reminder.at, windows).allowed);
 
   // Reconcile once against the native snapshot. Unchanged alarms are kept,

@@ -100,9 +100,9 @@ export function useAssistantController() {
     if (weekly) {
       const now = new Date();
       const habits = loadHabitsState();
-      if (!habits.habits.some((habit) => habit.active)) {
+      if (!habits.habits.some((habit) => habit.active) && loadMovePreferences().weeklyTargetSessions === 0) {
         setPendingProposal(null);
-        setAssistantMessage('No tienes hábitos activos que distribuir. Agrégalos en Hábitos y vuelve a pedirme una planificación semanal.');
+        setAssistantMessage('No tienes hábitos activos ni sesiones Move semanales configuradas. Define tu objetivo semanal en Move y vuelve a pedirme una planificación.');
         return 'answered' as const;
       }
       const dayState = loadDayState();
@@ -114,11 +114,12 @@ export function useAssistantController() {
         energyByDate: loadDailyEnergy(),
         now,
         weekOffset: weekly.weekOffset,
+        move: { preferences: loadMovePreferences(), history: loadMoveHistory() },
       });
       setPendingProposal(null);
       setPreviousConfirmedWeekly(loadConfirmedWeeklyPlan());
       setPendingWeekly(proposal);
-      setAssistantMessage('Esta es una propuesta de distribución de hábitos. Revisa cada sesión y las advertencias; no cambié tus turnos, tu descanso ni tus hábitos.');
+      setAssistantMessage('Esta propuesta organiza Move como pilar y Hábitos por separado. Revisa cada sesión y las advertencias antes de confirmar.');
       return 'answered' as const;
     }
     const question = interpretAssistantQuestion(input);
@@ -361,8 +362,9 @@ export function useAssistantController() {
     setPreviousConfirmedWeekly(null);
     setLastReceipt(null);
     setContext(readAssistantContext());
-    setAssistantMessage('Plan semanal confirmado: ' + result.plan.slots.length
-      + ' sesiones de hábitos. No se modificaron los turnos ni las horas protegidas de descanso.');
+    setAssistantMessage('Plan semanal confirmado: ' + (result.plan.moveSlots?.length ?? 0)
+      + ' sesiones Move y ' + result.plan.slots.length
+      + ' actividades de Hábitos. No se modificaron los turnos ni las horas protegidas de descanso.');
     void syncLivePlanReminders().catch(error => {
       console.warn('Could not refresh WeekFlow reminders after weekly plan confirmation', error);
     });

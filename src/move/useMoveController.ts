@@ -204,6 +204,16 @@ export function useMoveController() {
     updatePreferences({ ...preferences, targetMuscles: sanitizeTargetMuscles(next) });
   }
 
+  function setWeeklyTargetSessions(value: number) {
+    if (activeSession || !Number.isInteger(value) || value < 0 || value > 5) return;
+    updatePreferences({ ...preferences, weeklyTargetSessions: value });
+  }
+
+  function setPreferredSessionMinutes(value: 30 | 45 | 60) {
+    if (activeSession) return;
+    updatePreferences({ ...preferences, preferredSessionMinutes: value });
+  }
+
   function setFocus(focus: MoveFocus) {
     updatePreferences({ ...preferences, focus });
   }
@@ -467,6 +477,8 @@ export function useMoveController() {
     preferences,
     setFocus,
     setTargetMuscles,
+    setWeeklyTargetSessions,
+    setPreferredSessionMinutes,
     setExperience,
     setGoal,
     setTrainingStyle,
