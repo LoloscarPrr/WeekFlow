@@ -220,12 +220,26 @@ export default function AssistantScreen() {
             <Text style={styles.proposalLabel}>PROPUESTA SEMANAL · SOLO HÁBITOS</Text>
             <Text style={styles.proposalTitle}>Semana del {pendingWeekly.weekStart}</Text>
             <Text style={styles.proposalBody}>
-              {pendingWeekly.slots.length} sesiones sugeridas. No cambia turnos laborales, horas de sueño ni compromisos existentes.
+              {pendingWeekly.moveSlots.length} sesiones Move y {pendingWeekly.slots.length} actividades de Hábitos sugeridas. No cambia turnos laborales, horas de sueño ni compromisos existentes.
               {pendingWeekly.shortfalls.length ? ' No todos los objetivos caben de manera segura.' : ''}
             </Text>
-            {pendingWeekly.slots.length === 0 ? (
+            {pendingWeekly.slots.length === 0 && pendingWeekly.moveSlots.length === 0 ? (
               <Text style={styles.proposalBody}>No se encontraron sesiones compatibles. Puedes descartar esta propuesta.</Text>
             ) : null}
+            {pendingWeekly.moveSummary ? (
+              <Text style={styles.proposalBody}>
+                🏃 Move · {pendingWeekly.moveSummary.completed + pendingWeekly.moveSummary.scheduled}/{pendingWeekly.moveSummary.requested} sesiones cubiertas
+              </Text>
+            ) : null}
+            {pendingWeekly.moveSlots.map(slot => (
+              <View style={styles.weeklySlot} key={slot.id}>
+                <Text style={styles.weeklySlotTitle}>🏃 Move · {slot.date} · {slot.start}–{slot.end}</Text>
+                <Text style={styles.proposalBody}>{slot.muscles} · {slot.durationMin} min · {slot.intensity}</Text>
+                <Text style={styles.proposalBody}>{slot.sampleExercises.join(' · ')}</Text>
+                <Text style={styles.proposalBody}>{slot.explanation}</Text>
+              </View>
+            ))}
+            <Text style={styles.proposalBody}>🌱 Hábitos · {pendingWeekly.slots.length} actividades propuestas</Text>
             {pendingWeekly.slots.map(slot => (
               <View style={styles.weeklySlot} key={slot.id}>
                 <Text style={styles.weeklySlotTitle}>{slot.date} · {slot.start}–{slot.end}</Text>
@@ -242,15 +256,15 @@ export default function AssistantScreen() {
               <Text style={styles.weeklyWarning} key={index}>• {warning}</Text>
             ))}
             <Text style={styles.proposalBody}>
-              Confirmar reemplaza únicamente el plan semanal de hábitos guardado. Puedes deshacerlo si ningún otro módulo lo modificó después.
+              Confirmar reemplaza el plan semanal de Move y Hábitos guardado. Puedes deshacerlo si ningún otro módulo lo modificó después.
             </Text>
             <View style={styles.proposalActions}>
               <Pressable style={styles.cancelButton} onPress={cancelWeekly}>
                 <Text style={styles.cancelButtonText}>Descartar</Text>
               </Pressable>
               <Pressable
-                style={[styles.confirmButton, pendingWeekly.slots.length === 0 && { opacity: 0.45 }]}
-                disabled={pendingWeekly.slots.length === 0}
+                style={[styles.confirmButton, (pendingWeekly.slots.length + pendingWeekly.moveSlots.length) === 0 && { opacity: 0.45 }]}
+                disabled={pendingWeekly.slots.length + pendingWeekly.moveSlots.length === 0}
                 onPress={() => { if (confirmWeekly()) setInput(''); }}
               >
                 <Text style={styles.confirmButtonText}>Confirmar semana</Text>
