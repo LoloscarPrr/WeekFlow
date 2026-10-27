@@ -1,6 +1,6 @@
 # WF-CORE-009 — Restore Android release bundling after npm lockfile adoption
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Blueprint: WeekFlow Blueprint Maestro v4.0
 Approved scope: Android build regression repair · 2026-10-26
@@ -27,12 +27,12 @@ The package tree explicitly includes a compatible Expo SDK 57 `expo-linking`, it
 - Broad refactoring or version bump.
 
 ## Acceptance criteria
-- [ ] AC1 — Manifest includes a compatible `expo-linking` direct dependency and lockfile resolves it; lockfile root metadata matches 0.5.26.
-- [ ] AC2 — Fresh `npm ci` resolves `expo-linking` and passes the existing Quality suite.
-- [ ] AC3 — Android Metro bundling succeeds under production parameters.
+- [x] AC1 — Manifest includes a compatible `expo-linking` direct dependency and lockfile resolves it; lockfile root metadata matches 0.5.26.
+- [x] AC2 — Fresh `npm ci` resolves `expo-linking` and passes the existing Quality suite.
+- [x] AC3 — Android Metro bundling succeeds under production parameters.
 - [ ] AC4 — Signed Android build produces both standalone APK and Play AAB on main; existing signing/version code/release behavior is preserved.
-- [ ] AC5 — A guard in Quality fails if required Router dependency is unavailable, and no temporary workflow remains.
-- [ ] AC6 — Application code, stored data schema, UI and all existing user behavior remain unchanged.
+- [x] AC5 — A guard in Quality fails if required Router dependency is unavailable, and no temporary workflow remains.
+- [x] AC6 — Application code, stored data schema, UI and all existing user behavior remain unchanged.
 
 ## Data / persistence impact
 NONE. `weekflow.db`, migration paths, and notification schedule behavior remain untouched.
@@ -54,9 +54,10 @@ NONE. No changes to navigation, onboarding or screen layouts.
 - [ ] Record evidence for each AC.
 
 ## Verification result
-- AC1: PENDING
-- AC2: PENDING
-- AC3: PENDING
-- AC4: PENDING
-- AC5: PENDING
-- AC6: PENDING
+- AC1: PASS — manifest adds `expo-linking: ~57.0.11`; npm resolved SDK-57-compatible 57.0.13; lockfile version and root version are 0.5.26.
+- AC2: PASS — temporary CI #40435194856 performed clean `npm ci` and full `npm run quality`, including new module-resolution and version guard.
+- AC3: PASS — CI #40435194856 ran `expo export:embed` Android production bundler; 1,549 modules bundled successfully to `/tmp/weekflow-android.bundle`.
+- AC4: PENDING — needs signed APK + AAB on `main`; no native release was produced by smoke test.
+- AC5: PASS — `tests/android-bundle-dependencies.test.cjs` executes at start of Quality; generator workflow removed before PR merge.
+- AC6: PASS — diff limited to package manifest, generated lockfile, regression test and TLC docs; app code, database schema, user interface and native signing unchanged.
+- Device QA: NOT RUN — no physical Android test in this session.
