@@ -95,6 +95,9 @@ export function MovePlan({ move }: { move: MoveController }) {
     extraOpen,
     setExtraOpen,
     preferences,
+    effectivePreferences,
+    preparedWeekly,
+    prepareWeeklySession,
     setFocus,
     setTargetMuscles,
     setWeeklyTargetSessions,
@@ -121,7 +124,7 @@ export function MovePlan({ move }: { move: MoveController }) {
 
   const goalLabel = optionLabel(MOVE_GOAL_OPTIONS, preferences.goal);
   const experienceLabel = optionLabel(MOVE_EXPERIENCE_OPTIONS, preferences.experience);
-  const hasCompatibleTarget = !preferences.targetMuscles.length || compatibleTargetedExercises(preferences, adaptiveIntensity).length > 0;
+  const hasCompatibleTarget = !effectivePreferences.targetMuscles.length || compatibleTargetedExercises(effectivePreferences, adaptiveIntensity).length > 0;
   const plannedMove = (loadConfirmedWeeklyPlan()?.moveSlots ?? [])
     .find(slot => new Date(slot.date + 'T' + slot.start + ':00').getTime() >= Date.now());
 
@@ -132,14 +135,18 @@ export function MovePlan({ move }: { move: MoveController }) {
           <Text style={styles.smallLabel}>SESIÓN CONFIRMADA · PILAR MOVE</Text>
           <Text style={styles.recommendTitle}>{plannedMove.date} · {plannedMove.start}–{plannedMove.end}</Text>
           <Text style={styles.preferenceCopy}>{plannedMove.muscles} · {plannedMove.durationMin} min · intensidad orientativa {plannedMove.intensity}</Text>
-          <Text style={styles.preferenceCopy}>Brain reservó este momento en Semana. Al entrenar, Move recalcula intensidad y ejercicios con tu energía real.</Text>
+          <Text style={styles.preferenceCopy}>Esta sesión tiene su propio enfoque muscular. Al iniciarla, Move recalcula intensidad y ejercicios con tu energía y equipamiento reales.</Text>
+          {preparedWeekly?.id === plannedMove.id ? (
+            <Text style={styles.preferenceCopy}>✓ Preparado: {describeTargetMuscles(effectivePreferences.targetMuscles)}. Revisa la vista previa y toca «Empezar sesión guiada».</Text>
+          ) : null}
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Usar la duración de la sesión semanal Move"
+            accessibilityLabel="Preparar entrenamiento semanal con sus músculos y duración"
+            disabled={Boolean(move.activeSession)}
             style={styles.recommendUseButton}
-            onPress={() => setDuration(plannedMove.durationMin)}
+            onPress={() => prepareWeeklySession(plannedMove)}
           >
-            <Text style={styles.recommendUseText}>Preparar {plannedMove.durationMin} min en Move</Text>
+            <Text style={styles.recommendUseText}>Preparar sesión · {plannedMove.durationMin} min</Text>
           </Pressable>
         </View>
       ) : null}
@@ -368,7 +375,8 @@ export function MovePlan({ move }: { move: MoveController }) {
               })}
             </View>
 
-            <Text style={styles.smallLabel}>Músculos de la sesión · {describeTargetMuscles(preferences.targetMuscles)}</Text>
+            <Text style={styles.smallLabel}>Músculos de la sesión · {describeTargetMuscles(effectivePreferences.targetMuscles)}</Text>
+            {preparedWeekly ? <Text style={styles.preferenceCopy}>Enfoque temporal del plan semanal. No modifica tu perfil general.</Text> : null}
             <View style={styles.profileChips}>
               <Pressable
                 disabled={Boolean(move.activeSession)}
