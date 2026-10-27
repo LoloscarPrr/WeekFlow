@@ -9,7 +9,25 @@ export function confirmedMomentsForNow(plan: ConfirmedWeeklyPlan | null, habits:
   monday.setHours(0, 0, 0, 0);
   monday.setDate(monday.getDate() - (monday.getDay() + 6) % 7);
   if (localHabitDateKey(monday) !== plan.weekStart) return [];
-  return plan.slots.flatMap(slot => {
+  const moveMoments = (plan.moveSlots ?? []).flatMap(slot => {
+    const [year, month, day] = slot.date.split('-').map(Number);
+    const [hour, minute] = slot.start.split(':').map(Number);
+    const at = new Date(year, month - 1, day, hour, minute);
+    if (at < now || Number.isNaN(at.getTime())) return [];
+    return [{
+      at,
+      item: {
+        time: slot.start,
+        dateLabel: slot.date,
+        icon: '🏃',
+        title: 'Move · ' + slot.muscles,
+        detail: slot.durationMin + ' min · ' + slot.intensity + ' · sesión semanal confirmada. Revisa la energía de hoy antes de empezar.',
+        type: 'move' as const,
+        flexible: true,
+      },
+    }];
+  });
+  const habitMoments = plan.slots.flatMap(slot => {
     const habit = habits.habits.find(h => h.id === slot.habitId && h.active);
     if (!habit || habits.completions.some(c => c.habitId === slot.habitId && c.date === slot.date)) return [];
     const [year, month, day] = slot.date.split('-').map(Number);
@@ -29,4 +47,5 @@ export function confirmedMomentsForNow(plan: ConfirmedWeeklyPlan | null, habits:
       },
     }];
   });
+  return [...moveMoments, ...habitMoments];
 }
