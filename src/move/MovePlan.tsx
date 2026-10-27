@@ -3,6 +3,7 @@ import { compatibleTargetedExercises } from './library';
 import { KeyboardAwareTextInput as TextInput } from '@/src/components/KeyboardAwareScrollView';
 import { useState } from 'react';
 import { router } from 'expo-router';
+import { loadConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
 import { Pressable, Text, View } from 'react-native';
 import {
   MOVE_AVOID_AREA_OPTIONS,
@@ -121,9 +122,27 @@ export function MovePlan({ move }: { move: MoveController }) {
   const goalLabel = optionLabel(MOVE_GOAL_OPTIONS, preferences.goal);
   const experienceLabel = optionLabel(MOVE_EXPERIENCE_OPTIONS, preferences.experience);
   const hasCompatibleTarget = !preferences.targetMuscles.length || compatibleTargetedExercises(preferences, adaptiveIntensity).length > 0;
+  const plannedMove = (loadConfirmedWeeklyPlan()?.moveSlots ?? [])
+    .find(slot => new Date(slot.date + 'T' + slot.start + ':00').getTime() >= Date.now());
 
   return (
     <>
+      {plannedMove ? (
+        <View style={styles.recommendCard}>
+          <Text style={styles.smallLabel}>SESIÓN CONFIRMADA · PILAR MOVE</Text>
+          <Text style={styles.recommendTitle}>{plannedMove.date} · {plannedMove.start}–{plannedMove.end}</Text>
+          <Text style={styles.preferenceCopy}>{plannedMove.muscles} · {plannedMove.durationMin} min · intensidad orientativa {plannedMove.intensity}</Text>
+          <Text style={styles.preferenceCopy}>Brain reservó este momento en Semana. Al entrenar, Move recalcula intensidad y ejercicios con tu energía real.</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Usar la duración de la sesión semanal Move"
+            style={styles.recommendUseButton}
+            onPress={() => setDuration(plannedMove.durationMin)}
+          >
+            <Text style={styles.recommendUseText}>Preparar {plannedMove.durationMin} min en Move</Text>
+          </Pressable>
+        </View>
+      ) : null}
       {doneToday && !extraOpen && lastRecord ? (
         <View style={styles.doneTodayCard}>
           <Text style={styles.doneTodayIcon}>✓</Text>
