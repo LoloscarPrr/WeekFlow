@@ -5,7 +5,8 @@ import { localHabitDateKey, completionsThisWeek } from '../habits/core';
 import type { MovePreferences, MoveIntensity } from '../move/adaptation';
 import { recommendMoveIntensity } from '../move/adaptation';
 import { routineForDuration, compatibleTargetedExercises } from '../move/library';
-import { describeTargetMuscles } from '../move/muscles';
+import { describeTargetMuscles, type MoveMuscleGroup } from '../move/muscles';
+import { moveWeeklySplit } from '../move/weeklySplit';
 
 /** Pure preview engine. Never writes to SQLite or changes an existing habit. */
 export type WeeklySlot = {
@@ -27,6 +28,8 @@ export type WeeklyMoveSlot = {
   durationMin: number;
   intensity: MoveIntensity;
   muscles: string;
+  /** Exact target for this session; [] means full-body. Older slots omit it. */
+  targetMuscles?: MoveMuscleGroup[];
   sampleExercises: string[];
   explanation: string;
 };
@@ -203,11 +206,16 @@ export function proposeWeeklyPlan(input: PlannerInput): WeeklyProposal {
       .map(item => localHabitDateKey(new Date(item.finishedAt)))
       .filter(key => key >= mondayKey && key <= sundayKey));
     const remaining = Math.max(0, targetMove - completedDates.size);
+    // Derive slots from the full weekly progression, so completing a workout
+    // does not restart the muscle rotation at push the next time Brain replans.
+    const split = moveWeeklySplit(prefs, targetMove);
     const previousFeedback = input.move.history[0]?.feedback;
     const previousEndedEarly = Boolean(input.move.history[0]?.endedEarly);
     const dayIndex = (key: string) => dates.findIndex(d => localHabitDateKey(d) === key);
     // Move takes priority over flexible habits; completed sessions are immutable.
     for (let n = 0; n < remaining; n++) {
+      const sessionMuscles = split[Math.min(split.length - 1, completedDates.size + n)] ?? prefs.targetMuscles;
+      const sessionPreferences = { ...prefs, targetMuscles: sessionMuscles };
       let best: { index: number; day: Date; start: Date; minutes: number; intensity: MoveIntensity;
         exerciseNames: string[]; score: number } | null = null;
       for (let i = 0; i < 7; i++) {
@@ -224,8 +232,8 @@ export function proposeWeeklyPlan(input: PlannerInput): WeeklyProposal {
           || (shift && shift.type !== 'off'))
           ? 30 : prefs.preferredSessionMinutes;
         const intensity = recommendMoveIntensity(energy, prefs.experience, previousFeedback, previousEndedEarly);
-        if (prefs.targetMuscles.length && !compatibleTargetedExercises(prefs, intensity).length) continue;
-        const routine = routineForDuration(durationMin, prefs, intensity, {
+        if (sessionMuscles.length && !compatibleTargetedExercises(sessionPreferences, intensity).length) continue;
+        const routine = routineForDuration(durationMin, sessionPreferences, intensity, {
           lastFeedback: previousFeedback,
           lastEndedEarly: previousEndedEarly,
           previousExerciseIds: [],
@@ -252,7 +260,8 @@ export function proposeWeeklyPlan(input: PlannerInput): WeeklyProposal {
         date, start: clock(best.start), end: clock(end),
         durationMin: best.minutes,
         intensity: best.intensity,
-        muscles: describeTargetMuscles(prefs.targetMuscles),
+        muscles: describeTargetMuscles(sessionMuscles),
+        targetMuscles: sessionMuscles,
         sampleExercises: best.exerciseNames,
         explanation: 'Move adapta los ejercicios y la intensidad al iniciar, según energía, equipamiento y feedback reales. Hora sugerida; confirma antes de reservar.',
       });
@@ -261,7 +270,7 @@ export function proposeWeeklyPlan(input: PlannerInput): WeeklyProposal {
     if (moveSummary.completed + moveSummary.scheduled < targetMove) {
       warnings.push('Move: no hay espacios seguros suficientes para todas las sesiones del objetivo semanal. Se priorizó el descanso.');
     }
-    if (moveSlots.length) warnings.push('Las sesiones Move usan tu perfil actual como vista previa. La rutina se adapta a tu energía real al comenzar.');
+    if (moveSlots.length) warnings.push('Move distribuye los grupos musculares entre sesiones; al comenzar, la intensidad y los ejercicios se adaptan a tu energía real.');
   }
 
   for (const need of needs) {
