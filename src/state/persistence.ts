@@ -15,6 +15,8 @@ import {
   defaultUserProfile,
   defaultWeekState,
 } from '@/src/domain/defaults';
+import type { MoveMuscleGroup } from '@/src/move/muscles';
+import { sanitizeTargetMuscles } from '@/src/move/muscles';
 import type { DaySettings as DomainDaySettings, DayState } from '@/src/domain/entities/DailyState';
 import type { Shift, WeekSchedule, WeekShift } from '@/src/domain/entities/Shift';
 import type { UserProfile as DomainUserProfile } from '@/src/domain/entities/UserProfile';
@@ -87,6 +89,8 @@ export type MoveSessionRecord = {
   intensity?: MoveIntensity;
   exerciseIds?: string[];
   trainingStyle?: MoveResolvedTrainingStyle;
+  targetMuscles?: MoveMuscleGroup[];
+  scheduledMoveId?: string;
 };
 
 export type ActiveMoveSession = {
@@ -100,6 +104,8 @@ export type ActiveMoveSession = {
   pausedTotalMs: number;
   intensity?: MoveIntensity;
   trainingStyle?: MoveResolvedTrainingStyle;
+  targetMuscles?: MoveMuscleGroup[];
+  scheduledMoveId?: string;
 };
 
 export type { FoodDayRecord, FoodEntry } from '@/src/food/history';
@@ -187,6 +193,8 @@ export function loadActiveMoveSession(): ActiveMoveSession | null {
     pausedTotalMs: typeof parsed.pausedTotalMs === 'number' ? parsed.pausedTotalMs : 0,
     intensity: isMoveIntensity(parsed.intensity) ? parsed.intensity : undefined,
     trainingStyle: isResolvedTrainingStyle(parsed.trainingStyle) ? parsed.trainingStyle : undefined,
+    targetMuscles: Array.isArray(parsed.targetMuscles) ? sanitizeTargetMuscles(parsed.targetMuscles) : undefined,
+    scheduledMoveId: typeof parsed.scheduledMoveId === 'string' ? parsed.scheduledMoveId : undefined,
   };
 }
 
