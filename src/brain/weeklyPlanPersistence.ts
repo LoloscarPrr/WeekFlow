@@ -40,7 +40,7 @@ export function confirmWeeklyProposal(
   const signature = (p: WeeklyProposal) => JSON.stringify({
     weekStart: p.weekStart,
     slots: p.slots.map(s => [s.id, s.date, s.start, s.end, s.variant]),
-    moveSlots: (p.moveSlots ?? []).map(s => [s.id, s.date, s.start, s.end, s.durationMin, s.intensity, s.muscles, s.sampleExercises]),
+    moveSlots: (p.moveSlots ?? []).map(s => [s.id, s.date, s.start, s.end, s.durationMin, s.intensity, s.muscles, s.targetMuscles ?? [], s.sampleExercises]),
     moveSummary: p.moveSummary,
     shortfalls: p.shortfalls,
   });
