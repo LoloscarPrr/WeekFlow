@@ -18,7 +18,13 @@ export function loadConfirmedWeeklyPlan(): ConfirmedWeeklyPlan | null {
  * completions, energy or the current time have made it stale.
  * Store in a separate SQLite key, preserving all existing habit records.
  */
-export function confirmWeeklyProposal(proposal: WeeklyProposal): { ok: boolean; reason?: string; plan?: ConfirmedWeeklyPlan } {
+export function confirmWeeklyProposal(
+  proposal: WeeklyProposal,
+  options: { expectedCurrent?: ConfirmedWeeklyPlan | null } = {},
+): { ok: boolean; reason?: string; plan?: ConfirmedWeeklyPlan } {
+  if ('expectedCurrent' in options && JSON.stringify(loadConfirmedWeeklyPlan()) !== JSON.stringify(options.expectedCurrent)) {
+    return { ok: false, reason: 'Cambió el plan semanal confirmado. Vuelve a revisar antes de reemplazarlo.' };
+  }
   const day = loadDayState();
   const currentMonday = new Date();
   currentMonday.setHours(0, 0, 0, 0);
@@ -43,4 +49,18 @@ export function confirmWeeklyProposal(proposal: WeeklyProposal): { ok: boolean; 
   };
   sqliteStateStore.write(KEY, confirmed);
   return { ok: true, plan: confirmed };
+}
+
+// Undoes only the plan written by this confirmation. Never deletes/reverts a
+// newer plan confirmed from Semana, Hábitos or another Assistant session.
+export function undoConfirmedWeeklyProposal(
+  confirmed: ConfirmedWeeklyPlan,
+  previous: ConfirmedWeeklyPlan | null,
+): { ok: boolean; reason?: string } {
+  if (JSON.stringify(loadConfirmedWeeklyPlan()) !== JSON.stringify(confirmed)) {
+    return { ok: false, reason: 'El plan semanal cambió desde la confirmación. No se deshizo ningún dato nuevo.' };
+  }
+  if (previous) sqliteStateStore.write(KEY, previous);
+  else sqliteStateStore.delete(KEY);
+  return { ok: true };
 }
