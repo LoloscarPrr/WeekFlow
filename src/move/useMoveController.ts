@@ -31,6 +31,8 @@ import {
 } from '@/src/move/adaptation';
 import { alternateExercise, compatibleTargetedExercises, exerciseById, previewForDuration, routineForDuration } from '@/src/move/library';
 import { sanitizeTargetMuscles, type MoveMuscleGroup } from '@/src/move/muscles';
+import { loadConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
+import type { WeeklyMoveSlot } from '@/src/brain/weeklyPlanner';
 import {
   clearMoveRuntime,
   createMoveRuntime,
@@ -99,6 +101,7 @@ export function useMoveController() {
   const [lastRecord, setLastRecord] = useState<MoveSessionRecord | null>(initialRecord);
   const [clockMs, setClockMs] = useState(Date.now());
   const [extraOpen, setExtraOpen] = useState(false);
+  const [preparedWeekly, setPreparedWeekly] = useState<WeeklyMoveSlot | null>(null);
 
   const now = useMemo(() => new Date(clockMs), [clockMs]);
   const todayShift = useMemo(() => shiftForDate(weekState, now), [now, weekState]);
@@ -111,6 +114,13 @@ export function useMoveController() {
     [dayState.energy, lastRecord?.endedEarly, lastRecord?.feedback, preferences.experience],
   );
   const sessionIntensity = activeSession?.intensity ?? adaptiveIntensity;
+  const effectivePreferences = useMemo(
+    () => ({
+      ...preferences,
+      targetMuscles: activeSession?.targetMuscles ?? preparedWeekly?.targetMuscles ?? preferences.targetMuscles,
+    }),
+    [preferences, activeSession?.targetMuscles, preparedWeekly?.targetMuscles],
+  );
   const progressionContext = useMemo(() => ({
     lastFeedback: lastRecord?.feedback,
     lastEndedEarly: Boolean(lastRecord?.endedEarly),
@@ -123,17 +133,17 @@ export function useMoveController() {
   const sessionDuration = activeSession?.plannedMinutes ?? duration;
   const routinePreferences = useMemo(
     () => activeSession?.trainingStyle
-      ? { ...preferences, trainingStyle: activeSession.trainingStyle }
-      : preferences,
-    [activeSession?.trainingStyle, preferences],
+      ? { ...effectivePreferences, trainingStyle: activeSession.trainingStyle }
+      : effectivePreferences,
+    [activeSession?.trainingStyle, effectivePreferences],
   );
   const routine = useMemo(
     () => routineForDuration(sessionDuration, routinePreferences, sessionIntensity, progressionContext),
     [progressionContext, routinePreferences, sessionDuration, sessionIntensity],
   );
   const preview = useMemo(
-    () => previewForDuration(duration, preferences, adaptiveIntensity, progressionContext),
-    [adaptiveIntensity, duration, preferences, progressionContext],
+    () => previewForDuration(duration, effectivePreferences, adaptiveIntensity, progressionContext),
+    [adaptiveIntensity, duration, effectivePreferences, progressionContext],
   );
   const doneToday = useMemo(() => Boolean(lastRecord && localDateKey(new Date(lastRecord.finishedAt)) === localDateKey(now)), [lastRecord, now]);
   const currentStepIndex = Math.min(activeSession?.step ?? 0, routine.steps.length - 1);
@@ -151,6 +161,7 @@ export function useMoveController() {
     setPreferences(loadMovePreferences());
     setLastRecord(record);
     setActiveSession(active);
+    if (active) setPreparedWeekly(null);
     setRuntime(loadMoveRuntime(active?.id));
     if (active) {
       setDuration(active.plannedMinutes);
@@ -201,7 +212,21 @@ export function useMoveController() {
   function setTargetMuscles(next: MoveMuscleGroup[]) {
     // Cambiar el objetivo durante una sesión alteraría los pasos del reproductor.
     if (activeSession) return;
+    setPreparedWeekly(null);
     updatePreferences({ ...preferences, targetMuscles: sanitizeTargetMuscles(next) });
+  }
+
+  function prepareWeeklySession(slot: WeeklyMoveSlot) {
+    if (activeSession) return false;
+    const confirmed = loadConfirmedWeeklyPlan();
+    const saved = (confirmed?.moveSlots ?? []).find(item => item.id === slot.id
+      && item.date === slot.date && item.start === slot.start
+      && item.durationMin === slot.durationMin);
+    if (!saved || ![30, 45, 60].includes(saved.durationMin)) return false;
+    // Legacy plans may not carry typed targets; retain existing preference.
+    setPreparedWeekly(saved);
+    setDuration(saved.durationMin);
+    return true;
   }
 
   function setWeeklyTargetSessions(value: number) {
@@ -282,11 +307,12 @@ export function useMoveController() {
   }
 
   function startSession() {
-    if (preferences.targetMuscles.length && !compatibleTargetedExercises(preferences, adaptiveIntensity).length) return;
+    if (effectivePreferences.targetMuscles.length
+      && !compatibleTargetedExercises(effectivePreferences, adaptiveIntensity).length) return;
     const nowMs = Date.now();
     const id = `${nowMs}`;
     const plannedMinutes = Math.max(30, duration);
-    const selectedRoutine = routineForDuration(plannedMinutes, preferences, adaptiveIntensity, progressionContext);
+    const selectedRoutine = routineForDuration(plannedMinutes, effectivePreferences, adaptiveIntensity, progressionContext);
     const next: ActiveMoveSession = {
       id,
       startedAt: new Date(nowMs).toISOString(),
@@ -298,11 +324,14 @@ export function useMoveController() {
       pausedTotalMs: 0,
       intensity: adaptiveIntensity,
       trainingStyle: selectedRoutine.style,
+      targetMuscles: [...effectivePreferences.targetMuscles],
+      scheduledMoveId: preparedWeekly?.id, 
     };
     const nextRuntime = createMoveRuntime(id, selectedRoutine.id, new Date(nowMs));
     saveActiveMoveSession(next);
     saveMoveRuntime(nextRuntime);
     setActiveSession(next);
+    setPreparedWeekly(null);
     setRuntime(nextRuntime);
     setFinished(false);
     setFeedback(null);
@@ -338,6 +367,8 @@ export function useMoveController() {
       intensity: activeSession.intensity ?? adaptiveIntensity,
       exerciseIds,
       trainingStyle: activeSession.trainingStyle ?? routine.style,
+      targetMuscles: activeSession.targetMuscles,
+      scheduledMoveId: activeSession.scheduledMoveId,
     };
     saveMoveSession(record);
     clearActiveMoveSession();
@@ -411,7 +442,7 @@ export function useMoveController() {
   function switchExercise() {
     if (!runtime || runtime.phase !== 'exercise' || stepDefinition.mode === 'amrap') return;
     const nowMs = Date.now();
-    const alternative = alternateExercise(currentExercise, preferences, sessionIntensity);
+    const alternative = alternateExercise(currentExercise, effectivePreferences, sessionIntensity);
     const exerciseOverrides = { ...runtime.exerciseOverrides };
     if (stepDefinition.mode === 'set') {
       for (let index = currentStepIndex; index < routine.steps.length; index += 1) {
@@ -475,6 +506,9 @@ export function useMoveController() {
     extraOpen,
     setExtraOpen,
     preferences,
+    effectivePreferences,
+    preparedWeekly,
+    prepareWeeklySession,
     setFocus,
     setTargetMuscles,
     setWeeklyTargetSessions,
