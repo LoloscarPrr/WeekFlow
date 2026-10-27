@@ -47,6 +47,9 @@ export type MoveEquipmentToggleField =
 
 export type MovePreferences = {
   focus: MoveFocus;
+  // Move es un pilar: objetivos independientes de Habit.
+  weeklyTargetSessions: number; // 0 = no programar automáticamente
+  preferredSessionMinutes: 30 | 45 | 60;
   targetMuscles: MoveMuscleGroup[];
   floorAllowed: boolean;
   chairAvailable: boolean;
@@ -82,6 +85,8 @@ export const DEFAULT_MOVE_EQUIPMENT: MoveEquipment = {
 
 export const DEFAULT_MOVE_PREFERENCES: MovePreferences = {
   focus: 'equilibrado',
+  weeklyTargetSessions: 3,
+  preferredSessionMinutes: 30,
   targetMuscles: [],
   floorAllowed: false,
   chairAvailable: true,
@@ -302,6 +307,11 @@ export function sanitizeMovePreferences(value: unknown): MovePreferences {
 
   return {
     focus,
+    weeklyTargetSessions: typeof candidate.weeklyTargetSessions === 'number'
+      && Number.isInteger(candidate.weeklyTargetSessions) && candidate.weeklyTargetSessions >= 0
+      && candidate.weeklyTargetSessions <= 5 ? candidate.weeklyTargetSessions : 3,
+    preferredSessionMinutes: candidate.preferredSessionMinutes === 45 || candidate.preferredSessionMinutes === 60
+      ? candidate.preferredSessionMinutes : 30,
     targetMuscles: sanitizeTargetMuscles(candidate.targetMuscles),
     floorAllowed: Boolean(candidate.floorAllowed),
     chairAvailable: candidate.chairAvailable !== false,
