@@ -1,6 +1,6 @@
 import { loadDailyEnergy } from './energyHistory';
 import { sqliteStateStore } from '../data/local/sqlite/SQLiteStateStore';
-import { loadWeekState, loadDayState } from '../state/persistence';
+import { loadWeekState, loadDayState, loadMovePreferences, loadMoveHistory } from '../state/persistence';
 import { loadHabitsState } from '../habits/persistence';
 import { proposeWeeklyPlan, type WeeklyProposal } from './weeklyPlanner';
 
@@ -35,10 +35,13 @@ export function confirmWeeklyProposal(
   const current = proposeWeeklyPlan({
     week: loadWeekState(), habits: loadHabitsState(), settings: day.settings,
     energy: day.energy, energyByDate: loadDailyEnergy(), now: new Date(), weekOffset: proposal.weekStart === nextKey ? 1 : 0,
+    move: { preferences: loadMovePreferences(), history: loadMoveHistory() },
   });
   const signature = (p: WeeklyProposal) => JSON.stringify({
     weekStart: p.weekStart,
     slots: p.slots.map(s => [s.id, s.date, s.start, s.end, s.variant]),
+    moveSlots: (p.moveSlots ?? []).map(s => [s.id, s.date, s.start, s.end, s.durationMin, s.intensity, s.muscles, s.sampleExercises]),
+    moveSummary: p.moveSummary,
     shortfalls: p.shortfalls,
   });
   if (signature(current) !== signature(proposal)) {
