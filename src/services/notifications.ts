@@ -186,10 +186,11 @@ async function performLivePlanReminderSync(now: Date): Promise<number> {
   });
   const windows = buildProtectedRestWindows(dayState, weekState, now);
   const reminders = [
-    ...allReminders.filter(reminder => isReminderKindEnabled(preferences, reminder.kind)
-      && !(reminder.kind === 'move' && moveReminders.some(item => item.at.toDateString() === reminder.at.toDateString()))),
+    ...allReminders.filter(reminder => isReminderKindEnabled(preferences, reminder.kind)),
     ...habitReminders,
-    ...moveReminders.filter(reminder => isReminderKindEnabled(preferences, reminder.kind)),
+    // Confirming a weekly plan opts into its reminders; Smart Silence still
+    // suppresses Move during protected sleep windows.
+    ...moveReminders,
   ]
     .filter(reminder => interruptionDecision(preferences, reminder.kind ?? 'general', reminder.at, windows).allowed);
 
