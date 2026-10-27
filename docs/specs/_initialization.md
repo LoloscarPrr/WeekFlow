@@ -1,21 +1,19 @@
-# TLC Initialization Snapshot — WF-NOTIFY-005 / WF-CORE-008 (2026-10-26)
+# TLC Initialization Snapshot — WF-CORE-009 (2026-10-26)
 
-## Repository/ref, versión y baseline
-- Repositorio: `LoloscarPrr/WeekFlow`; main `6efe9e3466f9912deb0ce9619090a3a419d26519`; rama `perf/wf-notify-005-idempotent-sync` reconstruida sobre el nuevo main después de detectar cambios concurrentes.
-- Versión: WeekFlow `0.5.25`, Expo 57, React Native 0.86; versión Android fuente `app.json` en main.
-- Quality main #40349692329 PASS; Android main v0.5.25 #40349217420 IN PROGRESS en el momento del snapshot.
-- Quality WF-NOTIFY-005 (commit previo, #40349197233): PASS. QA en dispositivo: NOT RUN.
+## Repository/ref, version and baseline
+- Repo: `LoloscarPrr/WeekFlow`, main `5a5d05f1b2c5016228ed28beeb7cc0ff0f75c176`; repair branch `fix/wf-core-009-expo-linking-build`.
+- Current app: WeekFlow 0.5.26, source Android `versionCode=114`; package `com.weekflow.app`; Expo ~57.0.8, React Native 0.86.0, React 19.2.3.
+- Quality main: PASS, run #40383397943. Android signed build: FAIL, run #40383397904, during `:app:createBundleReleaseJsAndAssets`, `expo-linking` unresolved by Expo Router. Same failure in #40351477513.
+- Android signed APK/AAB for commit `5a5d05f1b2c5016228ed28beeb7cc0ff0f75c176`: NOT PRODUCED. Device QA: NOT RUN.
+- `package-lock.json` root version is still 0.5.25 although app and `package.json` are 0.5.26. `npm ci` completes but Metro cannot resolve missing `expo-linking`.
 
-## Contexto y límites
-- Blueprint Maestro v4.0 §13 y §18: notificaciones contextuales, sin spam; estabilidad y anti-feature-creep.
-- AGENTS.md, TLC skill, specs WF-NOTIFY-001 / 003 / 004 consultadas.
-- Código de notificaciones revisado; mantener plan, preferencias, silencio inteligente, permisos y serialización.
-- `package-lock.json` ausente en main, CI con `npm install`.
-- Durante el trabajo main avanzó desde `9fa0e5938d06` a `6efe9e3466f9912deb0ce9619090a3a419d26519` (WeekFlow `0.5.25`, Assistant Brain Cloud); los cambios de dependencias y pruebas se deben conservar.
-- Generación inicial lockfile 0.5.24 INVALIDADA por el nuevo main. Re-generar y revalidar `npm ci` sobre `0.5.25` antes de merge.
+## Sources and constraints
+- `AGENTS.md` and `.agents/skills/tlc-spec-driven/SKILL.md` reviewed. Blueprint Maestro v4.0 governs focus on reliable Android delivery and keeping existing features.
+- Existing `WF-CORE-008` requires reproducible lockfile / npm ci; its Android acceptance criterion was BLOCKED; repair it without rolling back `npm ci`.
+- Android workflow builds signed APK and Play AAB from `main` via GitHub Actions using existing secrets. Do not change signing, UI, Brain, offline advice, Firebase or Supabase.
+- Official Expo Linking installation recommends `npx expo install expo-linking`; SDK 57 family must remain compatible; local npm registry access unavailable.
+- Lockfile must be regenerated in controlled GitHub Actions rather than hand-editing hashes.
 
-## Decisión
-- NOW WF-NOTIFY-005: reconciliación incremental con pruebas puras.
-- NOW WF-CORE-008: lockfile reproducible para el nuevo main, `npm ci` en Quality/Android.
-- BACKLOG: refactor SQLite, OCR clásico, UX, despliegues y nuevas funciones.
-- Preservar app, firma, Android package, Firebase, Supabase y estado local.
+## Decision
+- NOW `WF-CORE-009`: declare SDK-57-compatible `expo-linking` explicitly, regenerate lockfile against v0.5.26, validate `npm ci`, Metro bundle and Android signed release.
+- BACKLOG: dependency upgrades/Expo 58, unrelated optimizations and product work.
