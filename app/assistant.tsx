@@ -45,6 +45,11 @@ export default function AssistantScreen() {
   const {
     context,
     pendingProposal,
+    pendingWeekly,
+    weeklyUndo,
+    cancelWeekly,
+    confirmWeekly,
+    undoWeekly,
     lastReceipt,
     assistantMessage,
     interpret,
@@ -118,6 +123,14 @@ export default function AssistantScreen() {
           >
             <Text style={styles.reviewExitButtonText}>¿Qué priorizo hoy? · Sin conexión</Text>
           </Pressable>
+          <Pressable
+            style={styles.reviewExitButton}
+            accessibilityRole="button"
+            accessibilityLabel="Ver propuesta semanal sin conexión"
+            onPress={() => { interpret('Organiza mi semana'); setInput(''); }}
+          >
+            <Text style={styles.reviewExitButtonText}>Organizar mi semana · Vista previa</Text>
+          </Pressable>
           {brainCloudConfigured ? (
             <View style={styles.cloudArea}>
               <Text style={styles.cloudNotice}>
@@ -180,7 +193,17 @@ export default function AssistantScreen() {
               <Text style={styles.reviewExitButtonText}>Ver rutina en Move →</Text>
             </Pressable>
           ) : null}
-          {lastReceipt && !pendingProposal ? (
+          {weeklyUndo && !pendingWeekly && !pendingProposal ? (
+            <Pressable
+              style={styles.undoButton}
+              accessibilityRole="button"
+              accessibilityLabel="Deshacer última planificación semanal"
+              onPress={undoWeekly}
+            >
+              <Text style={styles.undoButtonText}>↶ Deshacer planificación semanal</Text>
+            </Pressable>
+          ) : null}
+          {lastReceipt && !pendingProposal && !pendingWeekly ? (
             <Pressable
               style={styles.undoButton}
               accessibilityRole="button"
@@ -191,6 +214,50 @@ export default function AssistantScreen() {
             </Pressable>
           ) : null}
         </View>
+
+        {pendingWeekly ? (
+          <View style={styles.proposalCard}>
+            <Text style={styles.proposalLabel}>PROPUESTA SEMANAL · SOLO HÁBITOS</Text>
+            <Text style={styles.proposalTitle}>Semana del {pendingWeekly.weekStart}</Text>
+            <Text style={styles.proposalBody}>
+              {pendingWeekly.slots.length} sesiones sugeridas. No cambia turnos laborales, horas de sueño ni compromisos existentes.
+              {pendingWeekly.shortfalls.length ? ' No todos los objetivos caben de manera segura.' : ''}
+            </Text>
+            {pendingWeekly.slots.length === 0 ? (
+              <Text style={styles.proposalBody}>No se encontraron sesiones compatibles. Puedes descartar esta propuesta.</Text>
+            ) : null}
+            {pendingWeekly.slots.map(slot => (
+              <View style={styles.weeklySlot} key={slot.id}>
+                <Text style={styles.weeklySlotTitle}>{slot.date} · {slot.start}–{slot.end}</Text>
+                <Text style={styles.proposalBody}>{slot.title}{slot.variant === 'mini' ? ' · Versión mini' : ''} · {slot.durationMin} min</Text>
+                <Text style={styles.proposalBody}>{slot.explanation}</Text>
+              </View>
+            ))}
+            {pendingWeekly.shortfalls.map(item => (
+              <Text style={styles.weeklyWarning} key={item.habitId}>
+                Pendiente: {item.title} ({item.completed + item.scheduled}/{item.requested})
+              </Text>
+            ))}
+            {pendingWeekly.warnings.map((warning, index) => (
+              <Text style={styles.weeklyWarning} key={index}>• {warning}</Text>
+            ))}
+            <Text style={styles.proposalBody}>
+              Confirmar reemplaza únicamente el plan semanal de hábitos guardado. Puedes deshacerlo si ningún otro módulo lo modificó después.
+            </Text>
+            <View style={styles.proposalActions}>
+              <Pressable style={styles.cancelButton} onPress={cancelWeekly}>
+                <Text style={styles.cancelButtonText}>Descartar</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.confirmButton, pendingWeekly.slots.length === 0 && { opacity: 0.45 }]}
+                disabled={pendingWeekly.slots.length === 0}
+                onPress={() => { if (confirmWeekly()) setInput(''); }}
+              >
+                <Text style={styles.confirmButtonText}>Confirmar semana</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
 
         {pendingProposal ? (
           <View style={styles.proposalCard}>
@@ -288,6 +355,9 @@ const styles = StyleSheet.create({
   proposalTitle: { color: colors.text, fontWeight: '900', fontSize: 17, lineHeight: 22, marginTop: 5 },
   proposalBody: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 5 },
   proposalActions: { flexDirection: 'row', gap: 10, marginTop: 14 },
+  weeklySlot: { marginTop: 9, padding: 10, borderRadius: 10, backgroundColor: colors.surface },
+  weeklySlotTitle: { color: colors.text, fontWeight: '800', fontSize: 12 },
+  weeklyWarning: { color: '#F8C08B', marginTop: 7, fontSize: 12, lineHeight: 18 },
   cancelButton: { flex: 1, paddingVertical: 11, borderRadius: 14, borderWidth: 1, borderColor: colors.line, alignItems: 'center' },
   cancelButtonText: { color: colors.text, fontWeight: '800', fontSize: 12 },
   confirmButton: { flex: 1.4, paddingVertical: 11, borderRadius: 14, backgroundColor: '#245D9C', alignItems: 'center' },
