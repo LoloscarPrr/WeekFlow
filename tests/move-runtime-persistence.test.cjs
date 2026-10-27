@@ -20,7 +20,8 @@ const sqliteStateStore = {
   read(key) {
     operations.push(['read', key]);
     const json = values.get(key);
-    return json === undefined ? null : JSON.parse(json);
+    if (json === undefined) return null;
+    try { return JSON.parse(json); } catch { return null; }
   },
   write(key, value) {
     operations.push(['write', key]);
