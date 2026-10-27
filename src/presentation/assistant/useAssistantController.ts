@@ -9,6 +9,11 @@ import { buildAssistantRealState } from '@/src/assistant/context';
 import { interpretAssistantText } from '@/src/assistant/interpret';
 import { interpretAssistantQuestion, answerAssistantQuestion } from '@/src/assistant/questions';
 import { interpretDayAdviceQuestion, answerDayAdvice } from '@/src/assistant/dayAdvice';
+import { parseWeeklyPlanningIntent } from '@/src/assistant/weeklyIntent';
+import { proposeWeeklyPlan, type WeeklyProposal } from '@/src/brain/weeklyPlanner';
+import { confirmWeeklyProposal, loadConfirmedWeeklyPlan, undoConfirmedWeeklyProposal, type ConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
+import { loadHabitsState } from '@/src/habits/persistence';
+import { loadDailyEnergy } from '@/src/brain/energyHistory';
 import { relativeExitFromShiftEnd } from '@/src/assistant/relativeExit';
 import { recommendMoveIntensity } from '@/src/move/adaptation';
 import { compatibleTargetedExercises } from '@/src/move/library';
@@ -71,6 +76,9 @@ export function useAssistantController() {
   const [context, setContext] = useState(() => readAssistantContext());
   const [pendingProposal, setPendingProposal] = useState<BrainActionProposal | null>(null);
   const [lastReceipt, setLastReceipt] = useState<BrainActionReceipt | null>(null);
+  const [pendingWeekly, setPendingWeekly] = useState<WeeklyProposal | null>(null);
+  const [previousConfirmedWeekly, setPreviousConfirmedWeekly] = useState<ConfirmedWeeklyPlan | null>(null);
+  const [weeklyUndo, setWeeklyUndo] = useState<{ applied: ConfirmedWeeklyPlan; previous: ConfirmedWeeklyPlan | null } | null>(null);
   const [assistantMessage, setAssistantMessage] = useState(
     'Puedes consultar tu día o pedirme una rutina por músculos, por ejemplo: quiero entrenar espalda y bíceps.',
   );
@@ -86,6 +94,33 @@ export function useAssistantController() {
   );
 
   const interpret = useCallback((input: string) => {
+    // A newer user request discards an unconfirmed weekly preview.
+    setPendingWeekly(null);
+    const weekly = parseWeeklyPlanningIntent(input);
+    if (weekly) {
+      const now = new Date();
+      const habits = loadHabitsState();
+      if (!habits.habits.some((habit) => habit.active)) {
+        setPendingProposal(null);
+        setAssistantMessage('No tienes hábitos activos que distribuir. Agrégalos en Hábitos y vuelve a pedirme una planificación semanal.');
+        return 'answered' as const;
+      }
+      const dayState = loadDayState();
+      const proposal = proposeWeeklyPlan({
+        week: loadWeekState(),
+        habits,
+        settings: dayState.settings,
+        energy: dayState.energy,
+        energyByDate: loadDailyEnergy(),
+        now,
+        weekOffset: weekly.weekOffset,
+      });
+      setPendingProposal(null);
+      setPreviousConfirmedWeekly(loadConfirmedWeeklyPlan());
+      setPendingWeekly(proposal);
+      setAssistantMessage('Esta es una propuesta de distribución de hábitos. Revisa cada sesión y las advertencias; no cambié tus turnos, tu descanso ni tus hábitos.');
+      return 'answered' as const;
+    }
     const question = interpretAssistantQuestion(input);
     if (question) {
       // Consultas de solo lectura: siempre refrescar las fuentes canónicas.
@@ -306,6 +341,50 @@ export function useAssistantController() {
     return true;
   }, []);
 
+  const cancelWeekly = useCallback(() => {
+    setPendingWeekly(null);
+    setPreviousConfirmedWeekly(null);
+    setAssistantMessage('Descarté la propuesta semanal. No cambié ningún dato.');
+  }, []);
+
+  const confirmWeekly = useCallback(() => {
+    if (!pendingWeekly) return false;
+    const result = confirmWeeklyProposal(pendingWeekly, { expectedCurrent: previousConfirmedWeekly });
+    if (!result.ok || !result.plan) {
+      setPendingWeekly(null);
+      setPreviousConfirmedWeekly(null);
+      setAssistantMessage(result.reason || 'La planificación cambió. Recalcula la semana antes de confirmar.');
+      return false;
+    }
+    setWeeklyUndo({ applied: result.plan, previous: previousConfirmedWeekly });
+    setPendingWeekly(null);
+    setPreviousConfirmedWeekly(null);
+    setLastReceipt(null);
+    setContext(readAssistantContext());
+    setAssistantMessage('Plan semanal confirmado: ' + result.plan.slots.length
+      + ' sesiones de hábitos. No se modificaron los turnos ni las horas protegidas de descanso.');
+    void syncLivePlanReminders().catch(error => {
+      console.warn('Could not refresh WeekFlow reminders after weekly plan confirmation', error);
+    });
+    return true;
+  }, [pendingWeekly, previousConfirmedWeekly]);
+
+  const undoWeekly = useCallback(() => {
+    if (!weeklyUndo) return false;
+    const result = undoConfirmedWeeklyProposal(weeklyUndo.applied, weeklyUndo.previous);
+    setWeeklyUndo(null);
+    setAssistantMessage(result.ok
+      ? 'Deshice la última confirmación semanal y restauré el plan anterior.'
+      : result.reason || 'No se pudo deshacer; el plan cambió.');
+    if (result.ok) {
+      setContext(readAssistantContext());
+      void syncLivePlanReminders().catch(error => {
+        console.warn('Could not refresh WeekFlow reminders after weekly undo', error);
+      });
+    }
+    return result.ok;
+  }, [weeklyUndo]);
+
   const cancelProposal = useCallback(() => {
     setPendingProposal(null);
     setAssistantMessage('No cambié nada.');
@@ -449,6 +528,11 @@ export function useAssistantController() {
     refresh,
     pendingProposal,
     lastReceipt,
+    pendingWeekly,
+    weeklyUndo,
+    cancelWeekly,
+    confirmWeekly,
+    undoWeekly,
     undoLastChange,
     assistantMessage,
     interpret,
