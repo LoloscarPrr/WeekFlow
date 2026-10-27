@@ -27,3 +27,6 @@ jobs:
 
       - name: Typecheck and regression tests
         run: npm run quality
+
+      - name: Smoke-test Android Metro bundle
+        run: npx expo export --platform android --output-dir "${RUNNER_TEMP}/weekflow-bundle-smoke" --clear
