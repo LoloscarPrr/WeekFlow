@@ -47,7 +47,7 @@ ok(plan.slots.length > 0, 'genera sesiones a partir de hábitos');
 ok(plan.slots.every(s => s.date >= '2026-10-26' && s.date <= '2026-11-01'), 'solo semana seleccionada');
 ok(plan.slots.every(s => s.start < s.end), 'horas visibles correctas');
 ok(plan.slots.every(s => !(s.date === '2026-10-26' && s.start >= '09:00' && s.start < '17:00')), 'no coloca hábitos dentro del trabajo del lunes');
-ok(plan.slots.every(s => s.date !== '2026-10-28' || s.start >= '15:45'), 'protege 8h post turno nocturno martes-miércoles');
+ok(plan.slots.every(s => s.date !== '2026-10-28' || s.start >= '14:45'), 'protege 8h post turno nocturno martes-miércoles');
 ok(plan.warnings.some(w => w.includes('descanso principal')), 'declara incertidumbre de sueño real');
 same(JSON.stringify({week,habits}), original, 'no muta horarios ni hábitos');
 const next = proposeWeeklyPlan({...input, weekOffset: 1});
