@@ -4,7 +4,7 @@ import type { HabitsState, Habit } from '../habits/core';
 import { localHabitDateKey, completionsThisWeek } from '../habits/core';
 import type { MovePreferences, MoveIntensity } from '../move/adaptation';
 import { recommendMoveIntensity } from '../move/adaptation';
-import { routineForDuration } from '../move/library';
+import { routineForDuration, compatibleTargetedExercises } from '../move/library';
 import { describeTargetMuscles } from '../move/muscles';
 
 /** Pure preview engine. Never writes to SQLite or changes an existing habit. */
@@ -224,6 +224,7 @@ export function proposeWeeklyPlan(input: PlannerInput): WeeklyProposal {
           || (shift && shift.type !== 'off'))
           ? 30 : prefs.preferredSessionMinutes;
         const intensity = recommendMoveIntensity(energy, prefs.experience, previousFeedback, previousEndedEarly);
+        if (prefs.targetMuscles.length && !compatibleTargetedExercises(prefs, intensity).length) continue;
         const routine = routineForDuration(durationMin, prefs, intensity, {
           lastFeedback: previousFeedback,
           lastEndedEarly: previousEndedEarly,
