@@ -5,7 +5,7 @@ import { confirmWeeklyProposal, loadConfirmedWeeklyPlan } from '@/src/brain/week
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { WeekSchedule } from '@/src/domain/entities/Shift';
 import { loadDailyEnergy } from '@/src/brain/energyHistory';
-import { loadDayState } from '@/src/state/persistence';
+import { loadDayState, loadMovePreferences, loadMoveHistory } from '@/src/state/persistence';
 import { loadHabitsState } from '@/src/habits/persistence';
 import { proposeWeeklyPlan, type WeeklyProposal } from '@/src/brain/weeklyPlanner';
 import { colors } from '@/src/theme/colors';
@@ -43,14 +43,15 @@ export function WeeklyPlannerPreview({ week }: { week: WeekSchedule }) {
       energyByDate: loadDailyEnergy(),
       now: new Date(),
       weekOffset,
+      move: { preferences: loadMovePreferences(), history: loadMoveHistory() },
     }));
   }
   return (
     <View style={styles.card}>
       <Text style={styles.eyebrow}>WEEKFLOW BRAIN · VISTA PREVIA</Text>
-      <Text style={styles.title}>Reorganizar tus hábitos</Text>
-      <Text style={styles.copy}>Calcula una propuesta con tus hábitos y turnos. Solo se guarda cuando confirmes.</Text>
-      {confirmed ? <Text style={styles.heading}>Plan confirmado: semana del {label(confirmed.weekStart)} · {confirmed.slots.length} sesiones</Text> : null}
+      <Text style={styles.title}>Planear pilares y hábitos</Text>
+      <Text style={styles.copy}>Move usa su objetivo semanal y equipo real; Hábitos conserva sus actividades. Trabajo y recuperación tienen prioridad. Solo se guarda al confirmar.</Text>
+      {confirmed ? <Text style={styles.heading}>Plan confirmado: semana del {label(confirmed.weekStart)} · {(confirmed.moveSlots?.length ?? 0)} Move · {confirmed.slots.length} hábitos</Text> : null}
       <View style={styles.weekChoice}>
         <Pressable accessibilityRole="button" style={[styles.choice, weekOffset === 0 && styles.choiceActive]} onPress={() => { setWeekOffset(0); setProposal(null); }}><Text style={styles.choiceText}>Esta semana</Text></Pressable>
         <Pressable accessibilityRole="button" style={[styles.choice, weekOffset === 1 && styles.choiceActive]} onPress={() => { setWeekOffset(1); setProposal(null); }}><Text style={styles.choiceText}>Próxima semana</Text></Pressable>
@@ -60,8 +61,21 @@ export function WeeklyPlannerPreview({ week }: { week: WeekSchedule }) {
       </Pressable>
       {proposal ? (
         <View style={styles.result}>
-          <Text style={styles.heading}>{proposal.slots.length} sesiones sugeridas · Semana del {label(proposal.weekStart)}</Text>
-          {proposal.slots.length === 0 ? <Text style={styles.copy}>No hay sesiones para proponer con los hábitos y espacios disponibles.</Text> : null}
+          <Text style={styles.heading}>{proposal.moveSlots.length} Move + {proposal.slots.length} hábitos · Semana del {label(proposal.weekStart)}</Text>
+          {proposal.slots.length === 0 && proposal.moveSlots.length === 0
+            ? <Text style={styles.copy}>No hay espacios disponibles para Move ni hábitos con este contexto.</Text> : null}
+          {proposal.moveSummary ? (
+            <Text style={styles.heading}>🏃 Move · {proposal.moveSummary.completed + proposal.moveSummary.scheduled}/{proposal.moveSummary.requested} sesiones semanales cubiertas</Text>
+          ) : null}
+          {proposal.moveSlots.map(slot => (
+            <View key={slot.id} style={styles.slot}>
+              <Text style={styles.time}>{label(slot.date)} · {slot.start}–{slot.end} · {slot.durationMin} min</Text>
+              <Text style={styles.name}>🏃 Move · {slot.muscles} · {slot.intensity}</Text>
+              <Text style={styles.copy}>{slot.sampleExercises.join(' · ')}</Text>
+              <Text style={styles.copy}>{slot.explanation}</Text>
+            </View>
+          ))}
+          <Text style={styles.heading}>🌱 Hábitos · {proposal.slots.length} actividades</Text>
           {proposal.slots.map(slot => (
             <View key={slot.id} style={styles.slot}>
               <Text style={styles.time}>{label(slot.date)} · {slot.start}–{slot.end}</Text>
@@ -75,7 +89,7 @@ export function WeeklyPlannerPreview({ week }: { week: WeekSchedule }) {
           {proposal.warnings.map((warning, index) => (
             <Text key={index} style={styles.warning}>• {warning}</Text>
           ))}
-          <Text style={styles.foot}>Revisa toda la propuesta. Confirmar guarda únicamente las sesiones semanales en un registro separado; no cambia tus turnos ni tus hábitos originales.</Text>
+          <Text style={styles.foot}>Revisa toda la propuesta. Confirmar guarda sesiones de Move y Hábitos como plan semanal. No cambia turnos, preferencias Move, sueño, ejercicios realizados ni hábitos originales.</Text>
           <Pressable accessibilityRole="button" style={styles.button} onPress={confirm}>
             <Text style={styles.buttonText}>Confirmar y guardar semana</Text>
           </Pressable>
