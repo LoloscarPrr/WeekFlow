@@ -1,0 +1,63 @@
+name: Validate Expo linking lockfile (temporary)
+
+on:
+  push:
+    branches:
+      - fix/wf-core-009-expo-linking-build
+    paths:
+      - ".github/workflows/validate-expo-linking-temporary.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix-lock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22.13'
+
+      - name: Regenerate npm lockfile for explicit SDK 57 expo-linking
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      - name: Clean install using lockfile
+        run: npm ci --no-audit --no-fund
+
+      - name: Verify linking and run all Quality checks
+        run: npm run quality
+
+      - name: Prepare official brand assets for Metro smoke test
+        shell: bash
+        run: |
+          python3 -m pip install --user --disable-pip-version-check Pillow
+          python3 <<'PY'
+          from PIL import Image
+          icon = Image.open('assets/brand/weekflow-icon.webp').convert('RGB')
+          splash = Image.open('assets/brand/weekflow-splash.webp').convert('RGBA')
+          icon.resize((1024, 1024), Image.Resampling.LANCZOS).save('assets/icon.png')
+          icon.resize((1024, 1024), Image.Resampling.LANCZOS).save('assets/adaptive-icon.png')
+          splash.save('assets/splash-official.png')
+          PY
+
+      - name: Smoke test Android production JS bundle
+        run: npx expo export:embed --platform android --dev false --entry-file node_modules/expo-router/entry.js --bundle-output /tmp/weekflow-android.bundle --assets-dest /tmp/weekflow-android-assets
+
+      - name: Push verified lockfile to repair branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git diff --cached --quiet && { echo 'Lockfile already matches'; exit 0; }
+          git commit -m "fix(build): regenerate locked SDK-57 linking dependencies for v0.5.26"
+          git push origin HEAD:fix/wf-core-009-expo-linking-build
