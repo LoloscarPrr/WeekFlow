@@ -11,7 +11,7 @@ import {
   interruptionDecision,
   type SmartSilenceReminderKind,
 } from '@/src/notifications/smartSilence';
-import { loadDayState, loadWeekState } from '@/src/state/persistence';
+import { loadDayState, loadWeekState, loadMoveHistory } from '@/src/state/persistence';
 import {
   isLegacyEquivalent,
   logicalReminderId,
