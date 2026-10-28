@@ -17,7 +17,7 @@ ok(planner.includes('routineForDuration') && planner.includes('recommendMoveInte
 ok(planner.includes('completedDates') && planner.includes('legacyMoveNames'), 'completed workouts and existing exercise habit are recognized');
 for(const unsafe of ['saveMovePreferences(', 'sqliteStateStore.write(', 'saveWeekState('])ok(!planner.includes(unsafe),'weekly preview must be pure: '+unsafe);
 ok(prefs.includes('weeklyTargetSessions: number') && prefs.includes('preferredSessionMinutes: 30 | 45 | 60'), 'Move controls weekly goals in own preferences');
-ok(moveController.includes('setWeeklyTargetSessions') && moveUI.includes('Plan semanal de Move · pilar independiente de Hábitos'), 'Move independently configures weekly sessions');
+ok(moveController.includes('setWeeklyTargetSessions') && weekUI.includes('🏃 Move · sesiones por semana') && weekUI.includes('saveMovePreferences(next)'), 'Move independently configures weekly sessions');
 ok(assistant.includes('move: { preferences: loadMovePreferences(), history: loadMoveHistory() }'), 'Assistant uses real Move prefs and history');
 ok(weekUI.includes('proposal.moveSlots.map'), 'Semana reviews Move pillar independently');
 ok(assistantUI.includes('pendingWeekly.moveSlots.map'), 'Assistant previews Move pillar');

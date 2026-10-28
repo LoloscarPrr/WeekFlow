@@ -1,11 +1,12 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Brand } from '@/src/components/Brand';
 import { KeyboardAwareScrollView, KeyboardAwareTextInput as TextInput } from '@/src/components/KeyboardAwareScrollView';
 import {
   clearHabitPlan,
+  deleteHabit,
   localHabitDateKey,
   completeHabit,
   completionForDate,
@@ -21,7 +22,7 @@ import {
 import { loadHabitsState, saveHabitsState } from '@/src/habits/persistence';
 import { colors } from '@/src/theme/colors';
 import { syncLivePlanReminders } from '@/src/services/notifications';
-import { loadConfirmedWeeklyPlan, type ConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
+import { loadConfirmedWeeklyPlan, removeHabitFromConfirmedWeeklyPlan, type ConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
 
 const frequencyOptions = [1, 2, 3, 4, 5, 7] as const;
 const shortDays = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'] as const;
@@ -83,6 +84,31 @@ export default function HabitsScreen() {
     setName(habit.name);
     setMiniVersion(habit.miniVersion ?? '');
     setTargetPerWeek(habit.targetPerWeek);
+  }
+
+  function requestDeleteHabit(habit: Habit) {
+    Alert.alert(
+      'Eliminar hábito',
+      `¿Eliminar definitivamente «${habit.name}»? También se borrará su historial de cumplimiento y se quitará de la semana confirmada. No se borrarán otros hábitos ni sesiones Move.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: () => {
+            const latest = loadHabitsState();
+            if (!latest.habits.some(item => item.id === habit.id)) return;
+            const updated = saveHabitsState(deleteHabit(latest, habit.id));
+            setHabitsState(updated);
+            setConfirmedPlan(removeHabitFromConfirmedWeeklyPlan(habit.id));
+            if (editingId === habit.id) resetForm();
+            if (replanningId === habit.id) setReplanningId(null);
+            void syncLivePlanReminders().catch(error =>
+              console.warn('Could not synchronize reminders after habit deletion', error));
+          },
+        },
+      ],
+    );
   }
 
   function markHabit(habitId: string, mode: 'full' | 'mini') {
@@ -152,7 +178,16 @@ export default function HabitsScreen() {
                         {habit.miniVersion ? <Text style={styles.miniCopy}>Mini · {habit.miniVersion}</Text> : null}
                         {weekDone > 0 ? <Text style={styles.progress}>Esta semana ya encontraste {weekDone} {weekDone === 1 ? 'momento' : 'momentos'} para hacerlo.</Text> : null}
                       </View>
-                      <Pressable onPress={() => startEditing(habit)} hitSlop={8}><Text style={styles.editText}>Editar</Text></Pressable>
+                      <View style={styles.habitActions}>
+                         <Pressable accessibilityRole="button" accessibilityLabel={`Editar hábito ${habit.name}`}
+                           onPress={() => startEditing(habit)} hitSlop={8}>
+                           <Text style={styles.editText}>Editar</Text>
+                         </Pressable>
+                         <Pressable accessibilityRole="button" accessibilityLabel={`Eliminar hábito ${habit.name}`}
+                           onPress={() => requestDeleteHabit(habit)} hitSlop={8}>
+                           <Text style={styles.deleteText}>Eliminar</Text>
+                         </Pressable>
+                       </View>
                     </View>
 
                     {confirmedSlots.length > 0 ? (
@@ -243,6 +278,8 @@ const styles = StyleSheet.create({
   miniCopy: { color: '#A9C8F2', fontSize: 12, lineHeight: 17, marginTop: 4 },
   progress: { color: '#78D6A7', fontSize: 12, lineHeight: 17, marginTop: 6 },
   editText: { color: '#78B1FF', fontWeight: '800', fontSize: 13 },
+  habitActions: { flexDirection: 'row', alignItems: 'center', gap: 15 },
+  deleteText: { color: '#EF9B9B', fontWeight: '800', fontSize: 13 },
   planNote: { borderRadius: 14, borderWidth: 1, borderColor: '#2E5D8A', backgroundColor: colors.surface2, paddingHorizontal: 12, paddingVertical: 10 },
   planLabel: { color: '#78B1FF', fontSize: 10, fontWeight: '900', letterSpacing: 1.4 },
   planCopy: { color: '#C1D7F2', fontSize: 12, lineHeight: 17, marginTop: 3 },

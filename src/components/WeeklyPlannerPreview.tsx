@@ -5,7 +5,8 @@ import { confirmWeeklyProposal, loadConfirmedWeeklyPlan } from '@/src/brain/week
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { WeekSchedule } from '@/src/domain/entities/Shift';
 import { loadDailyEnergy } from '@/src/brain/energyHistory';
-import { loadDayState, loadMovePreferences, loadMoveHistory } from '@/src/state/persistence';
+import { loadDayState, loadMovePreferences, saveMovePreferences, loadMoveHistory } from '@/src/state/persistence';
+import { sanitizeMovePreferences } from '@/src/move/adaptation';
 import { loadHabitsState } from '@/src/habits/persistence';
 import { proposeWeeklyPlan, type WeeklyProposal } from '@/src/brain/weeklyPlanner';
 import { colors } from '@/src/theme/colors';
@@ -20,6 +21,16 @@ export function WeeklyPlannerPreview({ week }: { week: WeekSchedule }) {
   const [proposal, setProposal] = useState<WeeklyProposal | null>(null);
   const [weekOffset, setWeekOffset] = useState<0 | 1>(new Date().getDay() === 0 ? 1 : 0);
   const [confirmed, setConfirmed] = useState(() => loadConfirmedWeeklyPlan());
+  const [movePreferences, setMovePreferences] = useState(() => loadMovePreferences());
+
+  function configureMove(patch: Partial<typeof movePreferences>) {
+    const next = sanitizeMovePreferences({ ...loadMovePreferences(), ...patch });
+    saveMovePreferences(next);
+    setMovePreferences(next);
+    // An edited weekly target invalidates the old preview; confirmed plans
+    // remain untouched until the user recalculates and explicitly confirms.
+    setProposal(null);
+  }
   function confirm() {
     if (!proposal) return;
     const result = confirmWeeklyProposal(proposal);
@@ -50,7 +61,35 @@ export function WeeklyPlannerPreview({ week }: { week: WeekSchedule }) {
     <View style={styles.card}>
       <Text style={styles.eyebrow}>WEEKFLOW BRAIN · VISTA PREVIA</Text>
       <Text style={styles.title}>Planear pilares y hábitos</Text>
-      <Text style={styles.copy}>Move usa su objetivo semanal y equipo real; Hábitos conserva sus actividades. Trabajo y recuperación tienen prioridad. Solo se guarda al confirmar.</Text>
+      <Text style={styles.copy}>Aquí defines cuántas sesiones de Move quieres esta semana. Brain combinará tu perfil físico, turnos, recuperación y Hábitos. Nada cambia en el calendario sin tu confirmación.</Text>
+      <View style={styles.moveSettings}>
+        <Text style={styles.heading}>🏃 Move · sesiones por semana</Text>
+        <View style={styles.chips}>
+          {[0, 1, 2, 3, 4, 5].map(count => (
+            <Pressable key={count} accessibilityRole="button"
+              accessibilityLabel={count === 0 ? 'No programar Move' : `Programar ${count} sesiones Move por semana`}
+              onPress={() => configureMove({ weeklyTargetSessions: count })}
+              style={[styles.chip, movePreferences.weeklyTargetSessions === count && styles.chipSelected]}>
+              <Text style={[styles.chipText, movePreferences.weeklyTargetSessions === count && styles.chipTextSelected]}>
+                {count === 0 ? 'Sin plan' : `${count}/sem`}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <Text style={styles.heading}>Duración preferida por sesión</Text>
+        <View style={styles.chips}>
+          {([30, 45, 60] as const).map(minutes => (
+            <Pressable key={minutes} accessibilityRole="button"
+              onPress={() => configureMove({ preferredSessionMinutes: minutes })}
+              style={[styles.chip, movePreferences.preferredSessionMinutes === minutes && styles.chipSelected]}>
+              <Text style={[styles.chipText, movePreferences.preferredSessionMinutes === minutes && styles.chipTextSelected]}>
+                {minutes} min
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <Text style={styles.copy}>Músculos, material y nivel se ajustan en el pilar Move. Si cambias estos valores, pulsa «Ver propuesta semanal» y confirma la nueva distribución.</Text>
+      </View>
       {confirmed ? <Text style={styles.heading}>Plan confirmado: semana del {label(confirmed.weekStart)} · {(confirmed.moveSlots?.length ?? 0)} Move · {confirmed.slots.length} hábitos</Text> : null}
       <View style={styles.weekChoice}>
         <Pressable accessibilityRole="button" style={[styles.choice, weekOffset === 0 && styles.choiceActive]} onPress={() => { setWeekOffset(0); setProposal(null); }}><Text style={styles.choiceText}>Esta semana</Text></Pressable>
@@ -102,6 +141,12 @@ export function WeeklyPlannerPreview({ week }: { week: WeekSchedule }) {
   );
 }
 const styles = StyleSheet.create({
+  moveSettings: { gap: 10, backgroundColor: colors.surface2, borderRadius: 14, padding: 12, marginVertical: 5 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { borderWidth: 1, borderColor: colors.line, borderRadius: 12, paddingHorizontal: 12, minHeight: 42, justifyContent: 'center' },
+  chipSelected: { borderColor: colors.blue, backgroundColor: '#173B68' },
+  chipText: { color: colors.muted, fontSize: 12, fontWeight: '800' },
+  chipTextSelected: { color: colors.text },
   weekChoice: { flexDirection: 'row', gap: 8 },
   choice: { flex: 1, padding: 10, borderRadius: 12, borderWidth: 1, borderColor: colors.line, alignItems: 'center' },
   choiceActive: { backgroundColor: '#173B68', borderColor: colors.blue },

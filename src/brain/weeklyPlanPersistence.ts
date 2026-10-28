@@ -54,6 +54,21 @@ export function confirmWeeklyProposal(
   return { ok: true, plan: confirmed };
 }
 
+/**
+ * Deleting a habit is an explicit user action: prune only its future planned
+ * sessions and shortfalls. Move and unrelated habits remain untouched.
+ */
+export function removeHabitFromConfirmedWeeklyPlan(habitId: string): ConfirmedWeeklyPlan | null {
+  const current = loadConfirmedWeeklyPlan();
+  if (!current) return null;
+  const slots = current.slots.filter(slot => slot.habitId !== habitId);
+  const shortfalls = current.shortfalls.filter(item => item.habitId !== habitId);
+  if (slots.length === current.slots.length && shortfalls.length === current.shortfalls.length) return current;
+  const updated = { ...current, slots, shortfalls };
+  sqliteStateStore.write(KEY, updated);
+  return updated;
+}
+
 // Undoes only the plan written by this confirmation. Never deletes/reverts a
 // newer plan confirmed from Semana, Hábitos or another Assistant session.
 export function undoConfirmedWeeklyProposal(
