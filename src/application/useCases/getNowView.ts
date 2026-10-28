@@ -1,6 +1,7 @@
 import { confirmedMomentsForNow } from '@/src/brain/confirmedPlanMoments';
 import { loadConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
 import { loadHabitsState } from '@/src/habits/persistence';
+import { loadMoveHistory } from '@/src/state/persistence';
 import { buildBrainPlan, replanAfterActualExit } from '@/src/brain/engine';
 import { assessExitReplanImpact, type ExitReplanImpact } from '@/src/brain/exitImpact';
 import type { DayState } from '@/src/domain/entities/DailyState';
@@ -301,7 +302,13 @@ export function getNowView({ dayState, weekState, moveDoneToday, now }: GetNowVi
   const mainSleepWake = plan.mode === 'night-shift'
     ? datedPlanMoments(plan.moments, shiftContext.startAt, now).find(entry => entry.item.type === 'wake')?.at
     : undefined;
-  const confirmedForNow = confirmedMomentsForNow(loadConfirmedWeeklyPlan(), loadHabitsState(), now)
+  const confirmedWeek = loadConfirmedWeeklyPlan();
+  const currentMonday = new Date(now);
+  currentMonday.setHours(0, 0, 0, 0);
+  currentMonday.setDate(currentMonday.getDate() - (currentMonday.getDay() + 6) % 7);
+  const confirmedMoveThisWeek = confirmedWeek?.weekStart === localDateKey(currentMonday)
+    && Boolean(confirmedWeek.moveSlots?.length);
+  const confirmedForNow = confirmedMomentsForNow(confirmedWeek, loadHabitsState(), now, loadMoveHistory())
     .filter(({ at }) => {
       if (mainSleepWake && at < mainSleepWake) return false;
       const context = shiftContextForDate(weekState, at);
@@ -313,7 +320,8 @@ export function getNowView({ dayState, weekState, moveDoneToday, now }: GetNowVi
   // Do not suggest an additional generic Move session when exercise is
   // already scheduled as a confirmed habit for the same day.
   const exerciseConfirmedToday = confirmedForNow.some(({ item, at }) =>
-    localDateKey(at) === localDateKey(now) && /ejerc|entren|gimnas|actividad f[ií]sica/i.test(item.title));
+    item.type === 'personal' && localDateKey(at) === localDateKey(now)
+    && /ejerc|entren|gimnas|actividad f[ií]sica/i.test(item.title));
 
   const upcomingMoments = [
     ...datedPlanMoments(plan.moments, shiftContext.startAt, now),
@@ -322,7 +330,18 @@ export function getNowView({ dayState, weekState, moveDoneToday, now }: GetNowVi
     ...confirmedForNow,
   ]
     .filter(({ item, at }) => {
-      if ((moveDoneToday || exerciseConfirmedToday) && item.type === 'move') return false;
+      if (item.type === 'move') {
+        // A confirmed Move is the source of truth. Only hide a TODAY slot
+        // if a workout is already completed; future sessions remain visible.
+        if (item.plannedMoveId) {
+          if (item.dateLabel === localDateKey(now)
+            && (moveDoneToday || phase === 'commuting' || phase === 'working'
+              || phase === 'after' || inPostNightRecovery)) return false;
+        } else if (moveDoneToday || exerciseConfirmedToday || confirmedMoveThisWeek) {
+          // Brain's generic day-off hint must not compete with the weekly split.
+          return false;
+        }
+      }
       if (needsExitReview && item.flexible) return false;
       return at.getTime() >= now.getTime();
     })
@@ -332,7 +351,7 @@ export function getNowView({ dayState, weekState, moveDoneToday, now }: GetNowVi
       return !previous || previous.at.getTime() !== entry.at.getTime() || previous.item.type !== entry.item.type;
     })
     .map(({ item }) => item)
-    .slice(0, 7);
+    .slice(0, 12);
 
   const jornadaLabel = snapshot.shift.type === 'off'
     ? 'Libre'

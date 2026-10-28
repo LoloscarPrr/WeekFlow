@@ -125,8 +125,14 @@ export function MovePlan({ move }: { move: MoveController }) {
   const goalLabel = optionLabel(MOVE_GOAL_OPTIONS, preferences.goal);
   const experienceLabel = optionLabel(MOVE_EXPERIENCE_OPTIONS, preferences.experience);
   const hasCompatibleTarget = !effectivePreferences.targetMuscles.length || compatibleTargetedExercises(effectivePreferences, adaptiveIntensity).length > 0;
-  const plannedMove = (loadConfirmedWeeklyPlan()?.moveSlots ?? [])
-    .find(slot => new Date(slot.date + 'T' + slot.start + ':00').getTime() >= Date.now());
+  const todayKey = (() => {
+    const today = new Date();
+    return [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
+  })();
+  // A confirmed session remains actionable throughout its scheduled day even
+  // after the clock time passes. A deep-linked slot takes precedence.
+  const plannedMove = preparedWeekly ?? (loadConfirmedWeeklyPlan()?.moveSlots ?? [])
+    .find(slot => slot.date > todayKey || (slot.date === todayKey && !doneToday));
 
   return (
     <>

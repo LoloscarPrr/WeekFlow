@@ -2,28 +2,42 @@ import type { BrainMoment } from '../domain/entities/Planning';
 import type { HabitsState } from '../habits/core';
 import type { ConfirmedWeeklyPlan } from './weeklyPlanPersistence';
 import { localHabitDateKey } from '../habits/core';
+import type { MoveSessionRecord } from '../state/persistence';
 
-export function confirmedMomentsForNow(plan: ConfirmedWeeklyPlan | null, habits: HabitsState, now: Date): { item: BrainMoment; at: Date }[] {
+export function confirmedMomentsForNow(
+  plan: ConfirmedWeeklyPlan | null, habits: HabitsState, now: Date,
+  moveHistory: readonly MoveSessionRecord[] = [],
+): { item: BrainMoment; at: Date }[] {
   if (!plan) return [];
   const monday = new Date(now);
   monday.setHours(0, 0, 0, 0);
   monday.setDate(monday.getDate() - (monday.getDay() + 6) % 7);
   if (localHabitDateKey(monday) !== plan.weekStart) return [];
+  const completedIds = new Set(moveHistory
+    .filter(record => !record.endedEarly && record.scheduledMoveId)
+    .map(record => record.scheduledMoveId));
   const moveMoments = (plan.moveSlots ?? []).flatMap(slot => {
+    if (completedIds.has(slot.id)) return [];
     const [year, month, day] = slot.date.split('-').map(Number);
     const [hour, minute] = slot.start.split(':').map(Number);
     const at = new Date(year, month - 1, day, hour, minute);
-    if (at < now || Number.isNaN(at.getTime())) return [];
+    // Keep today's missed window visible until midnight: it is still a
+    // confirmed but uncompleted Move session, not a disposable suggestion.
+    const isToday = slot.date === localHabitDateKey(now);
+    if ((!isToday && at < now) || Number.isNaN(at.getTime())) return [];
     return [{
-      at,
+      at: at < now ? now : at,
       item: {
         time: slot.start,
         dateLabel: slot.date,
         icon: '🏃',
         title: 'Move · ' + slot.muscles,
-        detail: slot.durationMin + ' min · ' + slot.intensity + ' · sesión semanal confirmada. Revisa la energía de hoy antes de empezar.',
+        detail: slot.durationMin + ' min · ' + slot.intensity
+          + (at < now ? ' · pendiente de hoy' : ' · sesión confirmada por Brain')
+          + '. Revisa tu energía antes de empezar.',
         type: 'move' as const,
         flexible: true,
+        plannedMoveId: slot.id,
       },
     }];
   });

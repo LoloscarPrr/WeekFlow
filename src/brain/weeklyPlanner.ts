@@ -125,6 +125,16 @@ function protectedIntervals(
     const startMargin = Math.max(0, settings.commuteOutMin + settings.bufferMin + settings.prepMin);
     const endMargin = Math.max(0, settings.commuteBackMin + settings.recoveryMin);
     blocked.push({ start: new Date(s.start.getTime() - startMargin * MINUTE), end: s.start });
+    // On daytime shifts, Brain already treats pre-shift wake, eating and
+    // preparation as occupied. A gap before departure is NOT free time:
+    // the user has not confirmed being awake earlier than Brain predicts.
+    // Keep workouts and habits out of that window instead of overlapping
+    // e.g. 10:30 pre-shift food with a 10:30 reading habit.
+    const overnight = s.end.getDate() !== s.start.getDate() || s.start.getHours() >= 19;
+    if (!overnight) {
+      const midnight = dayAt(s.start, 0);
+      blocked.push({ start: midnight, end: s.start });
+    }
     blocked.push({ start: s.end, end: new Date(s.end.getTime() + endMargin * MINUTE) });
     // Match Brain's pre-shift wake calculation. A night-shift wake is not
     // available time: protect the preceding main sleep window as well.

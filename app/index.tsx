@@ -143,7 +143,13 @@ export default function NowScreen() {
               <Pressable
                 key={`${item.time}-${item.type}-${index}`}
                 style={[styles.timelineRow, index === timelineMoments.length - 1 && styles.timelineRowLast]}
-                onPress={actionable ? () => router.push('/pillars') : undefined}
+                onPress={actionable ? () => {
+                  if (item.plannedMoveId) {
+                    router.push({ pathname: '/pillars', params: { moveSlotId: item.plannedMoveId } });
+                  } else {
+                    router.push('/pillars');
+                  }
+                } : undefined}
                 disabled={!actionable}
                 accessibilityRole={actionable ? 'button' : undefined}
                 accessibilityLabel={actionable ? `Abrir ${item.title}` : undefined}
@@ -151,9 +157,18 @@ export default function NowScreen() {
                 <Text style={styles.timelineTime}>{item.time}</Text>
                 <Text style={styles.timelineIcon}>{item.icon}</Text>
                 <View style={{ flex: 1 }}>
+                  {item.dateLabel ? (
+                    <Text style={styles.timelineDate}>
+                      {new Date(item.dateLabel + 'T12:00:00').toLocaleDateString('es-CL', { weekday: 'short', day: 'numeric', month: 'short' })}
+                    </Text>
+                  ) : null}
                   <Text style={styles.timelineTitle}>{item.title}</Text>
                   <Text style={styles.timelineDetail}>{item.detail}</Text>
-                  {actionable ? <Text style={styles.timelineAction}>Abrir Move →</Text> : null}
+                  {actionable ? (
+                    <Text style={styles.timelineAction}>
+                      {item.plannedMoveId ? 'Preparar sesión de Move →' : 'Abrir Move →'}
+                    </Text>
+                  ) : null}
                 </View>
               </Pressable>
             );
@@ -235,6 +250,7 @@ const styles = StyleSheet.create({
   timelineCard: { backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 16 },
   timelineRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.line },
   timelineRowLast: { borderBottomWidth: 0 },
+  timelineDate: { color: '#8FAECC', fontSize: 11, fontWeight: '700', marginBottom: 4 },
   timelineTime: { color: '#6EA8FF', fontSize: 13, fontWeight: '900', width: 48 },
   timelineIcon: { fontSize: 18, width: 24 },
   timelineTitle: { color: colors.text, fontSize: 14, fontWeight: '900' },
