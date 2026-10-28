@@ -11,7 +11,10 @@ export function timelineAfterFeaturedMoment(
 ) {
   const firstMomentIsFeatured = !hasActualExit
     && !['working', 'commuting', 'after'].includes(phase)
-    && upcomingMoments.length > 0;
+    && upcomingMoments.length > 0
+    // The featured card alone isn't the user's agenda: keep scheduled Move
+    // visible as an actionable row in «Lo que viene».
+    && !upcomingMoments[0].plannedMoveId;
 
   return firstMomentIsFeatured
     ? upcomingMoments.slice(1)
