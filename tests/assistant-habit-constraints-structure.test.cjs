@@ -1,0 +1,18 @@
+const fs=require('fs');const read=p=>fs.readFileSync(p,'utf8');
+const ok=(x,m)=>{if(!x)throw Error(m)};
+const controller=read('src/presentation/assistant/useAssistantController.ts');
+const ui=read('app/assistant.tsx');
+const planner=read('src/brain/weeklyPlanner.ts');
+const core=read('src/habits/core.ts');
+const persistence=read('src/brain/habitConstraintPersistence.ts');
+const change=read('src/brain/habitConstraintChange.ts');
+ok(controller.includes('parseHabitConstraintIntent(input, loadHabitsState())'),'Assistant handles explicit natural language constraints');
+ok(controller.includes('previewHabitConstraint(constraint)') && controller.includes('confirmHabitConstraint(pendingHabitConstraint)'),'Assistant requires preview + confirmation');
+ok(controller.includes('undoHabitConstraint(habitConstraintUndo)'),'Assistant supports undo');
+ok(ui.includes('pendingHabitConstraint') && ui.includes('Confirmar regla') && ui.includes('Cancelar'),'UI clearly exposes confirmation');
+ok(planner.includes("(habit.skipDates ?? []).includes(key)") && planner.includes("habit.dayRule === 'off-days'"),'planner respects availability');
+ok(core.includes('setHabitDayRule') && core.includes('skipHabitOnDate') && core.includes('sanitizeHabitsState'),'rules persisted in canonical SQLite habits');
+ok(change.includes('moveSlots')===false && change.includes("slots.filter"),'preview edits only habit slots, not Move');
+ok(persistence.includes('JSON.stringify(left) === JSON.stringify(right)') && persistence.includes('undoHabitConstraint'),'conflict-protected undo');
+ok(controller.includes('syncLivePlanReminders()'),'reschedule reminders after confirmed change');
+console.log('Habit day constraints integration structure passed.');

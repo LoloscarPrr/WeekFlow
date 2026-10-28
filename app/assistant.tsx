@@ -46,6 +46,11 @@ export default function AssistantScreen() {
     context,
     pendingProposal,
     pendingWeekly,
+    pendingHabitConstraint,
+    habitConstraintUndo,
+    cancelHabitConstraint,
+    confirmHabitRule,
+    undoHabitRule,
     weeklyUndo,
     cancelWeekly,
     confirmWeekly,
@@ -193,6 +198,12 @@ export default function AssistantScreen() {
               <Text style={styles.reviewExitButtonText}>Ver rutina en Move →</Text>
             </Pressable>
           ) : null}
+          {habitConstraintUndo && !pendingHabitConstraint && !pendingWeekly && !pendingProposal ? (
+            <Pressable style={styles.undoButton} accessibilityRole="button"
+              accessibilityLabel="Deshacer regla de hábito" onPress={undoHabitRule}>
+              <Text style={styles.undoButtonText}>↶ Deshacer regla de hábito</Text>
+            </Pressable>
+          ) : null}
           {weeklyUndo && !pendingWeekly && !pendingProposal ? (
             <Pressable
               style={styles.undoButton}
@@ -214,6 +225,36 @@ export default function AssistantScreen() {
             </Pressable>
           ) : null}
         </View>
+
+        {pendingHabitConstraint ? (
+          <View style={styles.proposalCard}>
+            <Text style={styles.proposalLabel}>CAMBIO DE DISPONIBILIDAD · REQUIERE CONFIRMAR</Text>
+            <Text style={styles.proposalTitle}>🌱 {pendingHabitConstraint.intent.habitName}</Text>
+            <Text style={styles.proposalBody}>
+              {pendingHabitConstraint.intent.kind === 'off-days'
+                ? 'Organizar exclusivamente en los días que Semana marca LIBRE. Se mantiene su frecuencia semanal y el historial.'
+                : 'No programar este hábito el ' + pendingHabitConstraint.intent.date + '. No se marcará como realizado ni se borrará.'}
+            </Text>
+            <Text style={styles.proposalBody}>
+              {pendingHabitConstraint.removed > 0
+                ? 'Se quitarán ' + pendingHabitConstraint.removed + ' sesiones incompatibles del plan confirmado.'
+                : 'El plan confirmado no tiene bloques afectados. La regla se aplicará a próximas reorganizaciones.'}
+              {' '}Move y los otros hábitos permanecerán intactos.
+            </Text>
+            <Text style={styles.proposalBody}>
+              Para distribuir los momentos pendientes en otros días, usa después «Organizar mi semana» y confirma la nueva propuesta.
+            </Text>
+            <View style={styles.proposalActions}>
+              <Pressable style={styles.cancelButton} onPress={cancelHabitConstraint}>
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              </Pressable>
+              <Pressable style={styles.confirmButton}
+                onPress={() => { if (confirmHabitRule()) setInput(''); }}>
+                <Text style={styles.confirmButtonText}>Confirmar regla</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
 
         {pendingWeekly ? (
           <View style={styles.proposalCard}>

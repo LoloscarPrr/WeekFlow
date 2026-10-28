@@ -289,6 +289,9 @@ export function proposeWeeklyPlan(input: PlannerInput): WeeklyProposal {
     for (let i = 0; i < 7; i++) {
       const day = dates[i];
       const key = localHabitDateKey(day);
+      if ((habit.skipDates ?? []).includes(key)) continue;
+      const shiftForDay = input.week.shifts.find(shift => shift.day === i);
+      if (habit.dayRule === 'off-days' && shiftForDay?.type !== 'off') continue;
       if (input.habits.completions.some(c => c.habitId === habit.id && c.date === key)) continue;
       if (slots.some(s => s.habitId === habit.id && s.date === key)) continue;
       // Same visible activity, even if registered under different habit IDs.
@@ -338,6 +341,12 @@ export function proposeWeeklyPlan(input: PlannerInput): WeeklyProposal {
     const scheduled = scheduledByHabit.get(h.id) || 0;
     return completed + scheduled < h.targetPerWeek ? [{ habitId: h.id, title: h.name, requested: h.targetPerWeek, scheduled, completed }] : [];
   });
+  if (active.some(h => h.dayRule === 'off-days')) {
+    warnings.push('Los hábitos limitados a días libres se programan solo cuando Semana marca explícitamente LIBRE. Si la semana cambia, vuelve a confirmar.');
+  }
+  if (active.some(h => (h.skipDates ?? []).some(d => d >= localHabitDateKey(monday) && d <= localHabitDateKey(dates[6])))) {
+    warnings.push('Las excepciones por fecha no cuentan como hábitos completados; si faltan oportunidades, se mostrarán como pendientes.');
+  }
   if (input.weekOffset === 0 && input.now.getDay() === 0) warnings.push('Queda poco de la semana actual: puedes seleccionar la próxima semana para distribuir tus hábitos.');
   if (recoveryDates.size) warnings.push('Se redujo la carga en días posteriores a turnos nocturnos para proteger la recuperación.');
   if (shortfalls.length) warnings.push('No hay espacios seguros suficientes para todos los objetivos; no se recorta el descanso para completarlos.');

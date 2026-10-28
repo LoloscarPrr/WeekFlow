@@ -54,6 +54,12 @@ export function confirmWeeklyProposal(
   return { ok: true, plan: confirmed };
 }
 
+/** Only use after verifying the expected stored plan snapshot. */
+export function writeConfirmedWeeklyPlanSnapshot(plan: ConfirmedWeeklyPlan | null): void {
+  if (plan) sqliteStateStore.write(KEY, plan);
+  else sqliteStateStore.delete(KEY);
+}
+
 /**
  * Deleting a habit is an explicit user action: prune only its future planned
  * sessions and shortfalls. Move and unrelated habits remain untouched.
