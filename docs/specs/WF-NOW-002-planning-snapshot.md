@@ -1,6 +1,6 @@
 # WF-NOW-002 — Evitar lecturas repetidas de SQLite en el reloj de Ahora
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Blueprint: WeekFlow Blueprint Maestro v4.0
 Approved scope: bounded technical stability/performance improvement · 2026-10-28
@@ -28,14 +28,14 @@ Now loads canonical plan, Habits and Move history once when mounted and again on
 - No changes to WeekFlow Pills, OCR, Excel or PDF importers.
 
 ## Acceptance criteria
-- [ ] AC1 — A Now clock tick does not call `loadConfirmedWeeklyPlan`, `loadHabitsState`, `loadMoveHistory` or `moveSessionDoneToday`.
-- [ ] AC2 — Mount/focus/pull-to-refresh load a consistent planning snapshot; the view updates after returning from Habit/Brain/Move changes.
-- [ ] AC3 — Current-time-dependent `getNowView` calculation still runs every 30 seconds; upcoming moments, work phase, night carry and post-shift plans are not frozen.
-- [ ] AC4 — Move completion derives from snapshot history using local date every recomputation; midnight changes validity without an additional database read.
-- [ ] AC5 — Plain `getNowView` calls without the optional snapshot still read current canonical state as before, preserving other callers.
-- [ ] AC6 — Existing history, confirmed plan and habit persistence are read-only; no UI, navigation, signing or schema changes.
+- [x] AC1 — A Now clock tick does not call `loadConfirmedWeeklyPlan`, `loadHabitsState`, `loadMoveHistory` or `moveSessionDoneToday`.
+- [x] AC2 — Mount/focus/pull-to-refresh load a consistent planning snapshot; the view updates after returning from Habit/Brain/Move changes.
+- [x] AC3 — Current-time-dependent `getNowView` calculation still runs every 30 seconds; upcoming moments, work phase, night carry and post-shift plans are not frozen.
+- [x] AC4 — Move completion derives from snapshot history using local date every recomputation; midnight changes validity without an additional database read.
+- [x] AC5 — Plain `getNowView` calls without the optional snapshot still read current canonical state as before, preserving other callers.
+- [x] AC6 — Existing history, confirmed plan and habit persistence are read-only; no UI, navigation, signing or schema changes.
 - [ ] AC7 — Full Quality regression/TypeScript/Metro passes and Android signed APK/AAB passes after merge (or is explicitly marked blocked).
-- [ ] AC8 — No quantitative improvement claims without physical-device profiling.
+- [x] AC8 — No quantitative improvement claims without physical-device profiling.
 
 ## Data / persistence impact
 No migrations or writes. Read-only keys `brain-confirmed-weekly-plan-v1`, `habits-state` and `move-history` are loaded together by canonical functions at focus, not every 30-second tick. State changes made in sibling screens become visible on focus/refresh.
@@ -60,4 +60,13 @@ None intended. Today's Move status updates as the local date changes, and Now ev
 - [ ] Manual device navigation/overnight scenarios: NOT RUN without a physical test device.
 
 ## Verification result
-- AC1–AC8: PENDING.
+- AC1: PASS (source and structure test) — `useNowController` reads `loadNowPlanningState` at mount/focus only; the live 30-second update passes that snapshot into `getNowView`, which makes no direct SQLite reads in its time-dependent body.
+- AC2: PASS (source + structure test) — `refreshNow` refreshes plan, habits and history and is called by `useFocusEffect` and the existing pull-to-refresh handler. Physical-navigation test: NOT RUN.
+- AC3: PASS (source and existing regression tests) — shiftContextForDate, night recovery, phaseForShift, shiftProgress, confirmedMomentsForNow and time filtering still execute per clock tick using actual `now`.
+- AC4: PASS (pure regression test) — `moveDoneFromHistoryOnDate` verifies current local date, history and midnight rollover; no separate Move history reload from the controller.
+- AC5: PASS (source and structure test) — optional snapshot falls back to `loadNowPlanningState` for non-Now callers; existing Assistant integration still receives canonical reads.
+- AC6: PASS (diff review) — changes limited to planning loader, Now controller, pure completion helper, tests and TLC docs; no database schema, persisted keys, UI or signing changes.
+- AC7: PASS for PR Quality #40741128006 (typecheck, all regression tests including Now/Move/Habits, Android Metro export). First attempt #40740919775 failed because new pure helper used a TS path alias that standalone Node could not resolve; fixed with relative domain import. Signed APK/AAB on main: PENDING until post-merge Android workflow.
+- AC8: PASS — fewer structural reads, but no physical battery/CPU measurements and no speedup number claimed.
+- Physical Android UX testing: NOT RUN; check focus restoration and manual refresh with confirmed or deleted week plans.
+
