@@ -10,6 +10,11 @@ import { interpretAssistantText } from '@/src/assistant/interpret';
 import { interpretAssistantQuestion, answerAssistantQuestion } from '@/src/assistant/questions';
 import { interpretDayAdviceQuestion, answerDayAdvice } from '@/src/assistant/dayAdvice';
 import { parseWeeklyPlanningIntent } from '@/src/assistant/weeklyIntent';
+import { parseHabitConstraintIntent } from '@/src/assistant/habitConstraints';
+import {
+  previewHabitConstraint, confirmHabitConstraint, undoHabitConstraint,
+  type HabitConstraintPreview, type HabitConstraintUndo,
+} from '@/src/brain/habitConstraintPersistence';
 import { proposeWeeklyPlan, type WeeklyProposal } from '@/src/brain/weeklyPlanner';
 import { confirmWeeklyProposal, loadConfirmedWeeklyPlan, undoConfirmedWeeklyProposal, type ConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
 import { loadHabitsState } from '@/src/habits/persistence';
@@ -77,6 +82,8 @@ export function useAssistantController() {
   const [pendingProposal, setPendingProposal] = useState<BrainActionProposal | null>(null);
   const [lastReceipt, setLastReceipt] = useState<BrainActionReceipt | null>(null);
   const [pendingWeekly, setPendingWeekly] = useState<WeeklyProposal | null>(null);
+  const [pendingHabitConstraint, setPendingHabitConstraint] = useState<HabitConstraintPreview | null>(null);
+  const [habitConstraintUndo, setHabitConstraintUndo] = useState<HabitConstraintUndo | null>(null);
   const [previousConfirmedWeekly, setPreviousConfirmedWeekly] = useState<ConfirmedWeeklyPlan | null>(null);
   const [weeklyUndo, setWeeklyUndo] = useState<{ applied: ConfirmedWeeklyPlan; previous: ConfirmedWeeklyPlan | null } | null>(null);
   const [assistantMessage, setAssistantMessage] = useState(
@@ -96,6 +103,19 @@ export function useAssistantController() {
   const interpret = useCallback((input: string) => {
     // A newer user request discards an unconfirmed weekly preview.
     setPendingWeekly(null);
+    setPendingHabitConstraint(null);
+    const constraint = parseHabitConstraintIntent(input, loadHabitsState());
+    if (constraint) {
+      const preview = previewHabitConstraint(constraint);
+      setPendingProposal(null);
+      if (!preview) {
+        setAssistantMessage('Esa regla ya está aplicada o no es válida para el calendario actual. No cambié nada.');
+        return 'answered' as const;
+      }
+      setPendingHabitConstraint(preview);
+      setAssistantMessage('Revisa y confirma este cambio en Hábitos. No se borrarán registros de cumplimiento, ni modificaré Move o tus turnos.');
+      return 'answered' as const;
+    }
     const weekly = parseWeeklyPlanningIntent(input);
     if (weekly) {
       const now = new Date();
@@ -342,6 +362,39 @@ export function useAssistantController() {
     return true;
   }, []);
 
+  const cancelHabitConstraint = useCallback(() => {
+    setPendingHabitConstraint(null);
+    setAssistantMessage('Descarté el cambio de disponibilidad. No modifiqué tus hábitos.');
+  }, []);
+
+  const confirmHabitRule = useCallback(() => {
+    if (!pendingHabitConstraint) return false;
+    const result = confirmHabitConstraint(pendingHabitConstraint);
+    setPendingHabitConstraint(null);
+    setAssistantMessage(result.message);
+    if (!result.ok) return false;
+    setHabitConstraintUndo(result.undo ?? null);
+    setWeeklyUndo(null);
+    setLastReceipt(null);
+    setContext(readAssistantContext());
+    void syncLivePlanReminders().catch(error =>
+      console.warn('Could not update habit reminders after availability rule', error));
+    return true;
+  }, [pendingHabitConstraint]);
+
+  const undoHabitRule = useCallback(() => {
+    if (!habitConstraintUndo) return false;
+    const result = undoHabitConstraint(habitConstraintUndo);
+    setHabitConstraintUndo(null);
+    setAssistantMessage(result.message);
+    if (result.ok) {
+      setContext(readAssistantContext());
+      void syncLivePlanReminders().catch(error =>
+        console.warn('Could not update habit reminders after rule undo', error));
+    }
+    return result.ok;
+  }, [habitConstraintUndo]);
+
   const cancelWeekly = useCallback(() => {
     setPendingWeekly(null);
     setPreviousConfirmedWeekly(null);
@@ -531,6 +584,11 @@ export function useAssistantController() {
     pendingProposal,
     lastReceipt,
     pendingWeekly,
+    pendingHabitConstraint,
+    habitConstraintUndo,
+    cancelHabitConstraint,
+    confirmHabitRule,
+    undoHabitRule,
     weeklyUndo,
     cancelWeekly,
     confirmWeekly,
