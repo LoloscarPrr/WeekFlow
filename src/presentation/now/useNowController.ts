@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { recordDailyEnergy } from '@/src/brain/energyHistory';
-import { getNowView } from '@/src/application/useCases/getNowView';
+import { getNowView, loadNowPlanningState } from '@/src/application/useCases/getNowView';
+import { moveDoneFromHistoryOnDate } from '@/src/domain/services/nowMoveCompletion';
 import {
   correctActualExitTime as correctActualExitTimeUseCase,
   registerActualExit,
@@ -15,7 +16,6 @@ import { syncLivePlanReminders } from '@/src/services/notifications';
 import {
   loadDayState,
   loadWeekState,
-  moveSessionDoneToday,
   saveDayState,
 } from '@/src/state/persistence';
 
@@ -23,14 +23,14 @@ export function useNowController() {
   const [dayState, setDayState] = useState(() => loadDayState());
   const [weekState, setWeekState] = useState(() => loadWeekState());
   const [clockNow, setClockNow] = useState(() => new Date());
-  const [moveDoneToday, setMoveDoneToday] = useState(() => moveSessionDoneToday());
+  const [planningState, setPlanningState] = useState(loadNowPlanningState);
 
   const refreshNow = useCallback(() => {
     const now = new Date();
     setDayState(loadDayState());
     setWeekState(loadWeekState());
     setClockNow(now);
-    setMoveDoneToday(moveSessionDoneToday(now));
+    setPlanningState(loadNowPlanningState());
   }, []);
 
   useFocusEffect(
@@ -52,8 +52,14 @@ export function useNowController() {
   }, [dayState]);
 
   const view = useMemo(
-    () => getNowView({ dayState, weekState, moveDoneToday, now: clockNow }),
-    [clockNow, dayState, moveDoneToday, weekState],
+    () => getNowView({
+      dayState,
+      weekState,
+      moveDoneToday: moveDoneFromHistoryOnDate(planningState.moveHistory, clockNow),
+      now: clockNow,
+      planningState,
+    }),
+    [clockNow, dayState, planningState, weekState],
   );
 
   const updateEnergy = useCallback((energy: Energy) => {
