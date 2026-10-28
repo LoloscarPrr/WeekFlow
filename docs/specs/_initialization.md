@@ -1,20 +1,19 @@
-# TLC Initialization Snapshot — WF-MOVE-010 (2026-10-27)
+# TLC Initialization Snapshot — WF-MOVE-011 (2026-10-28)
 
-## Repository/ref, version and baseline
-- Repository: `LoloscarPrr/WeekFlow`, base `main` `d9dd0d0e4b1560624b043bfe79903a917bad8c2b`; working branch `perf/wf-move-010-canonical-runtime-store`.
-- Version: WeekFlow Alpha `0.5.28`; Expo ~57.0.8 / RN 0.86.0 / React 19.2.3; Android package `com.weekflow.app`, source versionCode 114; release build assigns monotonic run-specific code.
-- CI `main`: Quality #40483763841 PASS, signed Android APK/AAB #40483763887 PASS. Physical Android SQLite upgrade/runtime test: NOT RUN.
-- Blueprint Maestro v4.0 + recent product focus: canonical state, reliable Android releases, Move as independent weekly planning pillar (0.5.28), no rewriting confirmed plans.
+## Repository/ref and baseline
+- Repository `LoloscarPrr/WeekFlow`, current main `5f669531fbd5ed61efe485dd941185de7566aa95`, version `0.5.30`. Work branch `perf/wf-move-011-timer-cadence`, updated from v0.5.29 base to current v0.5.30 without reverting Move/Now enhancements.
+- Current Expo ~57.0.8 / React Native 0.86.0 / React 19.2.3, `com.weekflow.app`; existing release keystore and versionCode logic unchanged.
+- Previous main v0.5.29: Quality #40556456140 PASS; signed Android #40556456169 PASS. New main v0.5.30 CI pending verification at rebase.
+- WF-MOVE-011 PR Quality #40636114871 attempt 2 PASS against v0.5.29; attempt 1 canceled while npm ci exceeded 10-minute timeout. Full Quality must be re-run on v0.5.30 head.
+- Android physical stopwatch/CPU performance test NOT RUN.
 
-## Technical context
-- `src/data/local/sqlite/SQLiteStateStore.ts` is the canonical singleton for key/value state in `weekflow.db`; `read/write/delete` run migration version 1 and use consistent INSERT/ON CONFLICT semantics.
-- `src/move/runtime.ts` separately opens `weekflow.db`, repeats `CREATE TABLE IF NOT EXISTS weekflow_state` on every read/write/delete, and duplicates JSON parsing/upserts.
-- Move keys already persisted on devices: `move-runtime-v1` and `move-feedback-notes-v1`; must be preserved byte-for-byte, alongside history, active session and preferences in `src/state/persistence.ts`.
-- APIs used by `src/move/useMoveController.ts`: load/save/clear runtime, save notes, calculate elapsed phase.
-- No schema migration, version bump, data reset, UI change or alterations to time/feedback logic allowed.
-- Reviewed `AGENTS.md`, TLC skill, relevant Move 001-009 specs and `WF-CORE-008`; the import and release architecture must remain stable.
+## Source context and roadmap
+- Blueprint Maestro v4.0 and WF-MOVE-009/010: stable Move, 30/45/60 minute training, canonical SQLite, preserving history and pause behavior.
+- v0.5.30 adds `prepareWeeklySessionById` to Move for confirmed appointments in Ahora. The timer refactor must preserve that API and its matching screens/tests.
+- `src/move/useMoveController.ts`: 500 ms setInterval and per-tick shift computation, while elapsed time derives from absolute phase/session timestamps. Overnight carry may end within a day and must be updated by minute rather than day.
+- Scope: pure timer cadence, minute memoization, regression tests. No UI/schema/signing/version upgrade.
+- Phase decision NOW WF-MOVE-011; BACKLOG for background scheduling changes and device profiling.
 
-## Decision
-- NOW: `WF-MOVE-010` — route runtime and feedback note storage through the canonical SQLiteStateStore with injectable/testable contract at build-time only; preserve existing semantics.
-- BACKLOG: Move timer/UI profiling, SQLite async conversion, retention/schema changes, cross-module atomic writes and other audit tasks.
-- Remaining uncertainty: an instrumented Android upgrade test with preexisting user records cannot be executed from GitHub CI; include explicit manual QA recommendation.
+## Checks
+- Parent main v0.5.30 Quality/Android need live verification.
+- WF-MOVE-011 new PR head Quality NOT RUN at rebase.
