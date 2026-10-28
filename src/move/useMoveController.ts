@@ -31,6 +31,7 @@ import {
 } from '@/src/move/adaptation';
 import { alternateExercise, compatibleTargetedExercises, exerciseById, previewForDuration, routineForDuration } from '@/src/move/library';
 import { sanitizeTargetMuscles, type MoveMuscleGroup } from '@/src/move/muscles';
+import { nextMoveClockDelayMs } from '@/src/move/clock';
 import { loadConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
 import type { WeeklyMoveSlot } from '@/src/brain/weeklyPlanner';
 import {
@@ -103,8 +104,14 @@ export function useMoveController() {
   const [extraOpen, setExtraOpen] = useState(false);
   const [preparedWeekly, setPreparedWeekly] = useState<WeeklyMoveSlot | null>(null);
 
-  const now = useMemo(() => new Date(clockMs), [clockMs]);
-  const todayShift = useMemo(() => shiftForDate(weekState, now), [now, weekState]);
+  // Shift context can change at midnight or at an overnight shift's end.
+  // Recompute on minute boundaries, not every second of an active workout.
+  const minuteBucket = Math.floor(clockMs / 60_000);
+  const localDay = useMemo(() => localDateKey(new Date(minuteBucket * 60_000)), [minuteBucket]);
+  const todayShift = useMemo(
+    () => shiftForDate(weekState, new Date(minuteBucket * 60_000)),
+    [weekState, minuteBucket],
+  );
   const recommended = useMemo(
     () => recommendMoveMinutes(dayState.energy, lastRecord?.feedback, todayShift, Boolean(lastRecord?.endedEarly)),
     [dayState.energy, lastRecord?.endedEarly, lastRecord?.feedback, todayShift],
@@ -145,7 +152,10 @@ export function useMoveController() {
     () => previewForDuration(duration, effectivePreferences, adaptiveIntensity, progressionContext),
     [adaptiveIntensity, duration, effectivePreferences, progressionContext],
   );
-  const doneToday = useMemo(() => Boolean(lastRecord && localDateKey(new Date(lastRecord.finishedAt)) === localDateKey(now)), [lastRecord, now]);
+  const doneToday = useMemo(
+    () => Boolean(lastRecord && localDateKey(new Date(lastRecord.finishedAt)) === localDay),
+    [lastRecord, localDay],
+  );
   const currentStepIndex = Math.min(activeSession?.step ?? 0, routine.steps.length - 1);
   const stepDefinition = routine.steps[currentStepIndex];
   const currentExercise = exerciseById(runtime?.exerciseOverrides[String(currentStepIndex)], stepDefinition.exercise);
@@ -187,10 +197,15 @@ export function useMoveController() {
   }, [activeSession, routine.id, runtime]);
 
   useEffect(() => {
-    if (!activeSession || activeSession.paused) return;
-    const timer = setInterval(() => setClockMs(Date.now()), 500);
-    return () => clearInterval(timer);
-  }, [activeSession]);
+    if (!activeSession || activeSession.paused || !runtime) return;
+    const delayMs = nextMoveClockDelayMs(
+      runtime.phaseStartedAt,
+      runtime.phasePausedTotalMs,
+      Date.now(),
+    );
+    const timer = setTimeout(() => setClockMs(Date.now()), delayMs);
+    return () => clearTimeout(timer);
+  }, [activeSession, runtime, clockMs]);
 
   const phaseTotalSeconds = runtime?.phase === 'rest' ? stepDefinition.restAfterSec : stepDefinition.durationSec;
   const phaseElapsedSeconds = runtime ? Math.floor(phaseElapsedMs(runtime, clockMs) / 1000) : 0;
