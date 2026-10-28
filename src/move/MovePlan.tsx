@@ -100,8 +100,6 @@ export function MovePlan({ move }: { move: MoveController }) {
     prepareWeeklySession,
     setFocus,
     setTargetMuscles,
-    setWeeklyTargetSessions,
-    setPreferredSessionMinutes,
     setExperience,
     setGoal,
     setTrainingStyle,
@@ -344,42 +342,7 @@ export function MovePlan({ move }: { move: MoveController }) {
               })}
             </View>
 
-            <Text style={styles.smallLabel}>Plan semanal de Move · pilar independiente de Hábitos</Text>
-            <Text style={styles.preferenceCopy}>Elige cuántas sesiones quieres que Brain distribuya entre tus turnos y descanso. No necesitas crear el hábito «Ejercicios».</Text>
-            <View style={styles.profileChips}>
-              {[0, 1, 2, 3, 4, 5].map((count) => {
-                const selected = preferences.weeklyTargetSessions === count;
-                return (
-                  <Pressable
-                    key={count}
-                    accessibilityRole="button"
-                    accessibilityLabel={count === 0 ? 'No programar Move' : `Programar ${count} sesiones de Move por semana`}
-                    disabled={Boolean(move.activeSession)}
-                    style={[styles.profileChip, selected && styles.profileChipActive]}
-                    onPress={() => setWeeklyTargetSessions(count)}
-                  >
-                    <Text style={[styles.profileChipText, selected && styles.profileChipTextActive]}>{count === 0 ? 'Sin plan' : `${count}/sem`}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <Text style={styles.smallLabel}>Duración preferida de la semana</Text>
-            <View style={styles.profileChips}>
-              {([30, 45, 60] as const).map((minutes) => {
-                const selected = preferences.preferredSessionMinutes === minutes;
-                return (
-                  <Pressable
-                    key={minutes}
-                    accessibilityRole="button"
-                    disabled={Boolean(move.activeSession)}
-                    style={[styles.profileChip, selected && styles.profileChipActive]}
-                    onPress={() => setPreferredSessionMinutes(minutes)}
-                  >
-                    <Text style={[styles.profileChipText, selected && styles.profileChipTextActive]}>{minutes} min</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+            <Text style={styles.preferenceCopy}>La frecuencia y duración de tu semana se configuran en Semana → Organizar semana. Aquí ajustas el entrenamiento: músculos, material y dificultad.</Text>
 
             <Text style={styles.smallLabel}>Músculos de la sesión · {describeTargetMuscles(effectivePreferences.targetMuscles)}</Text>
             {preparedWeekly ? <Text style={styles.preferenceCopy}>Enfoque temporal del plan semanal. No modifica tu perfil general.</Text> : null}
