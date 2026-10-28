@@ -244,9 +244,21 @@ export function compatibleTargetedExercises(preferences: MovePreferences, intens
   return ordered;
 }
 
-function orderedIds(preferences: MovePreferences, intensity: MoveIntensity) {
+/** Prefer eligible exercises not performed in the previous session.
+ * Original muscle round-robin order remains the tiebreaker; no randomness. */
+function freshTargetedExercises(
+  preferences: MovePreferences, intensity: MoveIntensity, progression: MoveProgressionContext,
+): MoveExercise[] {
+  const previous = new Set(progression.previousExerciseIds ?? []);
+  const eligible = compatibleTargetedExercises(preferences, intensity);
+  const fresh = eligible.filter(exercise => !previous.has(exercise.id));
+  const repeated = eligible.filter(exercise => previous.has(exercise.id));
+  return [...fresh, ...repeated];
+}
+
+function orderedIds(preferences: MovePreferences, intensity: MoveIntensity, progression: MoveProgressionContext = {}) {
   if (preferences.targetMuscles.length) {
-    return compatibleTargetedExercises(preferences, intensity).map((exercise) => exercise.id);
+    return freshTargetedExercises(preferences, intensity, progression).map((exercise) => exercise.id);
   }
   let order = [...(FOCUS_ORDER[preferences.focus] ?? FOCUS_ORDER.equilibrado)];
   if (preferences.focus === 'equilibrado' && preferences.goal === 'condicion') order = [...CONDITIONING_PREFIX, ...order];
@@ -272,7 +284,7 @@ function idsFor(
   intensity: MoveIntensity,
   progression: MoveProgressionContext,
 ) {
-  const order = orderedIds(preferences, intensity);
+  const order = orderedIds(preferences, intensity, progression);
   const selected: MoveExercise[] = [];
   let cursor = 0;
   while (selected.length < count) {
@@ -538,7 +550,7 @@ function targetedSeriesRoutine(
   intensity: MoveIntensity,
   progression: MoveProgressionContext,
 ): MoveRoutine | null {
-  const exercises = compatibleTargetedExercises(preferences, intensity)
+  const exercises = freshTargetedExercises(preferences, intensity, progression)
     .slice(0, targetMinutes >= 45 ? 6 : 4)
     .map((exercise) => progressionAdjustedExercise(exercise, preferences, intensity, progression) ?? exercise);
   const unique = exercises.filter((exercise, i) => exercises.findIndex((item) => item.id === exercise.id) === i);
@@ -579,7 +591,7 @@ function targetedAmrapRoutine(
   intensity: MoveIntensity,
   progression: MoveProgressionContext,
 ): MoveRoutine | null {
-  const exercises = compatibleTargetedExercises(preferences, intensity).slice(0, 6);
+  const exercises = freshTargetedExercises(preferences, intensity, progression).slice(0, 6);
   if (exercises.length < 3) return null;
   const circuit = exercises.map((exercise) => ({
     exercise: progressionAdjustedExercise(exercise, preferences, intensity, progression) ?? exercise,
