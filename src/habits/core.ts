@@ -1,4 +1,5 @@
 export type HabitCompletionMode = 'full' | 'mini';
+export type HabitDayRule = 'any' | 'off-days';
 
 export type Habit = {
   id: string;
@@ -9,6 +10,10 @@ export type Habit = {
   createdAt: string;
   updatedAt: string;
   active: boolean;
+  /** Optional for backwards compatibility with existing habit records. */
+  dayRule?: HabitDayRule;
+  /** Local date exclusions; never counted as completed. */
+  skipDates?: string[];
 };
 
 export type HabitCompletion = {
@@ -114,6 +119,10 @@ export function sanitizeHabitsState(value: unknown): HabitsState {
         createdAt,
         updatedAt,
         active: source.active !== false,
+        dayRule: source.dayRule === 'off-days' ? 'off-days' : 'any',
+        skipDates: Array.isArray(source.skipDates)
+          ? Array.from(new Set(source.skipDates.filter(isLocalDateKey))).sort().slice(-30)
+          : [],
       } satisfies Habit];
     })
     : [];
@@ -179,6 +188,42 @@ export function upsertHabit(
     active: true,
   };
   return { ...state, habits: [...state.habits, habit] };
+}
+
+/** Persistent availability; no automatic edits to previously completed entries. */
+export function setHabitDayRule(
+  state: HabitsState, habitId: string, rule: HabitDayRule, now = new Date(),
+): HabitsState {
+  if (rule !== 'any' && rule !== 'off-days') return state;
+  const habit = state.habits.find(item => item.id === habitId);
+  if (!habit || (habit.dayRule ?? 'any') === rule) return state;
+  return {
+    ...state,
+    habits: state.habits.map(item => item.id === habitId
+      ? { ...item, dayRule: rule, updatedAt: now.toISOString() }
+      : item),
+  };
+}
+
+/** Single-date exception; leaves the habit active and its history untouched. */
+export function skipHabitOnDate(
+  state: HabitsState, habitId: string, date: string, now = new Date(),
+): HabitsState {
+  const today = localHabitDateKey(now);
+  const limit = new Date(now);
+  limit.setDate(limit.getDate() + 28);
+  if (!isLocalDateKey(date) || date < today || date > localHabitDateKey(limit)) return state;
+  const habit = state.habits.find(item => item.id === habitId);
+  if (!habit || (habit.skipDates ?? []).includes(date)) return state;
+  return {
+    ...state,
+    habits: state.habits.map(item => item.id === habitId ? {
+      ...item,
+      skipDates: [...(item.skipDates ?? []).filter(key => key >= today), date].sort().slice(-30),
+      plannedFor: item.plannedFor === date ? null : item.plannedFor,
+      updatedAt: now.toISOString(),
+    } : item),
+  };
 }
 
 /** Explicit permanent deletion. Drops the habit and only its own completion history. */
