@@ -11,7 +11,10 @@ const planner=read('src/brain/weeklyPlanner.ts');
 ok(confirmed.includes('plannedMoveId: slot.id'), 'confirmed Move has direct navigation id');
 ok(confirmed.includes('completedIds.has(slot.id)'), 'completed Move is excluded individually');
 ok(confirmed.includes('pendiente de hoy'), 'overdue unfinished Move remains visible');
-ok(view.includes('confirmedMomentsForNow(confirmedWeek, loadHabitsState(), now, loadMoveHistory())'),'Now uses canonical week, habits and Move history');
+ok(view.includes('confirmedMomentsForNow(confirmedWeek, planning.habits, now, planning.moveHistory)')
+  && view.includes('confirmedWeek: loadConfirmedWeeklyPlan()')
+  && view.includes('habits: loadHabitsState()')
+  && view.includes('moveHistory: loadMoveHistory()'), 'Now uses canonical week, habits and Move history via focus-time snapshot');
 ok(view.includes('confirmedMoveThisWeek'), 'generic Move hints are not mixed with a confirmed weekly split');
 ok(view.includes('item.plannedMoveId'), 'planned Move not filtered as generic');
 ok(view.includes('phase === \'working\''), 'working time cannot offer overdue Move');

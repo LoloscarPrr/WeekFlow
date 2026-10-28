@@ -1,7 +1,8 @@
 import { confirmedMomentsForNow } from '@/src/brain/confirmedPlanMoments';
-import { loadConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
+import { loadConfirmedWeeklyPlan, type ConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
 import { loadHabitsState } from '@/src/habits/persistence';
-import { loadMoveHistory } from '@/src/state/persistence';
+import type { HabitsState } from '@/src/habits/core';
+import { loadMoveHistory, type MoveSessionRecord } from '@/src/state/persistence';
 import { buildBrainPlan, replanAfterActualExit } from '@/src/brain/engine';
 import { assessExitReplanImpact, type ExitReplanImpact } from '@/src/brain/exitImpact';
 import type { DayState } from '@/src/domain/entities/DailyState';
@@ -43,11 +44,28 @@ export type NowView = {
   live: NowLiveCard;
 };
 
+/** Read-only canonical data that does not change when only the clock advances. */
+export type NowPlanningState = {
+  confirmedWeek: ConfirmedWeeklyPlan | null;
+  habits: HabitsState;
+  moveHistory: MoveSessionRecord[];
+};
+
+export function loadNowPlanningState(): NowPlanningState {
+  return {
+    confirmedWeek: loadConfirmedWeeklyPlan(),
+    habits: loadHabitsState(),
+    moveHistory: loadMoveHistory(),
+  };
+}
+
 export type GetNowViewInput = {
   dayState: DayState;
   weekState: WeekSchedule;
   moveDoneToday: boolean;
   now: Date;
+  /** NowController passes a focus-time snapshot; other callers retain live canonical reads. */
+  planningState?: NowPlanningState;
 };
 
 function dateAtHm(base: Date, value: string) {
@@ -208,7 +226,8 @@ function liveCard(
   };
 }
 
-export function getNowView({ dayState, weekState, moveDoneToday, now }: GetNowViewInput): NowView {
+export function getNowView({ dayState, weekState, moveDoneToday, now, planningState }: GetNowViewInput): NowView {
+  const planning = planningState ?? loadNowPlanningState();
   const postShiftCarryMin = dayState.settings.commuteBackMin + dayState.settings.recoveryMin + 30;
   // On a day off following an overnight shift, keep the prior shift as the
   // active planning context while its main sleep window is protected. Otherwise
@@ -302,13 +321,13 @@ export function getNowView({ dayState, weekState, moveDoneToday, now }: GetNowVi
   const mainSleepWake = plan.mode === 'night-shift'
     ? datedPlanMoments(plan.moments, shiftContext.startAt, now).find(entry => entry.item.type === 'wake')?.at
     : undefined;
-  const confirmedWeek = loadConfirmedWeeklyPlan();
+  const confirmedWeek = planning.confirmedWeek;
   const currentMonday = new Date(now);
   currentMonday.setHours(0, 0, 0, 0);
   currentMonday.setDate(currentMonday.getDate() - (currentMonday.getDay() + 6) % 7);
   const confirmedMoveThisWeek = confirmedWeek?.weekStart === localDateKey(currentMonday)
     && Boolean(confirmedWeek.moveSlots?.length);
-  const confirmedForNow = confirmedMomentsForNow(confirmedWeek, loadHabitsState(), now, loadMoveHistory())
+  const confirmedForNow = confirmedMomentsForNow(confirmedWeek, planning.habits, now, planning.moveHistory)
     .filter(({ at }) => {
       if (mainSleepWake && at < mainSleepWake) return false;
       const context = shiftContextForDate(weekState, at);
