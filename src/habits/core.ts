@@ -181,6 +181,15 @@ export function upsertHabit(
   return { ...state, habits: [...state.habits, habit] };
 }
 
+/** Explicit permanent deletion. Drops the habit and only its own completion history. */
+export function deleteHabit(state: HabitsState, habitId: string): HabitsState {
+  if (!state.habits.some(habit => habit.id === habitId)) return state;
+  return {
+    habits: state.habits.filter(habit => habit.id !== habitId),
+    completions: state.completions.filter(entry => entry.habitId !== habitId),
+  };
+}
+
 export function replanHabit(
   state: HabitsState,
   habitId: string,
