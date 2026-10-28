@@ -26,6 +26,8 @@ export type BrainMoment = {
   detail: string;
   type: BrainMomentType;
   flexible: boolean;
+  /** Present only for Move slots confirmed by Brain; never for generic hints. */
+  plannedMoveId?: string;
 };
 
 export type BrainPlan = {
