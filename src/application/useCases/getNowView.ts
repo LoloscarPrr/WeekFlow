@@ -334,7 +334,9 @@ export function getNowView({ dayState, weekState, moveDoneToday, now }: GetNowVi
         // A confirmed Move is the source of truth. Only hide a TODAY slot
         // if a workout is already completed; future sessions remain visible.
         if (item.plannedMoveId) {
-          if (moveDoneToday && item.dateLabel === localDateKey(now)) return false;
+          if (item.dateLabel === localDateKey(now)
+            && (moveDoneToday || phase === 'commuting' || phase === 'working'
+              || phase === 'after' || inPostNightRecovery)) return false;
         } else if (moveDoneToday || exerciseConfirmedToday || confirmedMoveThisWeek) {
           // Brain's generic day-off hint must not compete with the weekly split.
           return false;
