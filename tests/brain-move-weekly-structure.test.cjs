@@ -23,6 +23,6 @@ ok(weekUI.includes('proposal.moveSlots.map'), 'Semana reviews Move pillar indepe
 ok(assistantUI.includes('pendingWeekly.moveSlots.map'), 'Assistant previews Move pillar');
 ok(persistence.includes('loadMovePreferences()') && persistence.includes('loadMoveHistory()') && persistence.includes('moveSlots: (p.moveSlots ?? []).map'), 'confirmation revalidates Move data, not only Habits');
 ok(confirmed.includes("type: 'move' as const"), 'confirmed Move sessions appear in Ahora as Move, not personal habit');
-ok(moveUI.includes('loadConfirmedWeeklyPlan') && moveUI.includes('prepareWeeklySession(plannedMove)') && moveController.includes('effectivePreferences'), 'Move screen links confirmed plan to real guided session');
+ok(moveUI.includes('nextConfirmedMoveSlot(confirmedMoveSlots, todayKey, doneToday)') && moveUI.includes('prepareWeeklySession(plannedMove)') && moveController.includes('loadConfirmedWeeklyPlan') && moveController.includes('effectivePreferences'), 'Move screen links confirmed plan to real guided session with canonical revalidation');
 ok(notifications.includes('weekly-move-') && notifications.includes('...moveReminders') && notifications.includes('interruptionDecision(preferences, reminder.kind ??'), 'weekly Move reminders respect Smart Silence after explicit plan confirmation');
 console.log('Move pillar weekly integration structure guards passed.');

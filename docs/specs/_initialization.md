@@ -1,19 +1,18 @@
-# TLC Initialization Snapshot — WF-MOVE-011 (2026-10-28)
+# TLC Initialization Snapshot — WF-MOVE-012 (2026-10-28)
 
 ## Repository/ref and baseline
-- Repository `LoloscarPrr/WeekFlow`, current main `5f669531fbd5ed61efe485dd941185de7566aa95`, version `0.5.30`. Work branch `perf/wf-move-011-timer-cadence`, updated from v0.5.29 base to current v0.5.30 without reverting Move/Now enhancements.
-- Current Expo ~57.0.8 / React Native 0.86.0 / React 19.2.3, `com.weekflow.app`; existing release keystore and versionCode logic unchanged.
-- Previous main v0.5.29: Quality #40556456140 PASS; signed Android #40556456169 PASS. New main v0.5.30 CI pending verification at rebase.
-- WF-MOVE-011 PR Quality #40636114871 attempt 2 PASS against v0.5.29; attempt 1 canceled while npm ci exceeded 10-minute timeout. Full Quality must be re-run on v0.5.30 head.
-- Android physical stopwatch/CPU performance test NOT RUN.
+- Repo `LoloscarPrr/WeekFlow`, current main `d829d467fc94ee8b5c51848298caf473c1b98252` WeekFlow 0.5.32; work branch `perf/wf-move-012-confirmed-plan-snapshot` rebuilt from v0.5.31 after concurrent weekly Habits enhancements.
+- Expo SDK 57, RN 0.86, Android `com.weekflow.app`; persistent signing and version-code strategy unchanged.
+- Main 0.5.32 Quality #40726620148 PASS; Android #40726619538 IN PROGRESS at time of rebuild.
+- WF-MOVE-012 prior branch Quality #40726600499 PASS against 0.5.31 (TS, tests, Metro); rerun on 0.5.32 before merge.
+- Device test/actual performance profiling: NOT RUN.
 
-## Source context and roadmap
-- Blueprint Maestro v4.0 and WF-MOVE-009/010: stable Move, 30/45/60 minute training, canonical SQLite, preserving history and pause behavior.
-- v0.5.30 adds `prepareWeeklySessionById` to Move for confirmed appointments in Ahora. The timer refactor must preserve that API and its matching screens/tests.
-- `src/move/useMoveController.ts`: 500 ms setInterval and per-tick shift computation, while elapsed time derives from absolute phase/session timestamps. Overnight carry may end within a day and must be updated by minute rather than day.
-- Scope: pure timer cadence, minute memoization, regression tests. No UI/schema/signing/version upgrade.
-- Phase decision NOW WF-MOVE-011; BACKLOG for background scheduling changes and device profiling.
+## Context and sources
+- Blueprint Maestro v4.0, root AGENTS and TLC skill, specs WF-MOVE-009/010/011 and WF-BRAIN-016.
+- `MovePlan` synchronously reads confirmed week in render; controller reads same plan at input/focus event. Need preserve tap/deeplink validation while eliminating render-time SQLite.
+- v0.5.32 adds habit availability and date-exception state and tests; all package scripts/Brain code retained.
+- No schema changes, key renames, visual changes, signing changes, Move-Pills, or classic importer work.
 
-## Checks
-- Parent main v0.5.30 Quality/Android need live verification.
-- WF-MOVE-011 new PR head Quality NOT RUN at rebase.
+## Decision
+- NOW WF-MOVE-012: focus-time confirmed slot snapshot; live validation on prepare, stale invalidation, pure and structural regression checks.
+- BACKLOG broader NowView render optimization/SQLite async and profiling.
