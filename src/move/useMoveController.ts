@@ -229,6 +229,12 @@ export function useMoveController() {
     return true;
   }
 
+  function prepareWeeklySessionById(id: string) {
+    if (activeSession || !id) return false;
+    const slot = (loadConfirmedWeeklyPlan()?.moveSlots ?? []).find(item => item.id === id);
+    return slot ? prepareWeeklySession(slot) : false;
+  }
+
   function setWeeklyTargetSessions(value: number) {
     if (activeSession || !Number.isInteger(value) || value < 0 || value > 5) return;
     updatePreferences({ ...preferences, weeklyTargetSessions: value });
@@ -509,6 +515,7 @@ export function useMoveController() {
     effectivePreferences,
     preparedWeekly,
     prepareWeeklySession,
+    prepareWeeklySessionById,
     setFocus,
     setTargetMuscles,
     setWeeklyTargetSessions,
