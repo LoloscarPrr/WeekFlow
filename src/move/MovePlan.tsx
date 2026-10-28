@@ -3,7 +3,7 @@ import { compatibleTargetedExercises } from './library';
 import { KeyboardAwareTextInput as TextInput } from '@/src/components/KeyboardAwareScrollView';
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { loadConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
+import { nextConfirmedMoveSlot } from '@/src/move/confirmedPlanSelection';
 import { Pressable, Text, View } from 'react-native';
 import {
   MOVE_AVOID_AREA_OPTIONS,
@@ -97,6 +97,7 @@ export function MovePlan({ move }: { move: MoveController }) {
     preferences,
     effectivePreferences,
     preparedWeekly,
+    confirmedMoveSlots,
     prepareWeeklySession,
     setFocus,
     setTargetMuscles,
@@ -129,8 +130,7 @@ export function MovePlan({ move }: { move: MoveController }) {
   })();
   // A confirmed session remains actionable throughout its scheduled day even
   // after the clock time passes. A deep-linked slot takes precedence.
-  const plannedMove = preparedWeekly ?? (loadConfirmedWeeklyPlan()?.moveSlots ?? [])
-    .find(slot => slot.date > todayKey || (slot.date === todayKey && !doneToday));
+  const plannedMove = preparedWeekly ?? nextConfirmedMoveSlot(confirmedMoveSlots, todayKey, doneToday);
 
   return (
     <>

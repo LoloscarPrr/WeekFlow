@@ -44,6 +44,10 @@ import {
   type MoveRuntime,
 } from '@/src/move/runtime';
 
+function readConfirmedMoveSlots(): WeeklyMoveSlot[] {
+  return loadConfirmedWeeklyPlan()?.moveSlots ?? [];
+}
+
 export const MOVE_DURATIONS = [30, 45, 60] as const;
 export const MOVE_FEEDBACK = ['Muy fácil', 'Bien', 'Difícil', 'Demasiado'];
 
@@ -103,6 +107,8 @@ export function useMoveController() {
   const [clockMs, setClockMs] = useState(Date.now());
   const [extraOpen, setExtraOpen] = useState(false);
   const [preparedWeekly, setPreparedWeekly] = useState<WeeklyMoveSlot | null>(null);
+  // A snapshot is refreshed on screen focus; never query SQLite while rendering MovePlan.
+  const [confirmedMoveSlots, setConfirmedMoveSlots] = useState<WeeklyMoveSlot[]>(readConfirmedMoveSlots);
 
   // Shift context can change at midnight or at an overnight shift's end.
   // Recompute on minute boundaries, not every second of an active workout.
@@ -169,6 +175,13 @@ export function useMoveController() {
     setDayState(nextDay);
     setWeekState(nextWeek);
     setPreferences(loadMovePreferences());
+    const currentSlots = readConfirmedMoveSlots();
+    setConfirmedMoveSlots(currentSlots);
+    // Returning from Brain may have replaced the selected workout: never keep its stale target.
+    setPreparedWeekly((selected) => selected
+      ? currentSlots.find((slot) => slot.id === selected.id && slot.date === selected.date
+        && slot.start === selected.start && slot.durationMin === selected.durationMin) ?? null
+      : null);
     setLastRecord(record);
     setActiveSession(active);
     if (active) setPreparedWeekly(null);
@@ -233,11 +246,16 @@ export function useMoveController() {
 
   function prepareWeeklySession(slot: WeeklyMoveSlot) {
     if (activeSession) return false;
-    const confirmed = loadConfirmedWeeklyPlan();
-    const saved = (confirmed?.moveSlots ?? []).find(item => item.id === slot.id
+    // Always verify against current canonical state at tap time, never the cached card.
+    const currentSlots = readConfirmedMoveSlots();
+    setConfirmedMoveSlots(currentSlots);
+    const saved = currentSlots.find(item => item.id === slot.id
       && item.date === slot.date && item.start === slot.start
       && item.durationMin === slot.durationMin);
-    if (!saved || ![30, 45, 60].includes(saved.durationMin)) return false;
+    if (!saved || ![30, 45, 60].includes(saved.durationMin)) {
+      setPreparedWeekly(null);
+      return false;
+    }
     // Legacy plans may not carry typed targets; retain existing preference.
     setPreparedWeekly(saved);
     setDuration(saved.durationMin);
@@ -529,6 +547,7 @@ export function useMoveController() {
     preferences,
     effectivePreferences,
     preparedWeekly,
+    confirmedMoveSlots,
     prepareWeeklySession,
     prepareWeeklySessionById,
     setFocus,
