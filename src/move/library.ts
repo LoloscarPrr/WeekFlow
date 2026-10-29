@@ -227,11 +227,22 @@ function loadPriorityCount(preferences: MovePreferences) {
 // Alterna grupos musculares, usa solo ejercicios realmente compatibles
 // y no confunde zona de entrenamiento con las zonas que el usuario evita.
 export function compatibleTargetedExercises(preferences: MovePreferences, intensity: MoveIntensity) {
+  const prefersLoads = (preferences.focus === 'fuerza'
+    || preferences.goal === 'fuerza' || preferences.goal === 'musculo')
+    && MOVE_INTENSITY_RANK[intensity] >= MOVE_INTENSITY_RANK.suave;
   const groups = preferences.targetMuscles.map((group) =>
     MOVE_MUSCLE_EXERCISE_IDS[group]
       .map((id) => MOVE_EXERCISE_BY_ID[id])
       .filter((exercise): exercise is MoveExercise => Boolean(exercise))
-      .filter((exercise) => moveExerciseCompatible(exercise, preferences, intensity)),
+      .filter((exercise) => moveExerciseCompatible(exercise, preferences, intensity))
+      // Choose real, declared equipment before no-load substitutions when
+      // the user asks for strength. Never override safety/avoid areas.
+      .sort((left, right) => {
+        if (!prefersLoads) return 0;
+        const leftLoaded = left.equipment?.length ? 1 : 0;
+        const rightLoaded = right.equipment?.length ? 1 : 0;
+        return rightLoaded - leftLoaded;
+      }),
   );
   const ordered: MoveExercise[] = [];
   const max = Math.max(0, ...groups.map((items) => items.length));
@@ -311,6 +322,9 @@ export function resolveMoveTrainingStyle(
 ): MoveResolvedTrainingStyle {
   const targetMinutes = supportedDuration(value);
   if (intensity === 'recuperacion' || preferences.focus === 'movilidad' || preferences.goal === 'movilidad') return 'intervalos';
+  // 10-minute gentle strength is a light movement circuit, not multi-set
+  // lifting that can accidentally multiply weighted repetitions.
+  if (targetMinutes <= 10 && intensity === 'suave') return 'intervalos';
   if (preferences.targetMuscles.length && preferences.trainingStyle === 'auto') return targetMinutes >= 10 ? 'series' : 'intervalos';
 
   if (preferences.trainingStyle === 'intervalos') return 'intervalos';
@@ -339,7 +353,17 @@ function intervalRoutine(
   intensity: MoveIntensity,
   progression: MoveProgressionContext,
 ): MoveRoutine {
-  const exercises = idsFor(preferences, STEP_COUNT[targetMinutes], intensity, progression);
+  const proposedExercises = idsFor(preferences, STEP_COUNT[targetMinutes], intensity, progression);
+  // At most one externally weighted *step* in a short gentle circuit.
+  let loadedSteps = 0;
+  const exercises = proposedExercises.map(exercise => {
+    if (!(targetMinutes <= 10 && intensity === 'suave' && exercise.equipment?.length)) return exercise;
+    loadedSteps++;
+    if (loadedSteps === 1) return exercise;
+    return MOVE_EXERCISE_LIBRARY.find(candidate => candidate.family === exercise.family
+      && !candidate.equipment?.length && moveExerciseCompatible(candidate, preferences, intensity))
+      ?? firstSafeFallback(preferences, intensity);
+  });
   const restAfterSec = restSecondsFor(targetMinutes, intensity);
   const targetSeconds = targetMinutes * 60;
   const restBudget = restAfterSec * Math.max(0, exercises.length - 1);

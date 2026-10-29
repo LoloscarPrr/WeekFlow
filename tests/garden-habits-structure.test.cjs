@@ -6,6 +6,7 @@ const root = path.resolve(__dirname, '..');
 const garden = fs.readFileSync(path.join(root, 'app/garden.tsx'), 'utf8');
 const habits = fs.readFileSync(path.join(root, 'app/habits.tsx'), 'utf8');
 const summary = fs.readFileSync(path.join(root, 'src/garden/summary.ts'), 'utf8');
+const categories = fs.readFileSync(path.join(root, 'src/habits/categories.ts'), 'utf8');
 const persistence = fs.readFileSync(path.join(root, 'src/habits/persistence.ts'), 'utf8');
 
 assert.match(garden, /Tu jardín esta semana/);
@@ -33,7 +34,7 @@ for (const pillar of [
   'Responsabilidades',
   'Tiempo personal',
 ]) {
-  assert.match(summary, new RegExp(`title: '${pillar}'`));
+  assert.match(['Descanso', 'Alimentación', 'Movimiento'].includes(pillar) ? summary : categories, new RegExp(`title: '${pillar}'`));
 }
 
 assert.match(habits, /<Text style=\{styles.title\}>Hábitos<\/Text>/);

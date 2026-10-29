@@ -1,0 +1,17 @@
+const fs=require('fs');
+const read=p=>fs.readFileSync(p,'utf8');
+const ok=(v,m)=>{if(!v)throw Error(m)};
+const garden=read('app/garden.tsx'),summary=read('src/garden/summary.ts');
+const habits=read('app/habits.tsx'),core=read('src/habits/core.ts');
+const catalog=read('src/move/exerciseCatalog.ts'),library=read('src/move/library.ts');
+ok(garden.includes('habitsState: loadHabitsState()'),'Garden gets canonical Habits');
+ok(garden.includes('confirmedWeek: loadConfirmedWeeklyPlan()'),'Garden sees real planned Move');
+ok(garden.includes("route === '/habits'") && garden.includes('gardenCategory: pillar.key'),'garden cards open edit with category');
+ok(habits.includes('GARDEN_HABIT_CATEGORIES') && habits.includes('gardenCategory }, editingId'),'habit category configurable and persisted');
+ok(habits.includes('setGardenCategory(resolveGardenCategory(habit))'),'legacy suggestion shown to user when editing');
+ok(core.includes('isGardenHabitCategory(source.gardenCategory)'),'category is safe in SQLite sanitizer');
+ok(summary.includes('input.habitsState?.completions') && summary.includes('resolveGardenCategory(habit)'),'real completions power garden not invented numbers');
+ok(!summary.includes("title: 'Relaciones', evidence: 'Aún sin datos.'"),'placeholder cards removed');
+ok(library.includes('const prefersLoads') && library.includes('rightLoaded - leftLoaded'),'strength uses user equipment');
+ok(catalog.includes('db-supported-row') && catalog.includes('db-alternating-curl'),'new exercises integrated');
+console.log('Garden and Move integration checks passed.');

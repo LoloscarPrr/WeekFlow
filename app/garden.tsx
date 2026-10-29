@@ -5,18 +5,21 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Brand } from '@/src/components/Brand';
 import { getRestView } from '@/src/application/useCases/getRestView';
 import { buildGardenPillars, type GardenStatus } from '@/src/garden/summary';
+import { loadConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
 import { loadHabitsState } from '@/src/habits/persistence';
 import { loadDayState, loadFoodHistory, loadMoveHistory, loadWeekState } from '@/src/state/persistence';
 import { colors } from '@/src/theme/colors';
 
 function statusStyle(status: GardenStatus) {
-  if (status === 'Equilibrado') return styles.statusBalanced;
+  if (status === 'Equilibrado' || status === 'Con registros') return styles.statusBalanced;
+  if (status === 'En curso') return styles.statusInProgress;
   if (status === 'Necesita atención') return styles.statusAttention;
   return styles.statusNoData;
 }
 
 function statusTextStyle(status: GardenStatus) {
-  if (status === 'Equilibrado') return styles.statusTextBalanced;
+  if (status === 'Equilibrado' || status === 'Con registros') return styles.statusTextBalanced;
+  if (status === 'En curso') return styles.statusTextInProgress;
   if (status === 'Necesita atención') return styles.statusTextAttention;
   return styles.statusTextNoData;
 }
@@ -28,6 +31,8 @@ function loadGardenSnapshot(now = new Date()) {
     pillars: buildGardenPillars({
       moveHistory: loadMoveHistory(),
       foodHistory: loadFoodHistory(),
+      habitsState: loadHabitsState(),
+      confirmedWeek: loadConfirmedWeeklyPlan(),
       restView: getRestView(dayState, weekState, now),
       now,
     }),
@@ -42,10 +47,12 @@ export default function GardenScreen() {
   const refresh = useCallback(() => setSnapshot(loadGardenSnapshot()), []);
   useFocusEffect(useCallback(() => refresh(), [refresh]));
 
-  function openPillar(route: '/rest' | '/food' | '/pillars' | null) {
+  function openPillar(pillar: ReturnType<typeof buildGardenPillars>[number]) {
+    const route = pillar.route;
     if (route === '/rest') router.push('/rest');
     if (route === '/food') router.push('/food');
     if (route === '/pillars') router.push('/pillars');
+    if (route === '/habits') router.push({ pathname: '/habits', params: { gardenCategory: pillar.key } });
   }
 
   return (
@@ -58,7 +65,7 @@ export default function GardenScreen() {
         <View style={styles.list}>
           {pillars.map((pillar) => {
             const interactive = Boolean(pillar.route);
-            const noData = pillar.status === 'Sin datos';
+            const noData = pillar.status === 'Sin datos' || pillar.status === 'Por configurar';
             return (
               <Pressable
                 key={pillar.key}
@@ -67,7 +74,7 @@ export default function GardenScreen() {
                   noData && styles.pillarCardCompact,
                   pressed && interactive && styles.cardPressed,
                 ]}
-                onPress={() => openPillar(pillar.route)}
+                onPress={() => openPillar(pillar)}
                 disabled={!interactive}
               >
                 <View style={styles.iconWrap}><Text style={styles.icon}>{pillar.icon}</Text></View>
@@ -132,6 +139,8 @@ const styles = StyleSheet.create({
   cardCopy: { color: colors.muted, fontSize: 12, lineHeight: 17, marginTop: 3, flexGrow: 1, flexShrink: 1, minWidth: 140 },
   statusPill: { minHeight: 32, borderRadius: 17, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5, alignItems: 'center', justifyContent: 'center', flexShrink: 0, maxWidth: '100%' },
   statusBalanced: { borderColor: '#2B7FA0', backgroundColor: '#0D2C43' },
+  statusInProgress: { borderColor: '#3C69A0', backgroundColor: '#102B48' },
+  statusTextInProgress: { color: '#8AB6ED' },
   statusAttention: { borderColor: '#8B6A2D', backgroundColor: '#2B2414' },
   statusNoData: { borderColor: colors.line, backgroundColor: colors.surface2 },
   statusText: { fontSize: 10, lineHeight: 13, fontWeight: '900', textAlign: 'center' },
