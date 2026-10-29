@@ -1,3 +1,5 @@
+import { isGardenHabitCategory, type GardenHabitCategory } from './categories';
+
 export type HabitCompletionMode = 'full' | 'mini';
 export type HabitDayRule = 'any' | 'off-days';
 
@@ -14,6 +16,8 @@ export type Habit = {
   dayRule?: HabitDayRule;
   /** Local date exclusions; never counted as completed. */
   skipDates?: string[];
+  /** undefined on legacy habits; null means explicitly not categorized. */
+  gardenCategory?: GardenHabitCategory | null;
 };
 
 export type HabitCompletion = {
@@ -32,6 +36,7 @@ export type HabitDraft = {
   name: string;
   miniVersion?: string | null;
   targetPerWeek: number;
+  gardenCategory?: GardenHabitCategory | null;
 };
 
 export const EMPTY_HABITS_STATE: HabitsState = { habits: [], completions: [] };
@@ -119,6 +124,8 @@ export function sanitizeHabitsState(value: unknown): HabitsState {
         createdAt,
         updatedAt,
         active: source.active !== false,
+        gardenCategory: source.gardenCategory === undefined ? undefined
+          : isGardenHabitCategory(source.gardenCategory) ? source.gardenCategory : null,
         dayRule: source.dayRule === 'off-days' ? 'off-days' : 'any',
         skipDates: Array.isArray(source.skipDates)
           ? Array.from(new Set(source.skipDates.filter(isLocalDateKey))).sort().slice(-30)
@@ -171,6 +178,7 @@ export function upsertHabit(
         name,
         miniVersion,
         targetPerWeek: clampTarget(draft.targetPerWeek),
+        gardenCategory: draft.gardenCategory === undefined ? habit.gardenCategory : draft.gardenCategory,
         updatedAt: stamp,
       } : habit),
     };
@@ -182,6 +190,7 @@ export function upsertHabit(
     name,
     miniVersion,
     targetPerWeek: clampTarget(draft.targetPerWeek),
+    gardenCategory: draft.gardenCategory === undefined ? undefined : draft.gardenCategory,
     plannedFor: null,
     createdAt: stamp,
     updatedAt: stamp,
