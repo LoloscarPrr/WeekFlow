@@ -1,7 +1,7 @@
 import type { RestView } from '@/src/application/useCases/getRestView';
 import type { FoodDayRecord, MoveSessionRecord } from '@/src/state/persistence';
 import type { HabitsState } from '@/src/habits/core';
-import { resolveGardenCategory, GARDEN_HABIT_CATEGORIES, type GardenHabitCategory } from '@/src/habits/categories';
+import { resolveGardenCategory, GARDEN_HABIT_CATEGORIES, type GardenHabitCategory } from '../habits/categories';
 import type { ConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
 
 export type GardenStatus = 'Equilibrado' | 'Necesita atención' | 'Sin datos' | 'Por configurar' | 'En curso' | 'Con registros';
