@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Brand } from '@/src/components/Brand';
@@ -20,6 +20,7 @@ import {
   type HabitsState,
 } from '@/src/habits/core';
 import { loadHabitsState, saveHabitsState } from '@/src/habits/persistence';
+import { GARDEN_HABIT_CATEGORIES, isGardenHabitCategory, resolveGardenCategory, type GardenHabitCategory } from '@/src/habits/categories';
 import { colors } from '@/src/theme/colors';
 import { syncLivePlanReminders } from '@/src/services/notifications';
 import { loadConfirmedWeeklyPlan, removeHabitFromConfirmedWeeklyPlan, type ConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
@@ -47,11 +48,15 @@ function planDateLabel(key: string, now = new Date()) {
 }
 
 export default function HabitsScreen() {
+  const { gardenCategory: incomingCategory } = useLocalSearchParams<{ gardenCategory?: string }>();
   const [habitsState, setHabitsState] = useState<HabitsState>(() => loadHabitsState());
   const [confirmedPlan, setConfirmedPlan] = useState<ConfirmedWeeklyPlan | null>(() => loadConfirmedWeeklyPlan());
   const [name, setName] = useState('');
   const [miniVersion, setMiniVersion] = useState('');
   const [targetPerWeek, setTargetPerWeek] = useState(3);
+  const [gardenCategory, setGardenCategory] = useState<GardenHabitCategory | null>(
+    isGardenHabitCategory(incomingCategory) ? incomingCategory : null,
+  );
   const [editingId, setEditingId] = useState<string | null>(null);
   const [replanningId, setReplanningId] = useState<string | null>(null);
 
@@ -60,6 +65,9 @@ export default function HabitsScreen() {
 
   const refresh = useCallback(() => { setHabitsState(loadHabitsState()); setConfirmedPlan(loadConfirmedWeeklyPlan()); }, []);
   useFocusEffect(useCallback(() => refresh(), [refresh]));
+  useEffect(() => {
+    if (!editingId && isGardenHabitCategory(incomingCategory)) setGardenCategory(incomingCategory);
+  }, [editingId, incomingCategory]);
 
   function persist(next: HabitsState) {
     setHabitsState(saveHabitsState(next));
@@ -70,12 +78,13 @@ export default function HabitsScreen() {
     setName('');
     setMiniVersion('');
     setTargetPerWeek(3);
+    setGardenCategory(isGardenHabitCategory(incomingCategory) ? incomingCategory : null);
     setEditingId(null);
   }
 
   function submitHabit() {
     if (!name.trim()) return;
-    persist(upsertHabit(habitsState, { name, miniVersion, targetPerWeek }, editingId ? { id: editingId } : undefined));
+    persist(upsertHabit(habitsState, { name, miniVersion, targetPerWeek, gardenCategory }, editingId ? { id: editingId } : undefined));
     resetForm();
   }
 
@@ -84,6 +93,7 @@ export default function HabitsScreen() {
     setName(habit.name);
     setMiniVersion(habit.miniVersion ?? '');
     setTargetPerWeek(habit.targetPerWeek);
+    setGardenCategory(resolveGardenCategory(habit));
   }
 
   function requestDeleteHabit(habit: Habit) {
@@ -137,6 +147,19 @@ export default function HabitsScreen() {
             <TextInput value={name} onChangeText={setName} placeholder="Ej. Leer un rato" placeholderTextColor={colors.muted} style={styles.input} maxLength={80} returnKeyType="next" />
             <Text style={styles.fieldLabel}>Mini-versión (opcional)</Text>
             <TextInput value={miniVersion} onChangeText={setMiniVersion} placeholder="Ej. leer 2 páginas" placeholderTextColor={colors.muted} style={styles.input} maxLength={120} />
+            <Text style={styles.fieldLabel}>¿A qué área del Jardín pertenece?</Text>
+            <View style={styles.frequencyRow}>
+              {[{key: null, title: 'Sin categoría'}, ...GARDEN_HABIT_CATEGORIES].map((item) => (
+                <Pressable
+                  key={item.key ?? 'uncategorized'}
+                  accessibilityRole="button"
+                  accessibilityLabel={'Categoría ' + item.title}
+                  onPress={() => setGardenCategory(item.key)}
+                  style={[styles.frequencyChip, gardenCategory === item.key && styles.frequencyChipActive]}>
+                  <Text style={[styles.frequencyText, gardenCategory === item.key && styles.frequencyTextActive]}>{item.title}</Text>
+                </Pressable>
+              ))}
+            </View>
             <Text style={styles.fieldLabel}>Frecuencia flexible</Text>
             <View style={styles.frequencyRow}>
               {frequencyOptions.map((option) => {
@@ -175,6 +198,10 @@ export default function HabitsScreen() {
                       <View style={styles.grow}>
                         <Text style={styles.cardTitle}>{habit.name}</Text>
                         <Text style={styles.cardCopy}>Frecuencia flexible · {targetCopy(habit.targetPerWeek)}</Text>
+                         <Text style={styles.miniCopy}>
+                           Jardín · {GARDEN_HABIT_CATEGORIES.find(item => item.key === resolveGardenCategory(habit))?.title ?? 'Sin categoría'}
+                           {habit.gardenCategory === undefined && resolveGardenCategory(habit) ? ' (sugerida)' : ''}
+                         </Text>
                         {habit.miniVersion ? <Text style={styles.miniCopy}>Mini · {habit.miniVersion}</Text> : null}
                         {weekDone > 0 ? <Text style={styles.progress}>Esta semana ya encontraste {weekDone} {weekDone === 1 ? 'momento' : 'momentos'} para hacerlo.</Text> : null}
                       </View>
