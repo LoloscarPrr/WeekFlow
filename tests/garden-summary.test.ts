@@ -57,7 +57,7 @@ const restView: RestView = {
 
 const pillars = buildGardenPillars({ moveHistory, foodHistory, restView, now });
 equal(pillars.length, 8, 'Jardín conserva los ocho pilares canónicos');
-equal(pillars.find((item) => item.key === 'move')?.evidence, '1 sesión esta semana.', 'Movimiento muestra evidencia real');
+equal(pillars.find((item) => item.key === 'move')?.evidence, '1 sesión realizada esta semana.', 'Movimiento muestra evidencia real');
 equal(pillars.find((item) => item.key === 'food')?.evidence, '2 momentos registrados esta semana.', 'Food muestra evidencia real');
 equal(pillars.find((item) => item.key === 'rest')?.status, 'Equilibrado', 'Rest con plan usa estado amable');
 equal(pillars.find((item) => item.key === 'relationships')?.status, 'Por configurar', 'sin hábitos el pilar invita a configurarlos, sin inventar actividad');
