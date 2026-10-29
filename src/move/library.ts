@@ -227,11 +227,22 @@ function loadPriorityCount(preferences: MovePreferences) {
 // Alterna grupos musculares, usa solo ejercicios realmente compatibles
 // y no confunde zona de entrenamiento con las zonas que el usuario evita.
 export function compatibleTargetedExercises(preferences: MovePreferences, intensity: MoveIntensity) {
+  const prefersLoads = (preferences.focus === 'fuerza'
+    || preferences.goal === 'fuerza' || preferences.goal === 'musculo')
+    && MOVE_INTENSITY_RANK[intensity] >= MOVE_INTENSITY_RANK.suave;
   const groups = preferences.targetMuscles.map((group) =>
     MOVE_MUSCLE_EXERCISE_IDS[group]
       .map((id) => MOVE_EXERCISE_BY_ID[id])
       .filter((exercise): exercise is MoveExercise => Boolean(exercise))
-      .filter((exercise) => moveExerciseCompatible(exercise, preferences, intensity)),
+      .filter((exercise) => moveExerciseCompatible(exercise, preferences, intensity))
+      // Choose real, declared equipment before no-load substitutions when
+      // the user asks for strength. Never override safety/avoid areas.
+      .sort((left, right) => {
+        if (!prefersLoads) return 0;
+        const leftLoaded = left.equipment?.length ? 1 : 0;
+        const rightLoaded = right.equipment?.length ? 1 : 0;
+        return rightLoaded - leftLoaded;
+      }),
   );
   const ordered: MoveExercise[] = [];
   const max = Math.max(0, ...groups.map((items) => items.length));
