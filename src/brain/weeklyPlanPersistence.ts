@@ -62,10 +62,11 @@ function syncConfirmedWeekKeys(): void {
       { key: NEXT_KEY, value: null },
     ]);
   } else if (current?.weekStart === nextMonday && !next) {
-    // Legacy versions sometimes saved next week's plan in the sole old key.
+    // Legacy single-key next-week plans were calculated against the repeating
+    // current roster. Preserve their record, but require explicit reconfirmation.
     sqliteStateStore.writeBatch([
       { key: KEY, value: null },
-      { key: NEXT_KEY, value: current },
+      { key: NEXT_KEY, value: { ...current, workScheduleSignature: 'legacy-unverified' } },
     ]);
   }
 }
