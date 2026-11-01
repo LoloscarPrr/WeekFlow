@@ -11,7 +11,7 @@ assert.ok(refresh.includes('setPlanningState(loadNowPlanningState())'), 'focus a
 assert.ok(controller.includes('useFocusEffect(') && controller.includes('refreshNow();'), 'screen-focus refresh retained');
 assert.ok(controller.includes('setInterval(() => setClockNow(new Date()), 30_000)'), '30-second live clock retains dynamic plan updates');
 assert.ok(controller.includes('moveDoneFromHistoryOnDate(planningState.moveHistory, clockNow)'), 'Move done-today derives from cached history using current local date');
-assert.ok(controller.includes('planningState,') && controller.includes('[clockNow, dayState, planningState, weekState]'), 'time-based view recalculation uses snapshot');
+assert.ok(controller.includes('planningState,') && controller.includes('[clockNow, dayState, planningState, previousWeekState, weekState]'), 'time-based view recalculation uses snapshot');
 assert.doesNotMatch(controller, /moveSessionDoneToday\(/, 'Now does not duplicate Move history SQLite read');
 const getBody = view.slice(view.indexOf('export function getNowView('));
 assert.ok(getBody.includes('planningState ?? loadNowPlanningState()'), 'existing no-snapshot callers retain live canonical reads');
