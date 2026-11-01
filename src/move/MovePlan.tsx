@@ -310,6 +310,9 @@ export function MovePlan({ move }: { move: MoveController }) {
                     <Text style={[styles.profileChipText, preferences.lowImpactOnly && styles.profileChipTextActive]}>🌿 Solo bajo impacto</Text>
                   </Pressable>
                 </View>
+                {!preferences.floorAllowed && (preferences.focus === 'fuerza' || preferences.targetMuscles.includes('pecho')) ? (
+                  <Text style={styles.preferenceCopy}>¿Quieres flexiones (push-ups) y planchas? Activa «Puedo usar suelo». Move no asume que tienes espacio para ejercicios en el suelo.</Text>
+                ) : null}
 
                 <Text style={styles.profileSubLabel}>ZONAS A EVITAR</Text>
                 <View style={styles.profileChips}>

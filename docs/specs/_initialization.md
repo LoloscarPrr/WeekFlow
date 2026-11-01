@@ -1,20 +1,22 @@
-# TLC Initialization Snapshot — WF-NOW-002 (2026-10-28)
+# TLC Initialization Snapshot — WF-MOVE-013 (2026-11-01)
 
-## Repository/ref and baseline
-- Repository `LoloscarPrr/WeekFlow`, base main `4f4af6f587305cb525a2473d50bafaff35da1f9d` (WeekFlow Alpha `0.5.32`), branch `perf/wf-now-002-planning-state-snapshot`.
-- Android package `com.weekflow.app`; signing secrets, app.json and versionCode policy unchanged.
-- Main Quality #40727261145 PASS and signed Android #40727261182 PASS. Physical device timing / battery profiling NOT RUN.
+## Repository and baseline
+- Repo `LoloscarPrr/WeekFlow`, main `a72d0d93dc5afbfc59edb7ff22d3414ba841bbed` (WeekFlow 0.5.33), branch `feat/wf-move-013-classic-exercises`.
+- Android app ID / keystore / versionCode rules unchanged. Main Quality #40905240647 PASS, signed Android #40905240505 PASS. On-device tests NOT RUN.
+- 133 distinct exercises already exist. Classic `pushup` is present but minExperience=intermedio, minIntensity=moderada and floor-required; chest and generic focus priority start from wall press / soft movement. Default `floorAllowed=false`, `experience=sin_definir`, `goal=bienestar`.
 
-## Source of truth, relevant modules, constraints
-- Blueprint Maestro v4.0, `AGENTS.md`, `.agents/skills/tlc-spec-driven/SKILL.md`, `WF-NOW-001`, `WF-BRAIN-016` and `WF-MOVE-012` guide preserving Now priority, overnight shifts, confirmed work and stale-plan safeguards.
-- `src/presentation/now/useNowController.ts` refreshes the displayed time every 30 seconds, recomputing `getNowView` for changing phase/progress and upcoming events.
-- `src/application/useCases/getNowView.ts` synchronously reads the confirmed plan (`brain-confirmed-weekly-plan-v1`), habits (`habits-state`) and Move history (`move-history`) during each recomputation.
-- The controller also independently calls `moveSessionDoneToday`, which rereads the same Move history.
-- Confirmed plan relevance, completed habits/Move and upcoming-time filters must remain time-based; do not cache the final `NowView` for an entire focus period.
-- The Now screen already refreshes when focused and when pull-to-refresh is used. Other screens changing data return focus before it is displayed.
-- Current product changes in 0.5.32 (Habit availability and date exceptions, weekly Move/Now integration) must stay intact.
-- Native device testing, measured render cost, CPU/battery impact: UNAVAILABLE in CI.
+## Sources and constraints
+- Blueprint Maestro v4.0; root AGENTS.md; .agents/skills/tlc-spec-driven/SKILL.md; latest v0.5.33 catalogue/equipment changes and WF-MOVE-009/010/011/012.
+- `src/move/library.ts`: FOCUS_ORDER, orderedIds, compatibleTargetedExercises, exercise progression, preset series and AMRAP.
+- `src/move/muscles.ts`: chest starts wall-press, incline-push, knee-pushup before standard pushup. `targetedSeriesRoutine` takes first four exercises per target combination.
+- `src/move/adaptation.ts`: energy and feedback determine intensity; no false assumption of equipment/floor; user can declare floor availability, experience, goal and affected areas.
+- `src/move/MovePlan.tsx`: can explicitly enable floor and shows four preview exercises; a missing floor availability currently makes classic pushups ineligible.
+- `src/move/exerciseCatalog.ts`: standard pushup and knee pushup have required safety cue; no new exercise data needed.
+- Existing workout & progression tests require a squat lead for force, weight preference for registered equipment, no excluded/incompatible items and lighter recovery paths.
 
-## Decision
-- NOW `WF-NOW-002` — cache only a read-only canonical planning snapshot on mount and focus/explicit refresh, then pass it into pure time-based `getNowView` computations; derive today's Move completion from the same snapshot.
-- BACKLOG — notifications persistence scheduling, async SQLite migration, alternative push-based invalidation while Now stays focused, full profiler-backed optimizations.
+## Phase decision
+- NOW: WF-MOVE-013 — select recognizable classic bodyweight movements for normal/moderate workouts; keep gentle variants for genuine low energy, restrictions or beginner regressions.
+- BACKLOG: independent illustrated technique guide assets with quality-controlled offline exercise frames (WF-MOVE-014), additional exercises not needed for this specific bug.
+
+## Verification status
+- Baseline Quality PASS, Android signed PASS (on main); new branch checks NOT RUN. Device exercise-selection QA and illustrations NOT RUN.

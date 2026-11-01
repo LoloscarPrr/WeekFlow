@@ -65,7 +65,7 @@ export type MoveRoutine = {
 const FOCUS_ORDER: Record<MovePreferences['focus'], string[]> = {
   equilibrado: ['march', 'squat', 'wall-press', 'band-row', 'hip-hinge', 'dead-bug', 'side-step', 'supported-split-squat', 'reach', 'calf-release', 'breathing'],
   activar: ['march', 'side-step', 'squat-reach', 'knee-lift', 'step-up', 'reverse-lunge', 'toe-tap', 'march', 'side-step', 'calf-release', 'breathing'],
-  fuerza: ['squat', 'hip-hinge', 'wall-press', 'band-row', 'supported-split-squat', 'dead-bug', 'incline-push', 'bridge', 'plank-knees', 'heel-raise', 'breathing'],
+  fuerza: ['squat', 'reverse-lunge', 'hip-hinge', 'supported-split-squat', 'band-row', 'bridge', 'wall-press', 'dead-bug', 'plank-knees', 'heel-raise', 'breathing'],
   movilidad: ['shoulders', 'reach', 'calf-release', 'cat-cow', 'thoracic-rotation', 'hip-flexor-stretch', 'toe-tap', 'breathing'],
 };
 
@@ -202,12 +202,29 @@ function progressionAdjustedExercise(
   })[0];
 }
 
+function preserveSelectedClassic(
+  exercise: MoveExercise,
+  preferences: MovePreferences,
+  intensity: MoveIntensity,
+  progression: MoveProgressionContext,
+): MoveExercise | null {
+  // Selecting an eligible familiar push-up is intentional. Don't silently
+  // replace it with a different press simply because equal-difficulty
+  // weighted presses exist. Explicit feedback still controls progression.
+  if ((exercise.id === 'pushup' || exercise.id === 'knee-pushup')
+    && !progression.lastFeedback && !progression.lastEndedEarly
+    && moveExerciseCompatible(exercise, preferences, intensity)) return exercise;
+  return null;
+}
+
 function compatibleExercise(
   exercise: MoveExercise,
   preferences: MovePreferences,
   intensity: MoveIntensity,
   progression: MoveProgressionContext,
 ) {
+  const classic = preserveSelectedClassic(exercise, preferences, intensity, progression);
+  if (classic) return classic;
   const progressed = progressionAdjustedExercise(exercise, preferences, intensity, progression);
   if (progressed) return progressed;
   if (moveExerciseCompatible(exercise, preferences, intensity)) return exercise;
@@ -224,26 +241,57 @@ function loadPriorityCount(preferences: MovePreferences) {
   return 1;
 }
 
+/** Standard push-ups belong to normal strength work for trained users.
+ * Knee push-ups are the first-floor option for new or undefined profiles.
+ * Neither variant can override floor, intensity or avoid-area restrictions. */
+function preferredPushupIds(preferences: MovePreferences): string[] {
+  return preferences.experience === 'intermedio' || preferences.experience === 'avanzado'
+    ? ['pushup', 'knee-pushup']
+    : ['knee-pushup'];
+}
+
+function prioritizeChestExercises(
+  eligible: MoveExercise[],
+  preferences: MovePreferences,
+  intensity: MoveIntensity,
+  prefersLoads: boolean,
+): MoveExercise[] {
+  if (MOVE_INTENSITY_RANK[intensity] < MOVE_INTENSITY_RANK.moderada) return eligible;
+  const classic = preferredPushupIds(preferences)
+    .map(id => eligible.find(exercise => exercise.id === id))
+    .find((exercise): exercise is MoveExercise => Boolean(exercise));
+  if (!classic) return eligible;
+  const remaining = eligible.filter(exercise => exercise.id !== classic.id);
+  if (!prefersLoads) return [classic, ...remaining];
+  // Keep registered weights first, but don't fill the entire chest preview
+  // with loaded presses while the most familiar bodyweight move is eligible.
+  const loaded = remaining.filter(exercise => Boolean(exercise.equipment?.length));
+  const bodyweight = remaining.filter(exercise => !exercise.equipment?.length);
+  return [...loaded.slice(0, 2), classic, ...loaded.slice(2), ...bodyweight];
+}
+
 // Alterna grupos musculares, usa solo ejercicios realmente compatibles
 // y no confunde zona de entrenamiento con las zonas que el usuario evita.
 export function compatibleTargetedExercises(preferences: MovePreferences, intensity: MoveIntensity) {
   const prefersLoads = (preferences.focus === 'fuerza'
     || preferences.goal === 'fuerza' || preferences.goal === 'musculo')
     && MOVE_INTENSITY_RANK[intensity] >= MOVE_INTENSITY_RANK.suave;
-  const groups = preferences.targetMuscles.map((group) =>
-    MOVE_MUSCLE_EXERCISE_IDS[group]
+  const groups = preferences.targetMuscles.map((group) => {
+    const eligible = MOVE_MUSCLE_EXERCISE_IDS[group]
       .map((id) => MOVE_EXERCISE_BY_ID[id])
       .filter((exercise): exercise is MoveExercise => Boolean(exercise))
       .filter((exercise) => moveExerciseCompatible(exercise, preferences, intensity))
-      // Choose real, declared equipment before no-load substitutions when
-      // the user asks for strength. Never override safety/avoid areas.
+      // Weight-based exercises still lead when strength and owned equipment match.
       .sort((left, right) => {
         if (!prefersLoads) return 0;
         const leftLoaded = left.equipment?.length ? 1 : 0;
         const rightLoaded = right.equipment?.length ? 1 : 0;
         return rightLoaded - leftLoaded;
-      }),
-  );
+      });
+    return group === 'pecho'
+      ? prioritizeChestExercises(eligible, preferences, intensity, prefersLoads)
+      : eligible;
+  });
   const ordered: MoveExercise[] = [];
   const max = Math.max(0, ...groups.map((items) => items.length));
   for (let index = 0; index < max; index += 1) {
@@ -272,6 +320,21 @@ function orderedIds(preferences: MovePreferences, intensity: MoveIntensity, prog
     return freshTargetedExercises(preferences, intensity, progression).map((exercise) => exercise.id);
   }
   let order = [...(FOCUS_ORDER[preferences.focus] ?? FOCUS_ORDER.equilibrado)];
+  // Classic compound patterns are the lead of a regular strength/balanced
+  // workout. Keep gentle movement first on recovery, mobility or low energy.
+  const strengthBasics = MOVE_INTENSITY_RANK[intensity] >= MOVE_INTENSITY_RANK.moderada
+    && (preferences.focus === 'fuerza'
+      || (preferences.focus === 'equilibrado'
+        && preferences.goal !== 'condicion' && preferences.goal !== 'movilidad'));
+  if (strengthBasics) {
+    const floorBasics = preferences.floorAllowed
+      ? [preferredPushupIds(preferences)[0], preferences.experience === 'intermedio' || preferences.experience === 'avanzado' ? 'plank' : 'plank-knees']
+      : [];
+    const basics = preferences.focus === 'fuerza'
+      ? ['squat', ...floorBasics.slice(0, 1), 'reverse-lunge', ...floorBasics.slice(1), 'hip-hinge']
+      : ['squat', ...floorBasics.slice(0, 1), 'reverse-lunge', ...floorBasics.slice(1), 'march'];
+    order = [...basics, ...order.filter(id => !basics.includes(id))];
+  }
   if (preferences.focus === 'equilibrado' && preferences.goal === 'condicion') order = [...CONDITIONING_PREFIX, ...order];
   if (preferences.focus === 'equilibrado' && preferences.goal === 'movilidad') order = [...MOBILITY_PREFIX, ...order];
 
@@ -431,6 +494,47 @@ function adaptedSetCount(sourceSets: number, targetMinutes: number, intensity: M
   return Math.max(2, Math.min(sourceSets, cap));
 }
 
+/** A regular bodyweight strength session should not depend on gym-machine
+ * templates that leave only one eligible exercise (or wall-press).
+ * Keep the same set/rest semantics without inventing equipment. */
+function bodyweightSeriesRoutine(
+  targetMinutes: number,
+  preferences: MovePreferences,
+  intensity: MoveIntensity,
+  progression: MoveProgressionContext,
+): MoveRoutine | null {
+  const basics = ['squat', ...preferredPushupIds(preferences).slice(0, 1), 'reverse-lunge',
+    preferences.experience === 'intermedio' || preferences.experience === 'avanzado' ? 'plank' : 'plank-knees'];
+  const exercises = basics
+    .map(id => MOVE_EXERCISE_BY_ID[id])
+    .filter((exercise): exercise is MoveExercise => Boolean(exercise && moveExerciseCompatible(exercise, preferences, intensity)))
+    .map(exercise => progressionAdjustedExercise(exercise, preferences, intensity, progression) ?? exercise)
+    .filter((exercise, index, array) => array.findIndex(item => item.id === exercise.id) === index)
+    .slice(0, targetMinutes <= 10 ? 2 : targetMinutes <= 20 ? 3 : 4);
+  if (exercises.length < 2) return null;
+  const setCount = targetMinutes >= 45 ? 4 : targetMinutes <= 10 ? 2 : 3;
+  const steps: MoveStep[] = [];
+  for (const exercise of exercises) {
+    for (let setNumber = 1; setNumber <= setCount; setNumber += 1) {
+      steps.push({
+        slot: steps.length, exercise, durationSec: 45,
+        restAfterSec: TRAINER_SOURCE_RULES.structuredRestSec,
+        mode: 'set',
+        setNumber, setCount,
+        repsLabel: exercise.pattern === 'core' ? '20–30 s' : '8–12',
+        blockLabel: 'Fuerza · básicos con peso corporal',
+      });
+    }
+  }
+  steps[steps.length - 1].restAfterSec = 0;
+  return {
+    id: `move-${targetMinutes}-bodyweight-strength-${intensity}-series`,
+    targetMinutes, intensity, style: 'series', steps,
+    totalSeconds: steps.reduce((sum, step) => sum + step.durationSec + step.restAfterSec, 0),
+    sourceTemplate: 'bodyweight-basics',
+  };
+}
+
 function seriesRoutine(
   targetMinutes: number,
   preferences: MovePreferences,
@@ -576,7 +680,8 @@ function targetedSeriesRoutine(
 ): MoveRoutine | null {
   const exercises = freshTargetedExercises(preferences, intensity, progression)
     .slice(0, targetMinutes >= 45 ? 6 : 4)
-    .map((exercise) => progressionAdjustedExercise(exercise, preferences, intensity, progression) ?? exercise);
+    .map((exercise) => preserveSelectedClassic(exercise, preferences, intensity, progression)
+      ?? progressionAdjustedExercise(exercise, preferences, intensity, progression) ?? exercise);
   const unique = exercises.filter((exercise, i) => exercises.findIndex((item) => item.id === exercise.id) === i);
   if (!unique.length) return null;
   const setCount = intensity === 'suave' ? 2 : targetMinutes >= 45 ? 4 : 3;
@@ -618,7 +723,8 @@ function targetedAmrapRoutine(
   const exercises = freshTargetedExercises(preferences, intensity, progression).slice(0, 6);
   if (exercises.length < 3) return null;
   const circuit = exercises.map((exercise) => ({
-    exercise: progressionAdjustedExercise(exercise, preferences, intensity, progression) ?? exercise,
+    exercise: preserveSelectedClassic(exercise, preferences, intensity, progression)
+      ?? progressionAdjustedExercise(exercise, preferences, intensity, progression) ?? exercise,
     repsLabel: '8-12',
   }));
   const roundCount = targetMinutes >= 20 ? 3 : 1;
@@ -663,6 +769,17 @@ export function routineForDuration(
   }
 
   if (requestedStyle === 'series') {
+    const strengthGoal = preferences.focus === 'fuerza'
+      || preferences.goal === 'fuerza' || preferences.goal === 'musculo';
+    const hasCompatibleExternalLoad = LOADED_ORDER.some(id => {
+      const exercise = MOVE_EXERCISE_BY_ID[id];
+      return Boolean(exercise?.equipment?.length && moveExerciseCompatible(exercise, preferences, intensity));
+    });
+    if (strengthGoal && MOVE_INTENSITY_RANK[intensity] >= MOVE_INTENSITY_RANK.moderada
+      && !hasCompatibleExternalLoad) {
+      const bodyweight = bodyweightSeriesRoutine(targetMinutes, preferences, intensity, progression);
+      if (bodyweight) return extendStructuredRoutine(bodyweight, targetMinutes, preferences, intensity, progression);
+    }
     const structured = seriesRoutine(targetMinutes, preferences, intensity, progression);
     if (structured) return extendStructuredRoutine(structured, targetMinutes, preferences, intensity, progression);
   }
