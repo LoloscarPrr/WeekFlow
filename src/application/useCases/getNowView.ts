@@ -62,6 +62,7 @@ export function loadNowPlanningState(): NowPlanningState {
 export type GetNowViewInput = {
   dayState: DayState;
   weekState: WeekSchedule;
+  previousWeekState?: WeekSchedule | null;
   moveDoneToday: boolean;
   now: Date;
   /** NowController passes a focus-time snapshot; other callers retain live canonical reads. */
@@ -226,16 +227,16 @@ function liveCard(
   };
 }
 
-export function getNowView({ dayState, weekState, moveDoneToday, now, planningState }: GetNowViewInput): NowView {
+export function getNowView({ dayState, weekState, previousWeekState, moveDoneToday, now, planningState }: GetNowViewInput): NowView {
   const planning = planningState ?? loadNowPlanningState();
   const postShiftCarryMin = dayState.settings.commuteBackMin + dayState.settings.recoveryMin + 30;
   // On a day off following an overnight shift, keep the prior shift as the
   // active planning context while its main sleep window is protected. Otherwise
   // the free-day template incorrectly schedules activity during post-shift sleep.
   // Never extend this carry over a workday's own scheduled shift.
-  const regularContext = shiftContextForDate(weekState, now, postShiftCarryMin);
+  const regularContext = shiftContextForDate(weekState, now, postShiftCarryMin, previousWeekState);
   const extendedContext = regularContext.overnightCarry || regularContext.shift.type === 'off'
-    ? shiftContextForDate(weekState, now, postShiftCarryMin + 8 * 60)
+    ? shiftContextForDate(weekState, now, postShiftCarryMin + 8 * 60, previousWeekState)
     : regularContext;
   const shiftContext = extendedContext.overnightCarry && extendedContext.shift.type === 'night'
     ? extendedContext

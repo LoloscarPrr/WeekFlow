@@ -1,6 +1,6 @@
 import { KeyboardAwareTextInput as TextInput } from '@/src/components/KeyboardAwareScrollView';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker from '@expo/ui/community/datetime-picker';
 import { Brand } from '@/src/components/Brand';
 import { RefreshableScrollView } from '@/src/components/AppRefresh';
@@ -9,12 +9,26 @@ import { WeeklyPlannerPreview } from '@/src/components/WeeklyPlannerPreview';
 import { useWeekController } from '@/src/presentation/week/useWeekController';
 import { shiftSummaryLabel } from '@/src/domain/services/weekPresentation';
 import { colors } from '@/src/theme/colors';
+import { shortLocalDateLabel } from '@/src/domain/services/calendarDate';
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+function weekRange(mondayKey: string): string {
+  const parts = mondayKey.split('-').map(Number);
+  const sunday = new Date(parts[0], parts[1] - 1, parts[2] + 6, 12);
+  const end = String(sunday.getFullYear()) + '-' + String(sunday.getMonth() + 1).padStart(2, '0') + '-' + String(sunday.getDate()).padStart(2, '0');
+  return shortLocalDateLabel(mondayKey) + ' — ' + shortLocalDateLabel(end);
+}
+
 
 export default function WeekScreen() {
   const {
     week,
+    currentWeek,
+    selectedWeek,
+    selectedMonday,
+    nextPrepared,
+    selectWeek,
+    copyCurrentToNext,
     summary,
     editingDay,
     timePicker,
@@ -49,6 +63,41 @@ export default function WeekScreen() {
           <View style={styles.hero}>
             <Text style={styles.title}>Semana</Text>
           </View>
+
+          <View style={styles.weekTabs}>
+            {([0, 1] as const).map((offset) => (
+              <Pressable
+                key={offset}
+                accessibilityRole="button"
+                accessibilityLabel={offset === 0 ? 'Editar horario de esta semana' : 'Editar horario de la próxima semana'}
+                style={[styles.weekTab, selectedWeek === offset && styles.weekTabActive]}
+                onPress={() => selectWeek(offset)}
+              >
+                <Text style={[styles.weekTabText, selectedWeek === offset && styles.weekTabTextActive]}>
+                  {offset === 0 ? 'Esta semana' : 'Próxima semana'}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text style={styles.weekRange}>{weekRange(selectedMonday)}</Text>
+          {selectedWeek === 1 && !nextPrepared ? (
+            <Text style={styles.nextHint}>El horario de la próxima semana está vacío. Agrega turnos o copia el actual: Brain no supondrá que se repiten.</Text>
+          ) : null}
+          {selectedWeek === 1 ? (
+            <Pressable accessibilityRole="button" style={styles.copyWeekButton} onPress={() => {
+              if (!nextPrepared) { copyCurrentToNext(); return; }
+              Alert.alert(
+                '¿Reemplazar la próxima semana?',
+                'Esto copiará los siete turnos actuales y reemplazará el horario próximo que ya preparaste.',
+                [
+                  { text: 'Cancelar', style: 'cancel' },
+                  { text: 'Copiar y reemplazar', style: 'destructive', onPress: copyCurrentToNext },
+                ],
+              );
+            }}>
+              <Text style={styles.copyWeekText}>Copiar horario de esta semana</Text>
+            </Pressable>
+          ) : null}
 
           <View style={styles.summaryCard}>
             <View style={styles.summaryItem}><Text style={styles.summaryValue}>{summary.workDays}</Text><Text style={styles.summaryLabel}>Jornadas</Text></View>
@@ -127,13 +176,17 @@ export default function WeekScreen() {
             })}
           </View>
 
-          <ImportantEventCard
-            moments={week.importantMoments}
-            onSave={saveImportantMoment}
-            onDelete={deleteImportantMoment}
-          />
+          {selectedWeek === 0 ? (
+            <ImportantEventCard
+              moments={currentWeek.importantMoments}
+              onSave={saveImportantMoment}
+              onDelete={deleteImportantMoment}
+            />
+          ) : (
+            <Text style={styles.nextHint}>Los eventos con fecha se conservan entre semanas y se editan desde «Esta semana».</Text>
+          )}
 
-          <WeeklyPlannerPreview week={week} />
+          <WeeklyPlannerPreview week={currentWeek} selectedWeek={selectedWeek} />
 
           <View style={[styles.ritualCard, week.organizedAt ? styles.ritualCardDone : null]}>
             <Text style={[styles.ritualEyebrow, week.organizedAt ? styles.ritualEyebrowDone : null]}>
@@ -170,6 +223,15 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 18, paddingTop: 18, paddingBottom: 96 },
   hero: { marginTop: 14, marginBottom: 10 },
   title: { color: colors.text, fontWeight: '900', fontSize: 24, lineHeight: 29 },
+  weekTabs: { flexDirection: 'row', gap: 10, marginBottom: 8 },
+  weekTab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 14, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
+  weekTabActive: { backgroundColor: '#173B68', borderColor: colors.blue },
+  weekTabText: { color: colors.muted, fontSize: 13, fontWeight: '800' },
+  weekTabTextActive: { color: colors.text },
+  weekRange: { color: colors.muted, fontSize: 11, fontWeight: '700', marginBottom: 12 },
+  nextHint: { color: colors.muted, fontSize: 12, lineHeight: 18, marginBottom: 10 },
+  copyWeekButton: { padding: 12, borderRadius: 12, borderColor: colors.line, backgroundColor: colors.surface2, borderWidth: 1, alignItems: 'center', marginBottom: 12 },
+  copyWeekText: { color: colors.text, fontWeight: '800', fontSize: 13 },
   summaryCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 18, paddingVertical: 11, paddingHorizontal: 6, marginBottom: 12 },
   summaryItem: { flex: 1, alignItems: 'center' },
   summaryValue: { color: colors.text, fontWeight: '900', fontSize: 16 },

@@ -1,11 +1,10 @@
 import type { WeekSchedule } from '@/src/domain/entities/Shift';
-import type { WeekScheduleRepository } from '@/src/domain/repositories/WeekScheduleRepository';
 import { sqliteStateStore } from '@/src/data/local/sqlite/SQLiteStateStore';
 import { migrateWeekSchedule } from '@/src/data/migrations/stateMigrations';
 
-const WEEK_STATE_KEY = 'week-state';
+export const WEEK_STATE_KEY = 'week-state';
 
-export class SQLiteWeekScheduleRepository implements WeekScheduleRepository {
+export class SQLiteWeekScheduleRepository {
   load(): WeekSchedule {
     const stored = sqliteStateStore.read<unknown>(WEEK_STATE_KEY);
     const migrated = migrateWeekSchedule(stored);

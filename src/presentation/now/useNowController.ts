@@ -3,6 +3,7 @@ import { useFocusEffect } from 'expo-router';
 import { recordDailyEnergy } from '@/src/brain/energyHistory';
 import { getNowView, loadNowPlanningState } from '@/src/application/useCases/getNowView';
 import { moveDoneFromHistoryOnDate } from '@/src/domain/services/nowMoveCompletion';
+import { mondayKey } from '@/src/domain/services/weekWindow';
 import {
   correctActualExitTime as correctActualExitTimeUseCase,
   registerActualExit,
@@ -16,12 +17,15 @@ import { syncLivePlanReminders } from '@/src/services/notifications';
 import {
   loadDayState,
   loadWeekState,
+  loadPreviousWeekState,
   saveDayState,
 } from '@/src/state/persistence';
 
 export function useNowController() {
   const [dayState, setDayState] = useState(() => loadDayState());
   const [weekState, setWeekState] = useState(() => loadWeekState());
+  const [previousWeekState, setPreviousWeekState] = useState(() => loadPreviousWeekState());
+  const [loadedMonday, setLoadedMonday] = useState(() => mondayKey(new Date()));
   const [clockNow, setClockNow] = useState(() => new Date());
   const [planningState, setPlanningState] = useState(loadNowPlanningState);
 
@@ -29,6 +33,8 @@ export function useNowController() {
     const now = new Date();
     setDayState(loadDayState());
     setWeekState(loadWeekState());
+    setPreviousWeekState(loadPreviousWeekState());
+    setLoadedMonday(mondayKey(now));
     setClockNow(now);
     setPlanningState(loadNowPlanningState());
   }, []);
@@ -44,6 +50,15 @@ export function useNowController() {
     return () => clearInterval(timer);
   }, []);
 
+  // Keep Ahora correct if it stays open as Monday begins.
+  useEffect(() => {
+    if (mondayKey(clockNow) !== loadedMonday) {
+      setWeekState(loadWeekState());
+      setPreviousWeekState(loadPreviousWeekState());
+      setLoadedMonday(mondayKey(clockNow));
+    }
+  }, [clockNow, loadedMonday]);
+
   useEffect(() => {
     saveDayState(dayState);
     void syncLivePlanReminders().catch((error) => {
@@ -55,11 +70,12 @@ export function useNowController() {
     () => getNowView({
       dayState,
       weekState,
+      previousWeekState,
       moveDoneToday: moveDoneFromHistoryOnDate(planningState.moveHistory, clockNow),
       now: clockNow,
       planningState,
     }),
-    [clockNow, dayState, planningState, weekState],
+    [clockNow, dayState, planningState, previousWeekState, weekState],
   );
 
   const updateEnergy = useCallback((energy: Energy) => {

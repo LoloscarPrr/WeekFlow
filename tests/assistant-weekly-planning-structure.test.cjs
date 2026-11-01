@@ -18,8 +18,8 @@ ok(screen.includes('pendingWeekly.slots.map') && screen.includes('pendingWeekly.
 ok(screen.includes('Organizar mi semana · Vista previa') && screen.includes('↶ Deshacer planificación semanal'), 'local interactive entrypoint and undo');
 ok(screen.includes('no cambia turnos laborales') || screen.includes('No cambia turnos laborales'), 'clear plan scope');
 ok(planner.includes('protectedIntervals') && planner.includes('recoveryDates'), 'canonical planner protects work and night recovery');
-ok(persistence.includes('JSON.stringify(loadConfirmedWeeklyPlan()) !== JSON.stringify(options.expectedCurrent)'), 'no stale plan overwrite');
-ok(persistence.includes('JSON.stringify(loadConfirmedWeeklyPlan()) !== JSON.stringify(confirmed)'), 'no stale plan undo');
+ok(persistence.includes('JSON.stringify(loadConfirmedWeeklyPlanForOffset(targetOffset)) !== JSON.stringify(options.expectedCurrent)'), 'no stale plan overwrite');
+ok(persistence.includes('JSON.stringify(loadConfirmedWeeklyPlanForOffset(targetOffset)) !== JSON.stringify(confirmed)'), 'no stale plan undo');
 ok(!parser.includes('saveWeekState') && !parser.includes('sqlite'), 'parser is pure');
 ok(pkg.dependencies['expo-linking']==='~57.0.13' && lock.packages[''].dependencies['expo-linking']==='~57.0.13'
   && lock.packages['node_modules/expo-linking'].version==='57.0.13', 'Metro bundle missing expo-linking package fixed with lockfile');

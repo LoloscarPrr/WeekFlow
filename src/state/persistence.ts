@@ -1,15 +1,16 @@
 import {
   loadDayState as loadDayStateUseCase,
   loadUserProfile as loadUserProfileUseCase,
-  loadWeekSchedule as loadWeekScheduleUseCase,
   saveDayState as saveDayStateUseCase,
   saveUserProfile as saveUserProfileUseCase,
-  saveWeekSchedule as saveWeekScheduleUseCase,
 } from '@/src/application/useCases/coreState';
 import { sqliteStateStore } from '@/src/data/local/sqlite/SQLiteStateStore';
+import {
+  hasPreparedNextWeek as preparedNextWeekWindow, loadCurrentWeek, loadPreviousWeek,
+  loadWeekForDate, loadWeekForOffset, saveCurrentWeek, saveWeekForOffset,
+} from '@/src/state/weekScheduleWindow';
 import { DAY_STATE_KEY, sqliteDayStateRepository } from '@/src/data/repositories/SQLiteDayStateRepository';
 import { sqliteUserProfileRepository } from '@/src/data/repositories/SQLiteUserProfileRepository';
-import { sqliteWeekScheduleRepository } from '@/src/data/repositories/SQLiteWeekScheduleRepository';
 import {
   defaultDayState,
   defaultUserProfile,
@@ -129,11 +130,25 @@ export function saveDayState(state: PersistedDayState) {
 }
 
 export function loadWeekState(): PersistedWeekState {
-  return loadWeekScheduleUseCase(sqliteWeekScheduleRepository);
+  return loadCurrentWeek();
 }
-
 export function saveWeekState(state: PersistedWeekState) {
-  saveWeekScheduleUseCase(sqliteWeekScheduleRepository, state);
+  saveCurrentWeek(state);
+}
+export function loadWeekStateForOffset(offset: 0 | 1): PersistedWeekState {
+  return loadWeekForOffset(offset);
+}
+export function saveWeekStateForOffset(offset: 0 | 1, state: PersistedWeekState) {
+  saveWeekForOffset(offset, state);
+}
+export function loadWeekStateForDate(date: Date): PersistedWeekState {
+  return loadWeekForDate(date);
+}
+export function loadPreviousWeekState(): PersistedWeekState | null {
+  return loadPreviousWeek();
+}
+export function hasPreparedNextWeek(): boolean {
+  return preparedNextWeekWindow();
 }
 
 export function loadUserProfile(): UserProfile {

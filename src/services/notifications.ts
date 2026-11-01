@@ -11,7 +11,7 @@ import {
   interruptionDecision,
   type SmartSilenceReminderKind,
 } from '@/src/notifications/smartSilence';
-import { loadDayState, loadWeekState, loadMoveHistory } from '@/src/state/persistence';
+import { loadDayState, loadWeekState, loadWeekStateForOffset, loadWeekStateForDate, loadMoveHistory } from '@/src/state/persistence';
 import {
   isLegacyEquivalent,
   logicalReminderId,
@@ -142,6 +142,8 @@ async function performLivePlanReminderSync(now: Date): Promise<number> {
     dayState,
     weekState,
     now,
+    14,
+    loadWeekStateForOffset(1),
   );
   const confirmed = loadConfirmedWeeklyPlan();
   const habits = loadHabitsState();
@@ -153,7 +155,7 @@ async function performLivePlanReminderSync(now: Date): Promise<number> {
     const at = new Date(year, month - 1, day, hour, minute);
     if (at <= now || at.getTime() > now.getTime() + 14 * 86400000) return [];
     // Never alert for a habit while commuting to, or working a shift.
-    const context = shiftContextForDate(weekState, at);
+    const context = shiftContextForDate(loadWeekStateForDate(at), at);
     if (context.startAt && context.endAt) {
       const shiftStart = new Date(context.startAt).getTime();
       const shiftEnd = new Date(context.endAt).getTime();

@@ -48,6 +48,8 @@ export type WeeklyProposal = {
 };
 export type PlannerInput = {
   week: WeekSchedule;
+  /** Previous Sunday may belong to the other anchored week. */
+  previousWeek?: WeekSchedule | null;
   habits: HabitsState;
   settings: DaySettings;
   energy: Energy;
@@ -91,14 +93,15 @@ function getMonday(now: Date) {
   monday.setDate(monday.getDate() - (monday.getDay() + 6) % 7);
   return monday;
 }
-function workingIntervals(week: WeekSchedule, monday: Date) {
+function workingIntervals(week: WeekSchedule, monday: Date, previousWeek?: WeekSchedule | null) {
   const out: { start: Date; end: Date; kind: 'work' | 'event' }[] = [];
   // Include preceding Sunday so its overnight recovery is accounted for on Monday.
   for (let offset = -1; offset < 7; offset++) {
     const date = new Date(monday);
     date.setDate(date.getDate() + offset);
     const day = (date.getDay() + 6) % 7;
-    const shift = week.shifts.find(s => s.day === day);
+    const source = offset === -1 && previousWeek ? previousWeek : week;
+    const shift = source.shifts.find(s => s.day === day);
     const a = shift ? minuteOf(shift.start) : null;
     const b = shift ? minuteOf(shift.end) : null;
     if (!shift || shift.type === 'off' || a === null || b === null) continue;
@@ -117,9 +120,9 @@ function workingIntervals(week: WeekSchedule, monday: Date) {
   return out;
 }
 function protectedIntervals(
-  week: WeekSchedule, monday: Date, settings: DaySettings,
+  week: WeekSchedule, monday: Date, settings: DaySettings, previousWeek?: WeekSchedule | null,
 ) {
-  const shifts = workingIntervals(week, monday);
+  const shifts = workingIntervals(week, monday, previousWeek);
   const blocked = shifts.map(s => ({ start: new Date(s.start), end: new Date(s.end) }));
   for (const s of shifts.filter(s => s.kind === 'work')) {
     const startMargin = Math.max(0, settings.commuteOutMin + settings.bufferMin + settings.prepMin);
@@ -167,7 +170,7 @@ export function proposeWeeklyPlan(input: PlannerInput): WeeklyProposal {
     date.setDate(date.getDate() + i);
     return date;
   });
-  const protectedTimes = protectedIntervals(input.week, monday, input.settings);
+  const protectedTimes = protectedIntervals(input.week, monday, input.settings, input.previousWeek);
   // Days following overnight work are recovery days, even when some time remains unblocked.
   const recoveryDates = new Set<string>();
   for (let i = -1; i < 7; i++) {

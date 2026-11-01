@@ -16,7 +16,7 @@ import {
   type HabitConstraintPreview, type HabitConstraintUndo,
 } from '@/src/brain/habitConstraintPersistence';
 import { proposeWeeklyPlan, type WeeklyProposal } from '@/src/brain/weeklyPlanner';
-import { confirmWeeklyProposal, loadConfirmedWeeklyPlan, undoConfirmedWeeklyProposal, type ConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
+import { confirmWeeklyProposal, loadConfirmedWeeklyPlan, loadConfirmedWeeklyPlanForOffset, undoConfirmedWeeklyProposal, type ConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
 import { loadHabitsState } from '@/src/habits/persistence';
 import { loadDailyEnergy } from '@/src/brain/energyHistory';
 import { relativeExitFromShiftEnd } from '@/src/assistant/relativeExit';
@@ -46,6 +46,9 @@ import {
   moveSessionDoneToday,
   saveDayState,
   saveWeekState,
+  loadWeekStateForOffset,
+  loadPreviousWeekState,
+  hasPreparedNextWeek,
 } from '@/src/state/persistence';
 
 function readAssistantContext(now = new Date()) {
@@ -125,9 +128,15 @@ export function useAssistantController() {
         setAssistantMessage('No tienes hábitos activos ni sesiones Move semanales configuradas. Define tu objetivo semanal en Move y vuelve a pedirme una planificación.');
         return 'answered' as const;
       }
+      if (weekly.weekOffset === 1 && !hasPreparedNextWeek()) {
+        setPendingProposal(null);
+        setAssistantMessage('Primero prepara el horario laboral de la próxima semana en Semana. No voy a programarte hábitos o Move suponiendo siete días libres.');
+        return 'answered' as const;
+      }
       const dayState = loadDayState();
       const proposal = proposeWeeklyPlan({
-        week: loadWeekState(),
+        week: loadWeekStateForOffset(weekly.weekOffset),
+        previousWeek: weekly.weekOffset === 1 ? loadWeekState() : loadPreviousWeekState(),
         habits,
         settings: dayState.settings,
         energy: dayState.energy,
@@ -137,7 +146,7 @@ export function useAssistantController() {
         move: { preferences: loadMovePreferences(), history: loadMoveHistory() },
       });
       setPendingProposal(null);
-      setPreviousConfirmedWeekly(loadConfirmedWeeklyPlan());
+      setPreviousConfirmedWeekly(loadConfirmedWeeklyPlanForOffset(weekly.weekOffset));
       setPendingWeekly(proposal);
       setAssistantMessage('Esta propuesta organiza Move como pilar y Hábitos por separado. Revisa cada sesión y las advertencias antes de confirmar.');
       return 'answered' as const;
