@@ -202,12 +202,29 @@ function progressionAdjustedExercise(
   })[0];
 }
 
+function preserveSelectedClassic(
+  exercise: MoveExercise,
+  preferences: MovePreferences,
+  intensity: MoveIntensity,
+  progression: MoveProgressionContext,
+): MoveExercise | null {
+  // Selecting an eligible familiar push-up is intentional. Don't silently
+  // replace it with a different press simply because equal-difficulty
+  // weighted presses exist. Explicit feedback still controls progression.
+  if ((exercise.id === 'pushup' || exercise.id === 'knee-pushup')
+    && !progression.lastFeedback && !progression.lastEndedEarly
+    && moveExerciseCompatible(exercise, preferences, intensity)) return exercise;
+  return null;
+}
+
 function compatibleExercise(
   exercise: MoveExercise,
   preferences: MovePreferences,
   intensity: MoveIntensity,
   progression: MoveProgressionContext,
 ) {
+  const classic = preserveSelectedClassic(exercise, preferences, intensity, progression);
+  if (classic) return classic;
   const progressed = progressionAdjustedExercise(exercise, preferences, intensity, progression);
   if (progressed) return progressed;
   if (moveExerciseCompatible(exercise, preferences, intensity)) return exercise;
@@ -663,7 +680,8 @@ function targetedSeriesRoutine(
 ): MoveRoutine | null {
   const exercises = freshTargetedExercises(preferences, intensity, progression)
     .slice(0, targetMinutes >= 45 ? 6 : 4)
-    .map((exercise) => progressionAdjustedExercise(exercise, preferences, intensity, progression) ?? exercise);
+    .map((exercise) => preserveSelectedClassic(exercise, preferences, intensity, progression)
+      ?? progressionAdjustedExercise(exercise, preferences, intensity, progression) ?? exercise);
   const unique = exercises.filter((exercise, i) => exercises.findIndex((item) => item.id === exercise.id) === i);
   if (!unique.length) return null;
   const setCount = intensity === 'suave' ? 2 : targetMinutes >= 45 ? 4 : 3;
@@ -705,7 +723,8 @@ function targetedAmrapRoutine(
   const exercises = freshTargetedExercises(preferences, intensity, progression).slice(0, 6);
   if (exercises.length < 3) return null;
   const circuit = exercises.map((exercise) => ({
-    exercise: progressionAdjustedExercise(exercise, preferences, intensity, progression) ?? exercise,
+    exercise: preserveSelectedClassic(exercise, preferences, intensity, progression)
+      ?? progressionAdjustedExercise(exercise, preferences, intensity, progression) ?? exercise,
     repsLabel: '8-12',
   }));
   const roundCount = targetMinutes >= 20 ? 3 : 1;
