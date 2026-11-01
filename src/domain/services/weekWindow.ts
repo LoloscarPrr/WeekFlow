@@ -44,7 +44,7 @@ export function advanceWeekWindow(
   const next = prepared ? { ...prepared } : emptyWeek();
   const promoted: WeekSchedule = {
     ...next,
-    importantMoments: preserveDatedMoments(current, next),
+    importantMoments: preserveDatedMoments(next, current),
     // A prepared next-week roster is already organized: no second Monday ritual.
     organizedAt: prepared ? (prepared.organizedAt ?? now.toISOString()) : null,
   };
@@ -63,5 +63,5 @@ export function advanceWeekWindow(
 export function nextWeekSchedule(window: WeekWindow, current: WeekSchedule): WeekSchedule {
   const key = addWeek(window.currentMonday);
   const stored = window.next?.weekStart === key ? window.next.week : emptyWeek();
-  return { ...stored, importantMoments: preserveDatedMoments(current, stored) };
+  return { ...stored, importantMoments: preserveDatedMoments(stored, current) };
 }

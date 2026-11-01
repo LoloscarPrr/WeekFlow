@@ -47,6 +47,7 @@ import {
   saveDayState,
   saveWeekState,
   loadWeekStateForOffset,
+  loadPreviousWeekState,
 } from '@/src/state/persistence';
 
 function readAssistantContext(now = new Date()) {
@@ -129,6 +130,7 @@ export function useAssistantController() {
       const dayState = loadDayState();
       const proposal = proposeWeeklyPlan({
         week: loadWeekStateForOffset(weekly.weekOffset),
+        previousWeek: weekly.weekOffset === 1 ? loadWeekState() : loadPreviousWeekState(),
         habits,
         settings: dayState.settings,
         energy: dayState.energy,

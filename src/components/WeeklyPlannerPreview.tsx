@@ -5,7 +5,7 @@ import { confirmWeeklyProposal, loadConfirmedWeeklyPlan } from '@/src/brain/week
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { WeekSchedule } from '@/src/domain/entities/Shift';
 import { loadDailyEnergy } from '@/src/brain/energyHistory';
-import { loadWeekStateForOffset } from '@/src/state/persistence';
+import { loadWeekStateForOffset, loadPreviousWeekState } from '@/src/state/persistence';
 import { loadDayState, loadMovePreferences, saveMovePreferences, loadMoveHistory } from '@/src/state/persistence';
 import { sanitizeMovePreferences } from '@/src/move/adaptation';
 import { loadHabitsState } from '@/src/habits/persistence';
@@ -49,6 +49,7 @@ export function WeeklyPlannerPreview({ week }: { week: WeekSchedule }) {
     const day = loadDayState();
     setProposal(proposeWeeklyPlan({
       week: loadWeekStateForOffset(weekOffset),
+      previousWeek: weekOffset === 1 ? loadWeekStateForOffset(0) : loadPreviousWeekState(),
       habits: loadHabitsState(),
       settings: day.settings,
       energy: day.energy,
