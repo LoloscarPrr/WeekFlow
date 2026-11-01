@@ -1,7 +1,7 @@
 import type { DayState } from '../entities/DailyState';
 import type { Shift, WeekSchedule } from '../entities/Shift';
 import { localDateKey } from './shiftSchedule';
-import { mondayKey } from './weekWindow';
+import { addWeek, mondayKey } from './weekWindow';
 import { restWindowForShift } from './restPlanning';
 
 export type PlannedReminderKind = 'important' | 'departure' | 'rest';
@@ -59,7 +59,13 @@ export function buildLivePlanReminders(
     date.setHours(0, 0, 0, 0);
     date.setDate(date.getDate() + offset);
 
-    const schedule = nextWeek && mondayKey(date) > mondayKey(now) ? nextWeek : week;
+    const targetMonday = mondayKey(date);
+    const currentMonday = mondayKey(now);
+    // WeekFlow only knows the current and immediately following roster:
+    // never schedule assumed repeating shifts beyond that horizon.
+    if (targetMonday > addWeek(currentMonday)) continue;
+    const schedule = targetMonday === addWeek(currentMonday) ? nextWeek : week;
+    if (!schedule) continue;
     const shift = shiftForCalendarDate(schedule, date);
     if (shift.type === 'off' || !shift.start) continue;
 

@@ -64,4 +64,6 @@ eq(nextWorking?.shift.start,'07:00','Rest chooses real next-week start');
 const notify = buildLivePlanReminders(defaultDayState,current,new Date(2026,10,1,11),4,following);
 yes(notify.some(item=>item.id==='shift-2026-11-02-07:00'),'future reminder uses next-week shift');
 yes(!notify.some(item=>item.id==='shift-2026-11-02-13:00'),'future reminder never reuses stale current-week Monday');
+const twoWeeksAhead = buildLivePlanReminders(defaultDayState,current,new Date(2026,10,1,11),14,following);
+yes(!twoWeeksAhead.some(item=>item.id.startsWith('shift-2026-11-09')), 'no invented repeat of next roster beyond two-week window');
 console.log('Week two-roster rollover, local Monday, Sunday carry and future reminder tests passed.');

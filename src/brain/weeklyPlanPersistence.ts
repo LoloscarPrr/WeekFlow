@@ -1,6 +1,6 @@
 import { loadDailyEnergy } from './energyHistory';
 import { sqliteStateStore } from '../data/local/sqlite/SQLiteStateStore';
-import { loadWeekState, loadWeekStateForOffset, loadPreviousWeekState, loadDayState, loadMovePreferences, loadMoveHistory } from '../state/persistence';
+import { loadWeekState, loadWeekStateForOffset, loadPreviousWeekState, hasPreparedNextWeek, loadDayState, loadMovePreferences, loadMoveHistory } from '../state/persistence';
 import { loadHabitsState } from '../habits/persistence';
 import { proposeWeeklyPlan, type WeeklyProposal } from './weeklyPlanner';
 
@@ -68,6 +68,9 @@ function planForOffset(offset: 0 | 1): ConfirmedWeeklyPlan | null {
   const expected = offset === 0 ? mondayOf(new Date()) : nextMondayKey(new Date());
   const saved = readPlan(offset === 0 ? KEY : NEXT_KEY);
   if (!saved || saved.weekStart !== expected) return null;
+  // A legacy next-week confirmation against the old repeating roster must
+  // not remain actionable until the user actually prepares that dated roster.
+  if (offset === 1 && !hasPreparedNextWeek()) return null;
   if (saved.workScheduleSignature && saved.workScheduleSignature !== weekScheduleSignature(
     saved.weekStart, loadWeekStateForOffset(offset),
   )) return null;
