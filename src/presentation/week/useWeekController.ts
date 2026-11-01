@@ -75,7 +75,7 @@ export function useWeekController() {
     setEditingDay(null);
     setTimePicker(null);
   }, []);
-  const saveEditedWeek = useCallback((next: WeekSchedule) => {
+  const saveEditedWeek = useCallback((next: WeekSchedule, syncReminders = true) => {
     if (selectedWeek === 0) {
       saveWeekState(next);
       setCurrentWeek(next);
@@ -83,7 +83,7 @@ export function useWeekController() {
       saveWeekStateForOffset(1, next);
       setNextPrepared(true);
     }
-    refreshScheduledReminders();
+    if (syncReminders) refreshScheduledReminders();
   }, [selectedWeek]);
   const toggleEditingDay = useCallback((day: number) => {
     setEditingDay(current => current === day ? null : day);
@@ -91,8 +91,7 @@ export function useWeekController() {
   const patchShift = useCallback((day: number, patch: WeekShiftPatch, syncReminders = true) => {
     setWeek(current => {
       const next = updateWeekShift(current, day, patch);
-      saveEditedWeek(next);
-      if (!syncReminders) { /* Colación uses the same canonical save. */ }
+      saveEditedWeek(next, syncReminders);
       return next;
     });
   }, [saveEditedWeek]);

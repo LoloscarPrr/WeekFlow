@@ -1,6 +1,6 @@
 import { KeyboardAwareTextInput as TextInput } from '@/src/components/KeyboardAwareScrollView';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker from '@expo/ui/community/datetime-picker';
 import { Brand } from '@/src/components/Brand';
 import { RefreshableScrollView } from '@/src/components/AppRefresh';
@@ -84,7 +84,17 @@ export default function WeekScreen() {
             <Text style={styles.nextHint}>El horario de la próxima semana está vacío. Agrega turnos o copia el actual: Brain no supondrá que se repiten.</Text>
           ) : null}
           {selectedWeek === 1 ? (
-            <Pressable accessibilityRole="button" style={styles.copyWeekButton} onPress={copyCurrentToNext}>
+            <Pressable accessibilityRole="button" style={styles.copyWeekButton} onPress={() => {
+              if (!nextPrepared) { copyCurrentToNext(); return; }
+              Alert.alert(
+                '¿Reemplazar la próxima semana?',
+                'Esto copiará los siete turnos actuales y reemplazará el horario próximo que ya preparaste.',
+                [
+                  { text: 'Cancelar', style: 'cancel' },
+                  { text: 'Copiar y reemplazar', style: 'destructive', onPress: copyCurrentToNext },
+                ],
+              );
+            }}>
               <Text style={styles.copyWeekText}>Copiar horario de esta semana</Text>
             </Pressable>
           ) : null}
