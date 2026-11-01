@@ -60,7 +60,7 @@ eq(later.shift.start,'07:00','current Monday shift is separate from Sunday carry
 
 const nextWorking = nextWorkingShift(current,new Date(2026,10,1,18),following);
 eq(nextWorking?.startAt.slice(0,10),'2026-11-02','Rest finds next Monday shift');
-eq(nextWorking?.shift.start,'07:00','Rest chooses next week's real start');
+eq(nextWorking?.shift.start,'07:00','Rest chooses real next-week start');
 const notify = buildLivePlanReminders(defaultDayState,current,new Date(2026,10,1,11),4,following);
 yes(notify.some(item=>item.id==='shift-2026-11-02-07:00'),'future reminder uses next-week shift');
 yes(!notify.some(item=>item.id==='shift-2026-11-02-13:00'),'future reminder never reuses stale current-week Monday');
