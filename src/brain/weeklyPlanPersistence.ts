@@ -4,13 +4,90 @@ import { loadWeekState, loadWeekStateForOffset, loadPreviousWeekState, loadDaySt
 import { loadHabitsState } from '../habits/persistence';
 import { proposeWeeklyPlan, type WeeklyProposal } from './weeklyPlanner';
 
-export type ConfirmedWeeklyPlan = Omit<WeeklyProposal, 'status'> & { status: 'confirmed'; confirmedAt: string };
+export type ConfirmedWeeklyPlan = Omit<WeeklyProposal, 'status'> & {
+  status: 'confirmed'; confirmedAt: string;
+  /** New confirmed plans are invalidated if that week's fixed shifts change. */
+  workScheduleSignature?: string;
+};
 const KEY = 'brain-confirmed-weekly-plan-v1';
+const NEXT_KEY = 'brain-confirmed-weekly-plan-next-v1';
 
-export function loadConfirmedWeeklyPlan(): ConfirmedWeeklyPlan | null {
-  const saved = sqliteStateStore.read<ConfirmedWeeklyPlan>(KEY);
-  if (!saved || saved.status !== 'confirmed' || !Array.isArray(saved.slots) || typeof saved.weekStart !== 'string') return null;
+function validPlan(value: ConfirmedWeeklyPlan | null): value is ConfirmedWeeklyPlan {
+  return Boolean(value && value.status === 'confirmed' && Array.isArray(value.slots) && typeof value.weekStart === 'string');
+}
+function mondayOf(now: Date) {
+  const date = new Date(now);
+  date.setHours(12, 0, 0, 0);
+  date.setDate(date.getDate() - (date.getDay() + 6) % 7);
+  return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+}
+function nextMondayKey(now: Date) {
+  const date = new Date(now);
+  date.setDate(date.getDate() + 7);
+  return mondayOf(date);
+}
+function weekScheduleSignature(weekStart: string, week = loadWeekStateForOffset(0)) {
+  const following = nextMondayKey(new Date(
+    Number(weekStart.slice(0, 4)), Number(weekStart.slice(5, 7)) - 1,
+    Number(weekStart.slice(8)), 12,
+  ));
+  return JSON.stringify({
+    shifts: week.shifts.map(shift => [
+      shift.day, shift.start, shift.end, shift.type, shift.breakMinutes ?? 0,
+    ]),
+    events: week.importantMoments.filter(m => m.date >= weekStart && m.date < following)
+      .map(m => [m.id, m.date, m.time, m.title])
+      .sort((a,b) => JSON.stringify(a).localeCompare(JSON.stringify(b))),
+  });
+}
+function readPlan(key: string): ConfirmedWeeklyPlan | null {
+  const value = sqliteStateStore.read<ConfirmedWeeklyPlan>(key);
+  return validPlan(value) ? value : null;
+}
+/** A saved next-week plan becomes current on Monday, without replacing its history mid-week. */
+function syncConfirmedWeekKeys(): void {
+  const currentMonday = mondayOf(new Date());
+  const nextMonday = nextMondayKey(new Date());
+  const current = readPlan(KEY);
+  const next = readPlan(NEXT_KEY);
+  if (next?.weekStart === currentMonday && current?.weekStart !== currentMonday) {
+    sqliteStateStore.writeBatch([
+      { key: KEY, value: next },
+      { key: NEXT_KEY, value: null },
+    ]);
+  } else if (current?.weekStart === nextMonday && !next) {
+    // Legacy versions sometimes saved next week's plan in the sole old key.
+    sqliteStateStore.writeBatch([
+      { key: KEY, value: null },
+      { key: NEXT_KEY, value: current },
+    ]);
+  }
+}
+function planForOffset(offset: 0 | 1): ConfirmedWeeklyPlan | null {
+  syncConfirmedWeekKeys();
+  const expected = offset === 0 ? mondayOf(new Date()) : nextMondayKey(new Date());
+  const saved = readPlan(offset === 0 ? KEY : NEXT_KEY);
+  if (!saved || saved.weekStart !== expected) return null;
+  if (saved.workScheduleSignature && saved.workScheduleSignature !== weekScheduleSignature(
+    saved.weekStart, loadWeekStateForOffset(offset),
+  )) return null;
   return saved;
+}
+export function loadConfirmedWeeklyPlan(): ConfirmedWeeklyPlan | null {
+  return planForOffset(0);
+}
+export function loadConfirmedWeeklyPlanForOffset(offset: 0 | 1): ConfirmedWeeklyPlan | null {
+  return planForOffset(offset);
+}
+export function confirmedWeekNeedsReview(offset: 0 | 1): boolean {
+  syncConfirmedWeekKeys();
+  const saved = readPlan(offset === 0 ? KEY : NEXT_KEY);
+  const expected = offset === 0 ? mondayOf(new Date()) : nextMondayKey(new Date());
+  return Boolean(saved && saved.weekStart === expected
+    && saved.workScheduleSignature
+    && saved.workScheduleSignature !== weekScheduleSignature(
+      saved.weekStart, loadWeekStateForOffset(offset),
+    ));
 }
 
 /**
@@ -22,7 +99,9 @@ export function confirmWeeklyProposal(
   proposal: WeeklyProposal,
   options: { expectedCurrent?: ConfirmedWeeklyPlan | null } = {},
 ): { ok: boolean; reason?: string; plan?: ConfirmedWeeklyPlan } {
-  if ('expectedCurrent' in options && JSON.stringify(loadConfirmedWeeklyPlan()) !== JSON.stringify(options.expectedCurrent)) {
+  const isNext = proposal.weekStart === nextMondayKey(new Date());
+  const targetOffset: 0 | 1 = isNext ? 1 : 0;
+  if ('expectedCurrent' in options && JSON.stringify(loadConfirmedWeeklyPlanForOffset(targetOffset)) !== JSON.stringify(options.expectedCurrent)) {
     return { ok: false, reason: 'Cambió el plan semanal confirmado. Vuelve a revisar antes de reemplazarlo.' };
   }
   const day = loadDayState();
@@ -51,15 +130,19 @@ export function confirmWeeklyProposal(
   }
   const confirmed: ConfirmedWeeklyPlan = {
     ...proposal, status: 'confirmed', confirmedAt: new Date().toISOString(),
+    workScheduleSignature: weekScheduleSignature(proposal.weekStart, loadWeekStateForOffset(targetOffset)),
   };
-  sqliteStateStore.write(KEY, confirmed);
+  sqliteStateStore.write(targetOffset === 0 ? KEY : NEXT_KEY, confirmed);
   return { ok: true, plan: confirmed };
 }
 
 /** Only use after verifying the expected stored plan snapshot. */
 export function writeConfirmedWeeklyPlanSnapshot(plan: ConfirmedWeeklyPlan | null): void {
-  if (plan) sqliteStateStore.write(KEY, plan);
-  else sqliteStateStore.delete(KEY);
+  syncConfirmedWeekKeys();
+  const offset: 0 | 1 = plan?.weekStart === nextMondayKey(new Date()) ? 1 : 0;
+  const key = offset === 0 ? KEY : NEXT_KEY;
+  if (plan) sqliteStateStore.write(key, plan);
+  else sqliteStateStore.delete(key);
 }
 
 /**
@@ -68,6 +151,14 @@ export function writeConfirmedWeeklyPlanSnapshot(plan: ConfirmedWeeklyPlan | nul
  */
 export function removeHabitFromConfirmedWeeklyPlan(habitId: string): ConfirmedWeeklyPlan | null {
   const current = loadConfirmedWeeklyPlan();
+  const next = loadConfirmedWeeklyPlanForOffset(1);
+  if (next) {
+    const remaining = next.slots.filter(slot => slot.habitId !== habitId);
+    const shortfallsNext = next.shortfalls.filter(item => item.habitId !== habitId);
+    if (remaining.length !== next.slots.length || shortfallsNext.length !== next.shortfalls.length) {
+      sqliteStateStore.write(NEXT_KEY, { ...next, slots: remaining, shortfalls: shortfallsNext });
+    }
+  }
   if (!current) return null;
   const slots = current.slots.filter(slot => slot.habitId !== habitId);
   const shortfalls = current.shortfalls.filter(item => item.habitId !== habitId);
@@ -83,10 +174,12 @@ export function undoConfirmedWeeklyProposal(
   confirmed: ConfirmedWeeklyPlan,
   previous: ConfirmedWeeklyPlan | null,
 ): { ok: boolean; reason?: string } {
-  if (JSON.stringify(loadConfirmedWeeklyPlan()) !== JSON.stringify(confirmed)) {
+  const targetOffset: 0 | 1 = confirmed.weekStart === nextMondayKey(new Date()) ? 1 : 0;
+  if (JSON.stringify(loadConfirmedWeeklyPlanForOffset(targetOffset)) !== JSON.stringify(confirmed)) {
     return { ok: false, reason: 'El plan semanal cambió desde la confirmación. No se deshizo ningún dato nuevo.' };
   }
-  if (previous) sqliteStateStore.write(KEY, previous);
-  else sqliteStateStore.delete(KEY);
+  const key = targetOffset === 0 ? KEY : NEXT_KEY;
+  if (previous) sqliteStateStore.write(key, previous);
+  else sqliteStateStore.delete(key);
   return { ok: true };
 }
