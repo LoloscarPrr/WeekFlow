@@ -65,7 +65,7 @@ export type MoveRoutine = {
 const FOCUS_ORDER: Record<MovePreferences['focus'], string[]> = {
   equilibrado: ['march', 'squat', 'wall-press', 'band-row', 'hip-hinge', 'dead-bug', 'side-step', 'supported-split-squat', 'reach', 'calf-release', 'breathing'],
   activar: ['march', 'side-step', 'squat-reach', 'knee-lift', 'step-up', 'reverse-lunge', 'toe-tap', 'march', 'side-step', 'calf-release', 'breathing'],
-  fuerza: ['squat', 'hip-hinge', 'wall-press', 'band-row', 'supported-split-squat', 'dead-bug', 'incline-push', 'bridge', 'plank-knees', 'heel-raise', 'breathing'],
+  fuerza: ['squat', 'reverse-lunge', 'hip-hinge', 'supported-split-squat', 'band-row', 'bridge', 'wall-press', 'dead-bug', 'plank-knees', 'heel-raise', 'breathing'],
   movilidad: ['shoulders', 'reach', 'calf-release', 'cat-cow', 'thoracic-rotation', 'hip-flexor-stretch', 'toe-tap', 'breathing'],
 };
 
@@ -224,26 +224,57 @@ function loadPriorityCount(preferences: MovePreferences) {
   return 1;
 }
 
+/** Standard push-ups belong to normal strength work for trained users.
+ * Knee push-ups are the first-floor option for new or undefined profiles.
+ * Neither variant can override floor, intensity or avoid-area restrictions. */
+function preferredPushupIds(preferences: MovePreferences): string[] {
+  return preferences.experience === 'intermedio' || preferences.experience === 'avanzado'
+    ? ['pushup', 'knee-pushup']
+    : ['knee-pushup'];
+}
+
+function prioritizeChestExercises(
+  eligible: MoveExercise[],
+  preferences: MovePreferences,
+  intensity: MoveIntensity,
+  prefersLoads: boolean,
+): MoveExercise[] {
+  if (MOVE_INTENSITY_RANK[intensity] < MOVE_INTENSITY_RANK.moderada) return eligible;
+  const classic = preferredPushupIds(preferences)
+    .map(id => eligible.find(exercise => exercise.id === id))
+    .find((exercise): exercise is MoveExercise => Boolean(exercise));
+  if (!classic) return eligible;
+  const remaining = eligible.filter(exercise => exercise.id !== classic.id);
+  if (!prefersLoads) return [classic, ...remaining];
+  // Keep registered weights first, but don't fill the entire chest preview
+  // with loaded presses while the most familiar bodyweight move is eligible.
+  const loaded = remaining.filter(exercise => Boolean(exercise.equipment?.length));
+  const bodyweight = remaining.filter(exercise => !exercise.equipment?.length);
+  return [...loaded.slice(0, 2), classic, ...loaded.slice(2), ...bodyweight];
+}
+
 // Alterna grupos musculares, usa solo ejercicios realmente compatibles
 // y no confunde zona de entrenamiento con las zonas que el usuario evita.
 export function compatibleTargetedExercises(preferences: MovePreferences, intensity: MoveIntensity) {
   const prefersLoads = (preferences.focus === 'fuerza'
     || preferences.goal === 'fuerza' || preferences.goal === 'musculo')
     && MOVE_INTENSITY_RANK[intensity] >= MOVE_INTENSITY_RANK.suave;
-  const groups = preferences.targetMuscles.map((group) =>
-    MOVE_MUSCLE_EXERCISE_IDS[group]
+  const groups = preferences.targetMuscles.map((group) => {
+    const eligible = MOVE_MUSCLE_EXERCISE_IDS[group]
       .map((id) => MOVE_EXERCISE_BY_ID[id])
       .filter((exercise): exercise is MoveExercise => Boolean(exercise))
       .filter((exercise) => moveExerciseCompatible(exercise, preferences, intensity))
-      // Choose real, declared equipment before no-load substitutions when
-      // the user asks for strength. Never override safety/avoid areas.
+      // Weight-based exercises still lead when strength and owned equipment match.
       .sort((left, right) => {
         if (!prefersLoads) return 0;
         const leftLoaded = left.equipment?.length ? 1 : 0;
         const rightLoaded = right.equipment?.length ? 1 : 0;
         return rightLoaded - leftLoaded;
-      }),
-  );
+      });
+    return group === 'pecho'
+      ? prioritizeChestExercises(eligible, preferences, intensity, prefersLoads)
+      : eligible;
+  });
   const ordered: MoveExercise[] = [];
   const max = Math.max(0, ...groups.map((items) => items.length));
   for (let index = 0; index < max; index += 1) {
@@ -272,6 +303,21 @@ function orderedIds(preferences: MovePreferences, intensity: MoveIntensity, prog
     return freshTargetedExercises(preferences, intensity, progression).map((exercise) => exercise.id);
   }
   let order = [...(FOCUS_ORDER[preferences.focus] ?? FOCUS_ORDER.equilibrado)];
+  // Classic compound patterns are the lead of a regular strength/balanced
+  // workout. Keep gentle movement first on recovery, mobility or low energy.
+  const strengthBasics = MOVE_INTENSITY_RANK[intensity] >= MOVE_INTENSITY_RANK.moderada
+    && (preferences.focus === 'fuerza'
+      || (preferences.focus === 'equilibrado'
+        && preferences.goal !== 'condicion' && preferences.goal !== 'movilidad'));
+  if (strengthBasics) {
+    const floorBasics = preferences.floorAllowed
+      ? [preferredPushupIds(preferences)[0], preferences.experience === 'intermedio' || preferences.experience === 'avanzado' ? 'plank' : 'plank-knees']
+      : [];
+    const basics = preferences.focus === 'fuerza'
+      ? ['squat', ...floorBasics.slice(0, 1), 'reverse-lunge', ...floorBasics.slice(1), 'hip-hinge']
+      : ['squat', ...floorBasics.slice(0, 1), 'reverse-lunge', ...floorBasics.slice(1), 'march'];
+    order = [...basics, ...order.filter(id => !basics.includes(id))];
+  }
   if (preferences.focus === 'equilibrado' && preferences.goal === 'condicion') order = [...CONDITIONING_PREFIX, ...order];
   if (preferences.focus === 'equilibrado' && preferences.goal === 'movilidad') order = [...MOBILITY_PREFIX, ...order];
 

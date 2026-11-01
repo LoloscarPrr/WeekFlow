@@ -1,0 +1,11 @@
+const assert = require('node:assert/strict');
+const fs=require('node:fs');
+const lib=fs.readFileSync('src/move/library.ts','utf8');
+const ui=fs.readFileSync('src/move/MovePlan.tsx','utf8');
+assert.ok(lib.includes('prioritizeChestExercises(eligible, preferences, intensity, prefersLoads)'), 'chest must keep classic push-up visible');
+assert.ok(lib.includes('preferredPushupIds(preferences)'), 'strength uses experienced/novice variation');
+assert.ok(lib.includes('const strengthBasics = MOVE_INTENSITY_RANK[intensity] >= MOVE_INTENSITY_RANK.moderada'), 'gentle intensity not overwritten');
+assert.ok(lib.includes('preferences.floorAllowed'), 'never assume floor space');
+assert.ok(ui.includes('Activa «Puedo usar suelo»'), 'UI explains why classic pushups may be hidden');
+assert.ok(lib.includes('moveExerciseCompatible(exercise, preferences, intensity)'), 'do not skip safety compatibility checks');
+console.log('Move classic exercise priority integration checks passed.');
