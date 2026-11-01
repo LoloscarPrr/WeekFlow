@@ -58,7 +58,7 @@ const later = shiftContextForDate(after.current,new Date(2026,10,2,8),0,after.wi
 eq(later.overnightCarry,false,'after Sunday shift ends Monday follows its own roster');
 eq(later.shift.start,'07:00','current Monday shift is separate from Sunday carry');
 
-const nextWorking = nextWorkingShift(current,new Date(2026,10,1,18),following);
+const nextWorking = nextWorkingShift(current,new Date(2026,10,1,23),following);
 eq(nextWorking?.startAt.slice(0,10),'2026-11-02','Rest finds next Monday shift');
 eq(nextWorking?.shift.start,'07:00','Rest chooses real next-week start');
 const notify = buildLivePlanReminders(defaultDayState,current,new Date(2026,10,1,11),4,following);
