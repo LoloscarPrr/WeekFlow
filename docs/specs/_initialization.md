@@ -1,22 +1,26 @@
-# TLC Initialization Snapshot — WF-MOVE-013 (2026-11-01)
+# TLC Initialization Snapshot — WF-WEEK-014 (2026-11-01)
 
-## Repository and baseline
-- Repo `LoloscarPrr/WeekFlow`, main `a72d0d93dc5afbfc59edb7ff22d3414ba841bbed` (WeekFlow 0.5.33), branch `feat/wf-move-013-classic-exercises`.
-- Android app ID / keystore / versionCode rules unchanged. Main Quality #40905240647 PASS, signed Android #40905240505 PASS. On-device tests NOT RUN.
-- 133 distinct exercises already exist. Classic `pushup` is present but minExperience=intermedio, minIntensity=moderada and floor-required; chest and generic focus priority start from wall press / soft movement. Default `floorAllowed=false`, `experience=sin_definir`, `goal=bienestar`.
+## Repository/ref and build
+- Repository `LoloscarPrr/WeekFlow`; `main` at `587df2cd3180664d407c97d18c81f10cf3b72b31` (WeekFlow v0.5.33), branch `feat/wf-week-014-two-week-rotation`.
+- Quality #41317575119 PASS, signed Android build #41317575150 PASS for baseline; physical Android QA NOT RUN.
+- Android ID `com.weekflow.app`, permanent signing and auto-versionCode preserved; next product release `0.5.34` to prevent replacing v0.5.33 release assets.
+- Blueprint Maestro v4.0 reviewed: canonical manual seven-day shifts, dates/overnight consistency across Ahora/Semana/Rest/notifications; single Brain truth, no silent data reset.
 
-## Sources and constraints
-- Blueprint Maestro v4.0; root AGENTS.md; .agents/skills/tlc-spec-driven/SKILL.md; latest v0.5.33 catalogue/equipment changes and WF-MOVE-009/010/011/012.
-- `src/move/library.ts`: FOCUS_ORDER, orderedIds, compatibleTargetedExercises, exercise progression, preset series and AMRAP.
-- `src/move/muscles.ts`: chest starts wall-press, incline-push, knee-pushup before standard pushup. `targetedSeriesRoutine` takes first four exercises per target combination.
-- `src/move/adaptation.ts`: energy and feedback determine intensity; no false assumption of equipment/floor; user can declare floor availability, experience, goal and affected areas.
-- `src/move/MovePlan.tsx`: can explicitly enable floor and shows four preview exercises; a missing floor availability currently makes classic pushups ineligible.
-- `src/move/exerciseCatalog.ts`: standard pushup and knee pushup have required safety cue; no new exercise data needed.
-- Existing workout & progression tests require a squat lead for force, weight preference for registered equipment, no excluded/incompatible items and lighter recovery paths.
+## Current state and impact
+- Canonical legacy SQLite key `week-state` holds one seven-day schedule; `useWeekController` edits it directly.
+- Week UI shows seven days with work/off, start/end/break, moments, ritual; `WeeklyPlannerPreview` can choose this/next week but always uses same `week`.
+- `confirmWeeklyProposal` recalculates with `loadWeekState()` for both weeks; Assistant weekly intent also plans next week from current schedule.
+- `shiftContextForDate` checks previous day for overnight carry. At Monday rollover this Sunday must still come from the previous anchored week.
+- `nextWorkingShift` can cross Monday while retaining the current seven-day schedule (Rest).
+- Legacy schedules / dated important moments / confirmed plans / scheduled notifications must not be silently deleted.
+- Current Sunday 2026-11-01; Monday 2026-11-02 is the first upcoming boundary.
 
 ## Phase decision
-- NOW: WF-MOVE-013 — select recognizable classic bodyweight movements for normal/moderate workouts; keep gentle variants for genuine low energy, restrictions or beginner regressions.
-- BACKLOG: independent illustrated technique guide assets with quality-controlled offline exercise frames (WF-MOVE-014), additional exercises not needed for this specific bug.
+- NOW: WF-WEEK-014 — current and next-week independent shifts, safe Monday promotion, date-correct Brain planning and refresh, preserve dated moments and overnight carries.
+- BACKLOG: keeping >2-week history, calendar sync, automatic forecast beyond the two-week horizon, imported schedule targeting next week.
 
-## Verification status
-- Baseline Quality PASS, Android signed PASS (on main); new branch checks NOT RUN. Device exercise-selection QA and illustrations NOT RUN.
+## Constraints
+- Preserve `week-state` as current canonical key to keep older imports and consumers; add versioned sidecar key for anchoring and next week.
+- Never copy current week into next silently. Offer explicit Copy current -> next. If next was never prepared, new Monday has empty/unorganized week rather than falsely recurring shifts.
+- Plan confirmation must revalidate against the intended dated schedule.
+- No change to WeekFlow-Pills.
