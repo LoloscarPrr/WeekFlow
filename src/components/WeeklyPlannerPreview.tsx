@@ -8,7 +8,7 @@ import {
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { WeekSchedule } from '@/src/domain/entities/Shift';
 import { loadDailyEnergy } from '@/src/brain/energyHistory';
-import { loadWeekStateForOffset, loadPreviousWeekState } from '@/src/state/persistence';
+import { hasPreparedNextWeek, loadWeekStateForOffset, loadPreviousWeekState } from '@/src/state/persistence';
 import { loadDayState, loadMovePreferences, saveMovePreferences, loadMoveHistory } from '@/src/state/persistence';
 import { sanitizeMovePreferences } from '@/src/move/adaptation';
 import { loadHabitsState } from '@/src/habits/persistence';
@@ -54,6 +54,11 @@ export function WeeklyPlannerPreview({ week, selectedWeek = 0 }: { week: WeekSch
     Alert.alert('Semana confirmada', 'Las sesiones quedaron guardadas sin borrar tus hábitos ni el historial.');
   }
   function preview() {
+    if (weekOffset === 1 && !hasPreparedNextWeek()) {
+      setProposal(null);
+      Alert.alert('Horario pendiente', 'Primero configura o copia el horario de la próxima semana. Brain no debe suponer días libres que aún no confirmaste.');
+      return;
+    }
     const day = loadDayState();
     setProposal(proposeWeeklyPlan({
       week: loadWeekStateForOffset(weekOffset),

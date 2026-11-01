@@ -48,6 +48,7 @@ import {
   saveWeekState,
   loadWeekStateForOffset,
   loadPreviousWeekState,
+  hasPreparedNextWeek,
 } from '@/src/state/persistence';
 
 function readAssistantContext(now = new Date()) {
@@ -125,6 +126,11 @@ export function useAssistantController() {
       if (!habits.habits.some((habit) => habit.active) && loadMovePreferences().weeklyTargetSessions === 0) {
         setPendingProposal(null);
         setAssistantMessage('No tienes hábitos activos ni sesiones Move semanales configuradas. Define tu objetivo semanal en Move y vuelve a pedirme una planificación.');
+        return 'answered' as const;
+      }
+      if (weekly.weekOffset === 1 && !hasPreparedNextWeek()) {
+        setPendingProposal(null);
+        setAssistantMessage('Primero prepara el horario laboral de la próxima semana en Semana. No voy a programarte hábitos o Move suponiendo siete días libres.');
         return 'answered' as const;
       }
       const dayState = loadDayState();

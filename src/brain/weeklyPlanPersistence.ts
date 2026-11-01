@@ -104,6 +104,9 @@ export function confirmWeeklyProposal(
 ): { ok: boolean; reason?: string; plan?: ConfirmedWeeklyPlan } {
   const isNext = proposal.weekStart === nextMondayKey(new Date());
   const targetOffset: 0 | 1 = isNext ? 1 : 0;
+  if (isNext && !hasPreparedNextWeek()) {
+    return { ok: false, reason: 'Primero configura la próxima semana. No se puede confirmar un plan sin conocer sus turnos.' };
+  }
   if ('expectedCurrent' in options && JSON.stringify(loadConfirmedWeeklyPlanForOffset(targetOffset)) !== JSON.stringify(options.expectedCurrent)) {
     return { ok: false, reason: 'Cambió el plan semanal confirmado. Vuelve a revisar antes de reemplazarlo.' };
   }
