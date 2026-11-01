@@ -176,7 +176,7 @@ export default function WeekScreen() {
             <Text style={styles.nextHint}>Los eventos con fecha se conservan entre semanas y se editan desde «Esta semana».</Text>
           )}
 
-          <WeeklyPlannerPreview week={currentWeek} />
+          <WeeklyPlannerPreview week={currentWeek} selectedWeek={selectedWeek} />
 
           <View style={[styles.ritualCard, week.organizedAt ? styles.ritualCardDone : null]}>
             <Text style={[styles.ritualEyebrow, week.organizedAt ? styles.ritualEyebrowDone : null]}>

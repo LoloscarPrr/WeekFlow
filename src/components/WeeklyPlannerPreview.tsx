@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { syncLivePlanReminders } from '@/src/services/notifications';
 import { Alert } from 'react-native';
-import { confirmWeeklyProposal, loadConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
+import {
+  confirmWeeklyProposal, loadConfirmedWeeklyPlan, loadConfirmedWeeklyPlanForOffset,
+  confirmedWeekNeedsReview,
+} from '@/src/brain/weeklyPlanPersistence';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { WeekSchedule } from '@/src/domain/entities/Shift';
 import { loadDailyEnergy } from '@/src/brain/energyHistory';
@@ -18,10 +21,15 @@ function label(dateKey: string) {
   const date = new Date(year, month - 1, day, 12);
   return days[date.getDay()] + ' ' + day;
 }
-export function WeeklyPlannerPreview({ week }: { week: WeekSchedule }) {
+export function WeeklyPlannerPreview({ week, selectedWeek = 0 }: { week: WeekSchedule; selectedWeek?: 0 | 1 }) {
   const [proposal, setProposal] = useState<WeeklyProposal | null>(null);
-  const [weekOffset, setWeekOffset] = useState<0 | 1>(new Date().getDay() === 0 ? 1 : 0);
-  const [confirmed, setConfirmed] = useState(() => loadConfirmedWeeklyPlan());
+  const [weekOffset, setWeekOffset] = useState<0 | 1>(selectedWeek);
+  const [confirmed, setConfirmed] = useState(() => loadConfirmedWeeklyPlanForOffset(selectedWeek));
+  useEffect(() => {
+    setWeekOffset(selectedWeek);
+    setProposal(null);
+    setConfirmed(loadConfirmedWeeklyPlanForOffset(selectedWeek));
+  }, [selectedWeek]);
   const [movePreferences, setMovePreferences] = useState(() => loadMovePreferences());
 
   function configureMove(patch: Partial<typeof movePreferences>) {
@@ -92,10 +100,13 @@ export function WeeklyPlannerPreview({ week }: { week: WeekSchedule }) {
         </View>
         <Text style={styles.copy}>Músculos, material y nivel se ajustan en el pilar Move. Si cambias estos valores, pulsa «Ver propuesta semanal» y confirma la nueva distribución.</Text>
       </View>
+      {confirmedWeekNeedsReview(weekOffset) ? (
+        <Text style={styles.warning}>Cambiaste turnos desde la confirmación anterior. Revisa y confirma una propuesta nueva para evitar contradicciones en Brain y recordatorios.</Text>
+      ) : null}
       {confirmed ? <Text style={styles.heading}>Plan confirmado: semana del {label(confirmed.weekStart)} · {(confirmed.moveSlots?.length ?? 0)} Move · {confirmed.slots.length} hábitos</Text> : null}
       <View style={styles.weekChoice}>
-        <Pressable accessibilityRole="button" style={[styles.choice, weekOffset === 0 && styles.choiceActive]} onPress={() => { setWeekOffset(0); setProposal(null); }}><Text style={styles.choiceText}>Esta semana</Text></Pressable>
-        <Pressable accessibilityRole="button" style={[styles.choice, weekOffset === 1 && styles.choiceActive]} onPress={() => { setWeekOffset(1); setProposal(null); }}><Text style={styles.choiceText}>Próxima semana</Text></Pressable>
+        <Pressable accessibilityRole="button" style={[styles.choice, weekOffset === 0 && styles.choiceActive]} onPress={() => { setWeekOffset(0); setProposal(null); setConfirmed(loadConfirmedWeeklyPlan()); }}><Text style={styles.choiceText}>Esta semana</Text></Pressable>
+        <Pressable accessibilityRole="button" style={[styles.choice, weekOffset === 1 && styles.choiceActive]} onPress={() => { setWeekOffset(1); setProposal(null); setConfirmed(loadConfirmedWeeklyPlanForOffset(1)); }}><Text style={styles.choiceText}>Próxima semana</Text></Pressable>
       </View>
       <Pressable accessibilityRole="button" style={styles.button} onPress={preview}>
         <Text style={styles.buttonText}>{proposal ? 'Volver a calcular' : 'Ver propuesta semanal'}</Text>

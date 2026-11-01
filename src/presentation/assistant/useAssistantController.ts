@@ -16,7 +16,7 @@ import {
   type HabitConstraintPreview, type HabitConstraintUndo,
 } from '@/src/brain/habitConstraintPersistence';
 import { proposeWeeklyPlan, type WeeklyProposal } from '@/src/brain/weeklyPlanner';
-import { confirmWeeklyProposal, loadConfirmedWeeklyPlan, undoConfirmedWeeklyProposal, type ConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
+import { confirmWeeklyProposal, loadConfirmedWeeklyPlan, loadConfirmedWeeklyPlanForOffset, undoConfirmedWeeklyProposal, type ConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
 import { loadHabitsState } from '@/src/habits/persistence';
 import { loadDailyEnergy } from '@/src/brain/energyHistory';
 import { relativeExitFromShiftEnd } from '@/src/assistant/relativeExit';
@@ -140,7 +140,7 @@ export function useAssistantController() {
         move: { preferences: loadMovePreferences(), history: loadMoveHistory() },
       });
       setPendingProposal(null);
-      setPreviousConfirmedWeekly(loadConfirmedWeeklyPlan());
+      setPreviousConfirmedWeekly(loadConfirmedWeeklyPlanForOffset(weekly.weekOffset));
       setPendingWeekly(proposal);
       setAssistantMessage('Esta propuesta organiza Move como pilar y Hábitos por separado. Revisa cada sesión y las advertencias antes de confirmar.');
       return 'answered' as const;
