@@ -1,6 +1,6 @@
 import { loadDailyEnergy } from './energyHistory';
 import { sqliteStateStore } from '../data/local/sqlite/SQLiteStateStore';
-import { loadWeekState, loadDayState, loadMovePreferences, loadMoveHistory } from '../state/persistence';
+import { loadWeekState, loadWeekStateForOffset, loadDayState, loadMovePreferences, loadMoveHistory } from '../state/persistence';
 import { loadHabitsState } from '../habits/persistence';
 import { proposeWeeklyPlan, type WeeklyProposal } from './weeklyPlanner';
 
@@ -33,7 +33,7 @@ export function confirmWeeklyProposal(
   nextMonday.setDate(nextMonday.getDate() + 7);
   const nextKey = `${nextMonday.getFullYear()}-${String(nextMonday.getMonth() + 1).padStart(2, '0')}-${String(nextMonday.getDate()).padStart(2, '0')}`;
   const current = proposeWeeklyPlan({
-    week: loadWeekState(), habits: loadHabitsState(), settings: day.settings,
+    week: loadWeekStateForOffset(proposal.weekStart === nextKey ? 1 : 0), habits: loadHabitsState(), settings: day.settings,
     energy: day.energy, energyByDate: loadDailyEnergy(), now: new Date(), weekOffset: proposal.weekStart === nextKey ? 1 : 0,
     move: { preferences: loadMovePreferences(), history: loadMoveHistory() },
   });
