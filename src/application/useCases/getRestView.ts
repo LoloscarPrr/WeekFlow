@@ -52,8 +52,11 @@ function formatDayTime(date: Date) {
   return `${day} · ${formatHm(date)}`;
 }
 
-export function getRestView(dayState: DayState, weekState: WeekSchedule, now = new Date()): RestView {
-  const context = shiftContextForDate(weekState, now);
+export function getRestView(
+  dayState: DayState, weekState: WeekSchedule, now = new Date(),
+  nextWeek?: WeekSchedule, previousWeek?: WeekSchedule | null,
+): RestView {
+  const context = shiftContextForDate(weekState, now, 0, previousWeek);
   const activeStart = context.startAt ? new Date(context.startAt) : null;
   const activeEnd = context.endAt ? new Date(context.endAt) : null;
   const shiftActive = Boolean(
@@ -66,7 +69,9 @@ export function getRestView(dayState: DayState, weekState: WeekSchedule, now = n
   const activeNight = shiftActive && isNightShift(context.shift);
 
   const lookback = new Date(now.getTime() - 6 * 60 * 60_000);
-  const recentCandidate = shiftContextForDate(weekState, lookback);
+  const recentWeek = previousWeek && lookback.getDay() === 0 && now.getDay() === 1
+    ? previousWeek : weekState;
+  const recentCandidate = shiftContextForDate(recentWeek, lookback);
   const candidateEndAt = recentCandidate.endAt ? new Date(recentCandidate.endAt) : null;
   const minutesSinceCandidateEnd = candidateEndAt
     ? (now.getTime() - candidateEndAt.getTime()) / 60_000
@@ -101,7 +106,7 @@ export function getRestView(dayState: DayState, weekState: WeekSchedule, now = n
     })()
     : null;
 
-  const nextShift = nextWorkingShift(weekState, now);
+  const nextShift = nextWorkingShift(weekState, now, nextWeek);
   const nextRest = nextShift
     ? restWindowForShift(dayState, nextShift.shift, new Date(nextShift.startAt))
     : null;

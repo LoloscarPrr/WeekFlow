@@ -94,10 +94,11 @@ function shiftWindowForDate(week: WeekSchedule, date: Date) {
   return { shift, day: stored.day, startAt, endAt };
 }
 
-export function shiftContextForDate(week: WeekSchedule, date = new Date(), postShiftCarryMin = 0): ShiftContext {
+export function shiftContextForDate(week: WeekSchedule, date = new Date(), postShiftCarryMin = 0, previousWeek?: WeekSchedule | null): ShiftContext {
   const previousDate = new Date(date);
   previousDate.setDate(previousDate.getDate() - 1);
-  const previous = shiftWindowForDate(week, previousDate);
+  // On Monday the previous Sunday can belong to a different dated roster.
+  const previous = shiftWindowForDate(date.getDay() === 1 && previousWeek ? previousWeek : week, previousDate);
   const previousCarryEnd = previous.endAt
     ? new Date(previous.endAt.getTime() + Math.max(0, postShiftCarryMin) * 60_000)
     : null;
@@ -137,12 +138,16 @@ export function shiftForDate(week: WeekSchedule, date = new Date()): Shift {
   return shiftContextForDate(week, date).shift;
 }
 
-export function nextWorkingShift(week: WeekSchedule, fromDate = new Date()): UpcomingShift | null {
+export function nextWorkingShift(week: WeekSchedule, fromDate = new Date(), nextWeek?: WeekSchedule): UpcomingShift | null {
   for (let offset = 0; offset <= 7; offset += 1) {
     const date = new Date(fromDate);
     date.setHours(0, 0, 0, 0);
     date.setDate(date.getDate() + offset);
-    const window = shiftWindowForDate(week, date);
+    const isNextWeek = date.getTime() >= new Date(
+      fromDate.getFullYear(), fromDate.getMonth(),
+      fromDate.getDate() - (fromDate.getDay() + 6) % 7 + 7,
+    ).getTime();
+    const window = shiftWindowForDate(isNextWeek && nextWeek ? nextWeek : week, date);
 
     if (!window.startAt || !window.endAt || window.shift.type === 'off') continue;
     if (window.startAt.getTime() <= fromDate.getTime()) continue;
