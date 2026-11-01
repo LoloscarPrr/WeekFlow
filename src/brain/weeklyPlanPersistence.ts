@@ -31,7 +31,13 @@ function weekScheduleSignature(weekStart: string, week = loadWeekStateForOffset(
     Number(weekStart.slice(0, 4)), Number(weekStart.slice(5, 7)) - 1,
     Number(weekStart.slice(8)), 12,
   ));
+  const usesNextWeek = weekStart === nextMondayKey(new Date());
+  const previousWeek = usesNextWeek ? loadWeekState() : loadPreviousWeekState();
+  const precedingSunday = previousWeek?.shifts.find(shift => shift.day === 6);
   return JSON.stringify({
+    previousSunday: precedingSunday
+      ? [precedingSunday.start, precedingSunday.end, precedingSunday.type, precedingSunday.breakMinutes ?? 0]
+      : null,
     shifts: week.shifts.map(shift => [
       shift.day, shift.start, shift.end, shift.type, shift.breakMinutes ?? 0,
     ]),
