@@ -477,6 +477,47 @@ function adaptedSetCount(sourceSets: number, targetMinutes: number, intensity: M
   return Math.max(2, Math.min(sourceSets, cap));
 }
 
+/** A regular bodyweight strength session should not depend on gym-machine
+ * templates that leave only one eligible exercise (or wall-press).
+ * Keep the same set/rest semantics without inventing equipment. */
+function bodyweightSeriesRoutine(
+  targetMinutes: number,
+  preferences: MovePreferences,
+  intensity: MoveIntensity,
+  progression: MoveProgressionContext,
+): MoveRoutine | null {
+  const basics = ['squat', ...preferredPushupIds(preferences).slice(0, 1), 'reverse-lunge',
+    preferences.experience === 'intermedio' || preferences.experience === 'avanzado' ? 'plank' : 'plank-knees'];
+  const exercises = basics
+    .map(id => MOVE_EXERCISE_BY_ID[id])
+    .filter((exercise): exercise is MoveExercise => Boolean(exercise && moveExerciseCompatible(exercise, preferences, intensity)))
+    .map(exercise => progressionAdjustedExercise(exercise, preferences, intensity, progression) ?? exercise)
+    .filter((exercise, index, array) => array.findIndex(item => item.id === exercise.id) === index)
+    .slice(0, targetMinutes <= 10 ? 2 : targetMinutes <= 20 ? 3 : 4);
+  if (exercises.length < 2) return null;
+  const setCount = targetMinutes >= 45 ? 4 : targetMinutes <= 10 ? 2 : 3;
+  const steps: MoveStep[] = [];
+  for (const exercise of exercises) {
+    for (let setNumber = 1; setNumber <= setCount; setNumber += 1) {
+      steps.push({
+        slot: steps.length, exercise, durationSec: 45,
+        restAfterSec: TRAINER_SOURCE_RULES.structuredRestSec,
+        mode: 'set',
+        setNumber, setCount,
+        repsLabel: exercise.pattern === 'core' ? '20–30 s' : '8–12',
+        blockLabel: 'Fuerza · básicos con peso corporal',
+      });
+    }
+  }
+  steps[steps.length - 1].restAfterSec = 0;
+  return {
+    id: `move-${targetMinutes}-bodyweight-strength-${intensity}-series`,
+    targetMinutes, intensity, style: 'series', steps,
+    totalSeconds: steps.reduce((sum, step) => sum + step.durationSec + step.restAfterSec, 0),
+    sourceTemplate: 'bodyweight-basics',
+  };
+}
+
 function seriesRoutine(
   targetMinutes: number,
   preferences: MovePreferences,
@@ -709,6 +750,17 @@ export function routineForDuration(
   }
 
   if (requestedStyle === 'series') {
+    const strengthGoal = preferences.focus === 'fuerza'
+      || preferences.goal === 'fuerza' || preferences.goal === 'musculo';
+    const hasCompatibleExternalLoad = LOADED_ORDER.some(id => {
+      const exercise = MOVE_EXERCISE_BY_ID[id];
+      return Boolean(exercise?.equipment?.length && moveExerciseCompatible(exercise, preferences, intensity));
+    });
+    if (strengthGoal && MOVE_INTENSITY_RANK[intensity] >= MOVE_INTENSITY_RANK.moderada
+      && !hasCompatibleExternalLoad) {
+      const bodyweight = bodyweightSeriesRoutine(targetMinutes, preferences, intensity, progression);
+      if (bodyweight) return extendStructuredRoutine(bodyweight, targetMinutes, preferences, intensity, progression);
+    }
     const structured = seriesRoutine(targetMinutes, preferences, intensity, progression);
     if (structured) return extendStructuredRoutine(structured, targetMinutes, preferences, intensity, progression);
   }
