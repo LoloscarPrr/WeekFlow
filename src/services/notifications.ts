@@ -126,6 +126,54 @@ export async function getScheduledReminders() {
   return Notifications.getAllScheduledNotificationsAsync();
 }
 
+export type NotificationDeliveryDiagnostics = {
+  appEnabled: boolean;
+  permissionGranted: boolean;
+  channelEnabled: boolean | null;
+  scheduledManagedCount: number;
+};
+
+/** Native scheduling is not proof of delivery on Android; show both facts. */
+export async function getNotificationDeliveryDiagnostics(): Promise<NotificationDeliveryDiagnostics> {
+  const [permission, requests] = await Promise.all([
+    Notifications.getPermissionsAsync(),
+    Notifications.getAllScheduledNotificationsAsync(),
+  ]);
+  const channel = Platform.OS === 'android'
+    ? await Notifications.getNotificationChannelAsync(WEEKFLOW_NOTIFICATION_CHANNEL)
+    : null;
+  return {
+    appEnabled: loadNotificationPreferences().enabled,
+    permissionGranted: permission.granted,
+    channelEnabled: Platform.OS === 'android'
+      ? Boolean(channel && channel.importance !== Notifications.AndroidImportance.NONE)
+      : null,
+    scheduledManagedCount: requests.filter((request) => logicalReminderId(request) !== null).length,
+  };
+}
+
+/** Manual diagnostic alert; intentionally not a managed live-plan reminder. */
+export async function scheduleWeekFlowNotificationTest(): Promise<string> {
+  const allowed = await initializeNotifications();
+  if (!allowed) throw new Error('Android no ha concedido permiso para notificaciones.');
+  return Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'Prueba de WeekFlow',
+      body: 'Si recibiste esta alerta, las notificaciones locales funcionan en esta prueba.',
+      sound: 'default',
+      priority: Notifications.AndroidNotificationPriority.MAX,
+      data: { kind: 'diagnostic-test' },
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds: 5,
+      repeats: false,
+      channelId: Platform.OS === 'android' ? WEEKFLOW_NOTIFICATION_CHANNEL : undefined,
+    },
+  });
+}
+
+
 async function performLivePlanReminderSync(now: Date): Promise<number> {
   const preferences = loadNotificationPreferences();
   if (!preferences.enabled) {
