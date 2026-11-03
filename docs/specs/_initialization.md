@@ -1,26 +1,21 @@
-# TLC Initialization Snapshot — WF-WEEK-014 (2026-11-01)
+# TLC Initialization Snapshot — WF-NOTIFY-006 (2026-11-03)
 
-## Repository/ref and build
-- Repository `LoloscarPrr/WeekFlow`; `main` at `587df2cd3180664d407c97d18c81f10cf3b72b31` (WeekFlow v0.5.33), branch `feat/wf-week-014-two-week-rotation`.
-- Quality #41317575119 PASS, signed Android build #41317575150 PASS for baseline; physical Android QA NOT RUN.
-- Android ID `com.weekflow.app`, permanent signing and auto-versionCode preserved; next product release `0.5.34` to prevent replacing v0.5.33 release assets.
-- Blueprint Maestro v4.0 reviewed: canonical manual seven-day shifts, dates/overnight consistency across Ahora/Semana/Rest/notifications; single Brain truth, no silent data reset.
+## Repository and baseline
+- `LoloscarPrr/WeekFlow`, `main` `9a19e2f6cefc4b04539d1a29287a173c1a2d11fd`, version `0.5.34`; work branch `fix/wf-notify-006-delivery-diagnostics`.
+- Existing main Quality #41322590058 PASS and signed Android #41322589971 PASS.
+- WeekFlow Pills is separate repo; no cross-project modifications or shared app ID.
+- Physical device notification/Android 15 validation: NOT RUN.
 
-## Current state and impact
-- Canonical legacy SQLite key `week-state` holds one seven-day schedule; `useWeekController` edits it directly.
-- Week UI shows seven days with work/off, start/end/break, moments, ritual; `WeeklyPlannerPreview` can choose this/next week but always uses same `week`.
-- `confirmWeeklyProposal` recalculates with `loadWeekState()` for both weeks; Assistant weekly intent also plans next week from current schedule.
-- `shiftContextForDate` checks previous day for overnight carry. At Monday rollover this Sunday must still come from the previous anchored week.
-- `nextWorkingShift` can cross Monday while retaining the current seven-day schedule (Rest).
-- Legacy schedules / dated important moments / confirmed plans / scheduled notifications must not be silently deleted.
-- Current Sunday 2026-11-01; Monday 2026-11-02 is the first upcoming boundary.
+## Sources and context
+- Blueprint Maestro v4.0, root AGENTS.md and .agents/skills/tlc-spec-driven/SKILL.md reviewed.
+- WF-NOTIFY-001 through 005: dedup, smart silence, incremental reconciliation and fresh install opt-in are already implemented. Preserve all.
+- `src/services/notifications.ts`: native Expo channel `weekflow-reminders-v2`, post-notification permission, date triggers, 14-day live plan and synchronized queue.
+- `src/notifications/persistence.ts`: notifications disabled on fresh onboarding, enabled for legacy profiles. Never override user's consent.
+- `app/notifications.tsx`: switches but only shows count newly scheduled, not count actually registered or Android permission; no native 5-second test.
+- `app.json`: Android has no explicit SCHEDULE_EXACT_ALARM declaration; SDK 57 requires manifest declaration for exact local alarms; Android 14+ may still deny special access until enabled manually.
+- Android skins (especially Xiaomi) may suppress notifications via battery/autostart; app cannot override it silently.
 
-## Phase decision
-- NOW: WF-WEEK-014 — current and next-week independent shifts, safe Monday promotion, date-correct Brain planning and refresh, preserve dated moments and overnight carries.
-- BACKLOG: keeping >2-week history, calendar sync, automatic forecast beyond the two-week horizon, imported schedule targeting next week.
-
-## Constraints
-- Preserve `week-state` as current canonical key to keep older imports and consumers; add versioned sidecar key for anchoring and next week.
-- Never copy current week into next silently. Offer explicit Copy current -> next. If next was never prepared, new Monday has empty/unorganized week rather than falsely recurring shifts.
-- Plan confirmation must revalidate against the intended dated schedule.
-- No change to WeekFlow-Pills.
+## Decision
+- NOW WF-NOTIFY-006 — make delivery path diagnosable and testable: one local notification test, permissions/channel/current pending requests, manifest exact-alarm declaration, transparent native setting guidance, correct total scheduled count.
+- BACKLOG exact-alarm native permission probe for SDK 57, Android Doze integration tests, remote push fallback, special-access deep links, smart silence redesign.
+- No change to existing reminder timings, Smart Silence, per-kind prefs, schedule/dedup, SQLite or signing.
