@@ -1,6 +1,6 @@
 # WF-NOTIFY-006 — Diagnóstico real de notificaciones Android
 
-Status: LOCKED
+Status: VERIFYING
 Phase decision: NOW — reproducible notification delivery failure needs diagnostics before changing existing well-tested scheduling.
 Owner: WeekFlow
 
@@ -39,3 +39,12 @@ One diagnostic card below existing settings; buttons to schedule test, refresh d
 
 ## Regression plan
 Static guards confirm test is opt-in, not part of reconciliation, preserves existing master and original schedule functions. Existing notification pure tests plus full Quality, Metro and signed APK CI.
+
+## Verification result (2026-11-03)
+- AC1: PASS static/structure — statuses for app toggle, OS permission, Android channel and pending managed IDs render in `app/notifications.tsx`.
+- AC2: PASS static/structure — 5-second manually triggered `TIME_INTERVAL`, no `weekflowReminderId`, no cancellation path. Real device delivery NOT RUN.
+- AC3: PASS static/structure — 0-new schedule result replaced by a read of pending native IDs and explicit blocked status.
+- AC4: PASS config/source — Android manifest now requests the ability to grant SCHEDULE_EXACT_ALARM; Android 14+ user access still required and unavailable to inspect in SDK 57 JS. Xiaomi/Android settings text appears. NOT guaranteed exact permission.
+- AC5: PASS source and existing regressions — preference defaults, SQLite keys, protected sleep, 14-day horizon and plan reconciliation unchanged.
+- AC6: PASS PR Quality #41737192929 (typecheck, regression suite, Metro). Android signed standalone build PENDING post-merge.
+- AC7: BLOCKED real device — must verify locked screen, Android idle/Doze, reboot and special permissions on user's phone. Cannot claim delivery reliability without user testing.
