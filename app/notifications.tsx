@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { Brand } from '@/src/components/Brand';
 import {
   loadNotificationPreferences,
@@ -8,7 +8,12 @@ import {
 } from '@/src/notifications/persistence';
 import type { NotificationPreferences } from '@/src/notifications/core';
 import { nextProtectedRestWindow } from '@/src/notifications/smartSilence';
-import { syncLivePlanReminders } from '@/src/services/notifications';
+import {
+  getNotificationDeliveryDiagnostics,
+  scheduleWeekFlowNotificationTest,
+  syncLivePlanReminders,
+  type NotificationDeliveryDiagnostics,
+} from '@/src/services/notifications';
 import { loadDayState, loadWeekState } from '@/src/state/persistence';
 import { colors } from '@/src/theme/colors';
 
@@ -55,6 +60,36 @@ export default function NotificationPreferencesScreen() {
   const [status, setStatus] = useState('Los cambios se guardan en este teléfono.');
   const [restProtectionLabel, setRestProtectionLabel] = useState(() => protectedWindowLabel());
 
+  const [diagnostics, setDiagnostics] = useState<NotificationDeliveryDiagnostics | null>(null);
+  const [checkingDiagnostics, setCheckingDiagnostics] = useState(false);
+
+  async function refreshDiagnostics() {
+    setCheckingDiagnostics(true);
+    try {
+      setDiagnostics(await getNotificationDeliveryDiagnostics());
+    } catch {
+      setStatus('No pudimos consultar los permisos y las alarmas de Android.');
+    } finally {
+      setCheckingDiagnostics(false);
+    }
+  }
+
+  useEffect(() => { void refreshDiagnostics(); }, []);
+
+  async function testNotification() {
+    setCheckingDiagnostics(true);
+    try {
+      await scheduleWeekFlowNotificationTest();
+      setStatus('Prueba programada para 5 segundos. Bloquea la pantalla y verifica si llega; que esté programada no confirma la entrega.');
+      setDiagnostics(await getNotificationDeliveryDiagnostics());
+    } catch {
+      setStatus('No se pudo programar la prueba. Revisa los permisos de notificación y alarmas de Android.');
+    } finally {
+      setCheckingDiagnostics(false);
+    }
+  }
+
+
   function apply(next: NotificationPreferences) {
     const saved = saveNotificationPreferences(next);
     setPreferences(saved);
@@ -62,17 +97,19 @@ export default function NotificationPreferencesScreen() {
     setStatus(saved.enabled ? 'Actualizando recordatorios…' : 'Recordatorios de WeekFlow apagados.');
 
     void syncLivePlanReminders()
-      .then((count) => {
+      .then(async () => {
+        const current = await getNotificationDeliveryDiagnostics();
+        setDiagnostics(current);
         if (!saved.enabled) {
           setStatus('Recordatorios de WeekFlow apagados.');
-          return;
+        } else if (!current.permissionGranted || current.channelEnabled === false) {
+          setStatus('Android está bloqueando notificaciones o el canal de recordatorios.');
+        } else {
+          setStatus(`${current.scheduledManagedCount} recordatorios activos registrados en Android. Esto no garantiza que el teléfono los entregue.`);
         }
-        setStatus(count > 0
-          ? `${count} ${count === 1 ? 'recordatorio programado' : 'recordatorios programados'}.`
-          : 'Preferencias guardadas. No hay avisos futuros que programar ahora.');
       })
       .catch(() => {
-        setStatus('Preferencias guardadas. No pudimos actualizar los avisos del sistema ahora.');
+        setStatus('Preferencias guardadas, pero no pudimos verificar los avisos del sistema.');
       });
   }
 
@@ -142,6 +179,24 @@ export default function NotificationPreferencesScreen() {
         </View>
 
         <View style={styles.statusCard}>
+          <Text style={styles.statusTitle}>DIAGNÓSTICO DE ANDROID</Text>
+          <Text style={styles.statusBody}>WeekFlow: {diagnostics ? (diagnostics.appEnabled ? 'activado' : 'apagado') : 'comprobando…'}</Text>
+          <Text style={styles.statusBody}>Permiso de notificaciones: {diagnostics ? (diagnostics.permissionGranted ? 'permitido' : 'bloqueado') : 'comprobando…'}</Text>
+          <Text style={styles.statusBody}>Canal de recordatorios: {diagnostics?.channelEnabled === null || diagnostics === null ? 'no disponible' : diagnostics.channelEnabled ? 'activo' : 'bloqueado'}</Text>
+          <Text style={styles.statusBody}>Recordatorios pendientes en Android: {diagnostics?.scheduledManagedCount ?? '—'}</Text>
+          <Text style={styles.statusBody}>En Android 14+ revisa también Ajustes → Apps → Acceso especial → Alarmas y recordatorios → WeekFlow. En Xiaomi/Redmi activa batería «Sin restricciones» y el inicio automático. Android puede retrasar alarmas incluso si aquí aparecen como programadas.</Text>
+          <Pressable style={styles.diagnosticButton} disabled={checkingDiagnostics} onPress={() => void testNotification()} accessibilityRole="button" accessibilityLabel="Probar notificación en cinco segundos">
+            <Text style={styles.diagnosticButtonText}>Probar notificación en 5 segundos</Text>
+          </Pressable>
+          <Pressable style={styles.diagnosticLink} disabled={checkingDiagnostics} onPress={() => void refreshDiagnostics()} accessibilityRole="button">
+            <Text style={styles.diagnosticButtonText}>Actualizar diagnóstico</Text>
+          </Pressable>
+          <Pressable style={styles.diagnosticLink} onPress={() => void Linking.openSettings()} accessibilityRole="button">
+            <Text style={styles.diagnosticButtonText}>Abrir ajustes de la app</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.statusCard}>
           <Text style={styles.statusTitle}>Estado</Text>
           <Text style={styles.statusBody}>{status}</Text>
         </View>
@@ -208,6 +263,15 @@ const styles = StyleSheet.create({
   },
   statusTitle: { color: '#8BBEFF', fontWeight: '900', fontSize: 12 },
   statusBody: { color: colors.text, fontSize: 12, lineHeight: 18, marginTop: 4 },
+  diagnosticButton: {
+    borderRadius: 12, backgroundColor: '#2E77D9', paddingVertical: 13,
+    paddingHorizontal: 12, marginTop: 12, alignItems: 'center',
+  },
+  diagnosticLink: {
+    borderRadius: 12, borderColor: '#2A5D99', borderWidth: 1,
+    paddingVertical: 11, paddingHorizontal: 12, marginTop: 8, alignItems: 'center',
+  },
+  diagnosticButtonText: { color: colors.text, fontSize: 13, fontWeight: '800' },
   protectedWindow: { color: '#8BBEFF', fontSize: 12, lineHeight: 18, fontWeight: '800', marginTop: 8 },
   footer: { color: '#7187A6', fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 18 },
 });
