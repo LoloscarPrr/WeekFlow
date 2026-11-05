@@ -1,0 +1,17 @@
+const fs=require('node:fs');
+const assert=require('node:assert/strict');
+const service=fs.readFileSync('src/services/notifications.ts','utf8');
+const screen=fs.readFileSync('app/notifications.tsx','utf8');
+const test=service.slice(service.indexOf('export async function scheduleWeekFlowLongIdleTest('), service.indexOf('async function performLivePlanReminderSync('));
+assert.ok(test.includes('SchedulableTriggerInputTypes.DATE'), '24h test uses same DATE mechanism as real reminders');
+assert.ok(test.includes('24 * 60 * 60 * 1000'), '24h interval');
+assert.ok(test.includes("kind: 'diagnostic-long-idle'"), 'independent native test kind');
+assert.ok(!test.includes('weekflowReminderId:'), 'not masquerading as a real user reminder');
+assert.ok(test.indexOf('scheduleNotificationAsync') < test.indexOf('cancelScheduledNotificationAsync'), 'test replaces previous test safely');
+assert.ok(service.includes('scheduleBeforeCancel('), 'live plan must schedule first');
+assert.ok(service.includes('preSyncSnapshot = {'), 'pre-sync count captured before changes');
+assert.ok(screen.includes('Antes de la última sincronización'), 'pre-sync count shown to the user');
+assert.ok(screen.includes('Probar alarma con fecha en 24 horas'), '24h test explicitly activated');
+assert.ok(screen.includes('scheduleWeekFlowLongIdleTest()'), '24h test hooked to native scheduler');
+assert.ok(screen.includes('no modifica tu agenda'), 'diagnostic does not edit agenda');
+console.log('WeekFlow long idle alarm structural regression tests passed.');

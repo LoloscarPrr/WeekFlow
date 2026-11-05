@@ -1,21 +1,22 @@
-# TLC Initialization Snapshot — WF-NOTIFY-006 (2026-11-03)
+# TLC Initialization Snapshot — WF-NOTIFY-007 (2026-11-05)
 
-## Repository and baseline
-- `LoloscarPrr/WeekFlow`, `main` `9a19e2f6cefc4b04539d1a29287a173c1a2d11fd`, version `0.5.34`; work branch `fix/wf-notify-006-delivery-diagnostics`.
-- Existing main Quality #41322590058 PASS and signed Android #41322589971 PASS.
-- WeekFlow Pills is separate repo; no cross-project modifications or shared app ID.
-- Physical device notification/Android 15 validation: NOT RUN.
+## Repository/ref
+- `LoloscarPrr/WeekFlow` main `f321c94e8f60b1931b82e00165be5550a6be06a3`, WeekFlow 0.5.34, working branch `fix/wf-notify-007-long-idle-reliability`.
+- Current app: Android app `com.weekflow.app`, Expo SDK 57, `expo-notifications` 57, signed main Android #41737690719 PASS and Quality #41737691005 PASS.
+- Product: WeekFlow (two-week roster, Brain, Move, habit and rest); no other app in scope.
 
-## Sources and context
-- Blueprint Maestro v4.0, root AGENTS.md and .agents/skills/tlc-spec-driven/SKILL.md reviewed.
-- WF-NOTIFY-001 through 005: dedup, smart silence, incremental reconciliation and fresh install opt-in are already implemented. Preserve all.
-- `src/services/notifications.ts`: native Expo channel `weekflow-reminders-v2`, post-notification permission, date triggers, 14-day live plan and synchronized queue.
-- `src/notifications/persistence.ts`: notifications disabled on fresh onboarding, enabled for legacy profiles. Never override user's consent.
-- `app/notifications.tsx`: switches but only shows count newly scheduled, not count actually registered or Android permission; no native 5-second test.
-- `app.json`: Android has no explicit SCHEDULE_EXACT_ALARM declaration; SDK 57 requires manifest declaration for exact local alarms; Android 14+ may still deny special access until enabled manually.
-- Android skins (especially Xiaomi) may suppress notifications via battery/autostart; app cannot override it silently.
+## Sources/context
+- Root AGENTS.md; `.agents/skills/tlc-spec-driven/SKILL.md`; master WeekFlow Blueprint v4.0 and product scope as reflected in repository docs; WF-NOTIFY-005 and WF-NOTIFY-006 current specs; `src/services/notifications.ts`, `src/notifications/reconciliation.ts` and `app/notifications.tsx` inspected.
+- User reports 5-second notification arrives with screen locked; after 24–48h without opening app, scheduled alarms can be delayed, and opening app appears to restore normal delivery.
+- Native Android Doze may defer date-based notifications; Expo SDK 57 has no JS exact-alarm permission probe or `alarmClock` trigger property. SDK 58 adds both. The user has not performed a representative 24-hour DATE trigger test.
+- Current reconciliation computes both obsolete native alarm IDs and new alarms, but cancels obsolete IDs before programming replacements. A native scheduling failure can therefore leave the old reminder lost.
+- Current 5-second test is a TIME_INTERVAL trigger and cannot prove long-idle DATE reliability.
 
-## Decision
-- NOW WF-NOTIFY-006 — make delivery path diagnosable and testable: one local notification test, permissions/channel/current pending requests, manifest exact-alarm declaration, transparent native setting guidance, correct total scheduled count.
-- BACKLOG exact-alarm native permission probe for SDK 57, Android Doze integration tests, remote push fallback, special-access deep links, smart silence redesign.
-- No change to existing reminder timings, Smart Silence, per-kind prefs, schedule/dedup, SQLite or signing.
+## Phase decision
+- NOW `WF-NOTIFY-007`: stage replacements safely and provide a representative optional 24h DATE alarm test and diagnostic readout of scheduler state before reconciliation; preserve existing schedule and opt-in.
+- BACKLOG `WF-NOTIFY-008`: adopt Expo SDK 58 / selected `delivery: 'alarmClock'` only for justified time-critical reminder categories, with Android permission query and native build and policy review. Do not silently migrate SDK in this bugfix.
+- Do not claim Doze delivery is fixed without physical 24–48h validation.
+
+## Baseline and uncertainties
+- Quality PASS, signed Android PASS at main `f321c94e8f60b1931b82e00165be5550a6be06a3`.
+- Phone background test NOT RUN; alarm special access can vary by Android version. No access to user device.

@@ -5,6 +5,7 @@ import { loadHabitsState } from '@/src/habits/persistence';
 import { shiftContextForDate } from '@/src/domain/services/shiftSchedule';
 import { buildLivePlanReminders } from '@/src/domain/services/reminderPlan';
 import { isReminderKindEnabled } from '@/src/notifications/core';
+import { scheduleBeforeCancel } from '@/src/notifications/safeScheduling';
 import { loadNotificationPreferences } from '@/src/notifications/persistence';
 import {
   buildProtectedRestWindows,
@@ -131,7 +132,11 @@ export type NotificationDeliveryDiagnostics = {
   permissionGranted: boolean;
   channelEnabled: boolean | null;
   scheduledManagedCount: number;
+  beforeLastSyncManagedCount: number | null;
+  lastSyncAt: string | null;
 };
+
+let preSyncSnapshot: { managed: number; checkedAt: string } | null = null;
 
 /** Native scheduling is not proof of delivery on Android; show both facts. */
 export async function getNotificationDeliveryDiagnostics(): Promise<NotificationDeliveryDiagnostics> {
@@ -149,6 +154,8 @@ export async function getNotificationDeliveryDiagnostics(): Promise<Notification
       ? Boolean(channel && channel.importance !== Notifications.AndroidImportance.NONE)
       : null,
     scheduledManagedCount: requests.filter((request) => logicalReminderId(request) !== null).length,
+    beforeLastSyncManagedCount: preSyncSnapshot?.managed ?? null,
+    lastSyncAt: preSyncSnapshot?.checkedAt ?? null,
   };
 }
 
@@ -173,6 +180,37 @@ export async function scheduleWeekFlowNotificationTest(): Promise<string> {
   });
 }
 
+
+/**
+ * A manual 24h DATE test, using the same scheduling mechanism as a real
+ * WeekFlow event. It does not use a logical plan ID and cannot be reconciled
+ * away as a changed user reminder.
+ */
+export async function scheduleWeekFlowLongIdleTest(now = new Date()): Promise<Date> {
+  const allowed = await initializeNotifications();
+  if (!allowed) throw new Error('Activa el permiso de notificaciones en Android.');
+  const when = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const previous = (await Notifications.getAllScheduledNotificationsAsync())
+    .filter((request) => request.content.data?.kind === 'diagnostic-long-idle');
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'Prueba de 24 horas · WeekFlow',
+      body: 'Este aviso usa una alarma con fecha, como las de tu agenda. Comprueba si llegó a la hora indicada.',
+      sound: 'default',
+      priority: Notifications.AndroidNotificationPriority.MAX,
+      data: { kind: 'diagnostic-long-idle' },
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: when,
+      channelId: Platform.OS === 'android' ? WEEKFLOW_NOTIFICATION_CHANNEL : undefined,
+    },
+  });
+  // New request is registered before removing a previous long-idle test.
+  await Promise.all(previous.map((request) =>
+    Notifications.cancelScheduledNotificationAsync(request.identifier)));
+  return when;
+}
 
 async function performLivePlanReminderSync(now: Date): Promise<number> {
   const preferences = loadNotificationPreferences();
@@ -247,17 +285,18 @@ async function performLivePlanReminderSync(now: Date): Promise<number> {
   // Reconcile once against the native snapshot. Unchanged alarms are kept,
   // avoiding repeated enumerate/cancel/recreate cycles on every resume.
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  preSyncSnapshot = {
+    managed: scheduled.filter((request) => logicalReminderId(request) !== null).length,
+    checkedAt: now.toISOString(),
+  };
   const reconciliation = reconcileScheduledReminders(scheduled, reminders, allReminders);
-  await Promise.all(
-    reconciliation.cancelIds.map((id) => Notifications.cancelScheduledNotificationAsync(id)),
+  // Keep the last working native alarm in place if a new schedule fails.
+  return scheduleBeforeCancel(
+    reconciliation.toSchedule,
+    reconciliation.cancelIds,
+    scheduleNewReminder,
+    (id) => Notifications.cancelScheduledNotificationAsync(id),
   );
-
-  let scheduledCount = 0;
-  for (const reminder of reconciliation.toSchedule) {
-    const id = await scheduleNewReminder(reminder);
-    if (id) scheduledCount += 1;
-  }
-  return scheduledCount;
 }
 
 let livePlanSyncQueue: Promise<unknown> = Promise.resolve();
