@@ -11,6 +11,7 @@ import { nextProtectedRestWindow } from '@/src/notifications/smartSilence';
 import {
   getNotificationDeliveryDiagnostics,
   scheduleWeekFlowNotificationTest,
+  scheduleWeekFlowLongIdleTest,
   syncLivePlanReminders,
   type NotificationDeliveryDiagnostics,
 } from '@/src/services/notifications';
@@ -89,6 +90,19 @@ export default function NotificationPreferencesScreen() {
     }
   }
 
+
+  async function testLongIdle() {
+    setCheckingDiagnostics(true);
+    try {
+      const at = await scheduleWeekFlowLongIdleTest();
+      setStatus(`Prueba de fecha programada para ${at.toLocaleString('es-CL')}. Comprueba si llega puntual después de 24 horas sin abrir WeekFlow. La prueba no modifica tu agenda.`);
+      setDiagnostics(await getNotificationDeliveryDiagnostics());
+    } catch {
+      setStatus('No se pudo programar la prueba de 24 horas. Revisa notificaciones y permisos de alarmas.');
+    } finally {
+      setCheckingDiagnostics(false);
+    }
+  }
 
   function apply(next: NotificationPreferences) {
     const saved = saveNotificationPreferences(next);
@@ -184,9 +198,15 @@ export default function NotificationPreferencesScreen() {
           <Text style={styles.statusBody}>Permiso de notificaciones: {diagnostics ? (diagnostics.permissionGranted ? 'permitido' : 'bloqueado') : 'comprobando…'}</Text>
           <Text style={styles.statusBody}>Canal de recordatorios: {diagnostics?.channelEnabled === null || diagnostics === null ? 'no disponible' : diagnostics.channelEnabled ? 'activo' : 'bloqueado'}</Text>
           <Text style={styles.statusBody}>Recordatorios pendientes en Android: {diagnostics?.scheduledManagedCount ?? '—'}</Text>
+          <Text style={styles.statusBody}>Antes de la última sincronización: {diagnostics?.beforeLastSyncManagedCount ?? '—'} avisos pendientes</Text>
+          <Text style={styles.statusBody}>Última revisión: {diagnostics?.lastSyncAt ? new Date(diagnostics.lastSyncAt).toLocaleString('es-CL') : 'Sin datos en esta sesión'}</Text>
+          <Text style={styles.statusBody}>Si la prueba de 5 segundos funciona pero los avisos reales se retrasan, programa la prueba de 24 horas. Es una alarma con fecha, no un temporizador. Android puede aplazarla durante el reposo prolongado.</Text>
           <Text style={styles.statusBody}>En Android 14+ revisa también Ajustes → Apps → Acceso especial → Alarmas y recordatorios → WeekFlow. En Xiaomi/Redmi activa batería «Sin restricciones» y el inicio automático. Android puede retrasar alarmas incluso si aquí aparecen como programadas.</Text>
           <Pressable style={styles.diagnosticButton} disabled={checkingDiagnostics} onPress={() => void testNotification()} accessibilityRole="button" accessibilityLabel="Probar notificación en cinco segundos">
             <Text style={styles.diagnosticButtonText}>Probar notificación en 5 segundos</Text>
+          </Pressable>
+          <Pressable style={styles.diagnosticLink} disabled={checkingDiagnostics} onPress={() => void testLongIdle()} accessibilityRole="button" accessibilityLabel="Probar alarma de agenda después de 24 horas">
+            <Text style={styles.diagnosticButtonText}>Probar alarma con fecha en 24 horas</Text>
           </Pressable>
           <Pressable style={styles.diagnosticLink} disabled={checkingDiagnostics} onPress={() => void refreshDiagnostics()} accessibilityRole="button">
             <Text style={styles.diagnosticButtonText}>Actualizar diagnóstico</Text>
