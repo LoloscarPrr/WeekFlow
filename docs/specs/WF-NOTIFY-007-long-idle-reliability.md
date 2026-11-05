@@ -1,6 +1,6 @@
 # WF-NOTIFY-007 — Safe reminder replacement and 24-hour long-idle diagnostic
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Phase decision: NOW — investigate user-reproduced 24–48h delays and fix confirmed cancellation-before-scheduling window; preserve core app reliability.
 
@@ -43,3 +43,14 @@ No schema changes or new persisted data. The pre-sync snapshot is session-only a
 - Pure TypeScript or dependency-stub JS tests against service to simulate native scheduling failure and verify no cancellation, inspect test content/trigger and duplicate handling.
 - Existing notification planner/reconciliation/Smart Silence and full Quality suite, Android Metro smoke; signed build after merge.
 - Real-world long-idle notification at planned time must be reported as NOT RUN pending user's device.
+
+## Verification result — 2026-11-05
+- AC1: PASS — pure regression checks stage all new native alarms before any cancellation and preserve unchanged reminders through existing reconciliation.
+- AC2: PASS — mocked failure on second native schedule leaves all previous IDs untouched, with next sync free to clean partial additions.
+- AC3: PASS — 24h manually triggered DATE alarm on existing channel, independent kind and no plan ID; structural regression.
+- AC4: PASS — when rescheduling the test, old 24h test cancelled only after new request is accepted; real agenda not referenced or modified.
+- AC5: PASS — native count recorded before replacement in module memory; settings shows before and after plus local timestamp; not a record of actual delivered notifications.
+- AC6: PASS — full existing Week, Brain, Move, Rest, notification planner, smart-silence, persistence tests in PR Quality #42108691393. No persisted schema change. App display v0.5.35; existing workflow's monotonic Android versionCode and signing preserved.
+- AC7: PR Quality #42108691393 PASS including TypeScript, all regression tests and Metro Android smoke. Signed standalone APK: PENDING post-merge on main.
+- AC8: BLOCKED — actual Android device test needs to leave app closed for 24/48h and compare expected vs actual delivery time, plus test after reboot. The code fix does not claim to override Doze.
+- First CI attempt failed because the old two-week-roster release check expected v0.5.34; updated that test and package-lock version. The final PR Quality run #42108691393 PASS.
