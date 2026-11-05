@@ -17,6 +17,7 @@ WeekFlow v0.5.34 refreshes planned DATE alarms at launch and foreground. When a 
 - `src/services/notifications.ts`: stage schedule-before-cancel, capture pre-sync metadata, 24h DATE diagnostic with no logical plan ID and bounded one-pending-test reconciliation.
 - `app/notifications.tsx`: show last pre-sync count and explicit 24-hour test trigger/result.
 - Add pure/stubbed native regression tests for failure-safe reprogramming and diagnostic test isolation. Add to existing Quality.
+- Set app/package display version to 0.5.35; keep Android package and permanent signing, and let existing build workflow generate a monotonic update versionCode.
 - UI text explaining the 5-second result is insufficient for long-term delivery.
 
 ## Non-goals
