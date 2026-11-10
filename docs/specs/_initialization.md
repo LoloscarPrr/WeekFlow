@@ -2,7 +2,7 @@
 
 ## Repository/ref
 - `LoloscarPrr/WeekFlow` main `ddcc426fd32079c205a9f24a0ab5646c5b071473`, working branch `feature/wf-move-015-rest-preview`.
-- Current technical display version: 0.5.35 (`package.json`, `app.json`); Android package `com.weekflow.app`, `versionCode` 114 in `app.json`, Expo SDK 57.
+- Current main technical display version: 0.5.35; working branch synchronizes next release to 0.5.36 (`package.json`, `package-lock.json`, `app.json`, version regression); Android package `com.weekflow.app`, `versionCode` 114 in `app.json`, Expo SDK 57.
 - Product blueprint: WeekFlow Blueprint Maestro v4.0 (2026-09-30). Technical version is distinct from product roadmap phase. Preserve current visual identity and local-first state.
 
 ## Product phase and relevant sources
