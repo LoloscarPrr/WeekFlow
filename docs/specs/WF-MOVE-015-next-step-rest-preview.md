@@ -27,13 +27,13 @@ Mientras la sesión esté en descanso, ofrecer una vista previa compacta y fiel 
 - No SQLite keys/schema/migration, notifications, SDK, signing, package IDs, or unrelated module work.
 
 ## Acceptance criteria
-- [ ] AC1 — During rest, the player reveals the *next* step's title and existing exercise instruction, not the current or repeated final step.
-- [ ] AC2 — Series preview shows the upcoming set number and reps; timed steps show the upcoming phase duration; AMRAP shows next round and actual circuit items/reps.
-- [ ] AC3 — A saved exercise override for the next step is respected in the preview and stored preferences determine the shown equipment label; the preview does not mutate the workout or state.
-- [ ] AC4 — Final/no-next-step cases never invent another exercise, throw or interfere with `Saltar descanso`, `Pausar`, `Continuar`, and completion.
+- [x] AC1 — During rest, the player reveals the *next* step's title and existing exercise instruction, not the current or repeated final step.
+- [x] AC2 — Series preview shows the upcoming set number and reps; timed steps show the upcoming phase duration; AMRAP shows next round and actual circuit items/reps.
+- [x] AC3 — A saved exercise override for the next step is respected in the preview and stored preferences determine the shown equipment label; the preview does not mutate the workout or state.
+- [x] AC4 — Final/no-next-step cases never invent another exercise, throw or interfere with `Saltar descanso`, `Pausar`, `Continuar`, and completion.
 - [ ] AC5 — Existing UI on a small Android screen remains scrollable/readable, keeping primary controls accessible without additional navigation or permissions.
-- [ ] AC6 — Relevant Move regression tests, TypeScript/Quality/Metro Android checks and physical Android QA reported accurately as PASS or BLOCKED.
-- [ ] AC7 — Display version metadata and version regression assertion agree on 0.5.36; package name, signing and monotonic Android versionCode workflow remain unchanged.
+- [x] AC6 — Relevant Move regression tests, TypeScript/Quality/Metro Android checks and physical Android QA reported accurately as PASS or BLOCKED.
+- [x] AC7 — Display version metadata and version regression assertion agree on 0.5.36; package name, signing and monotonic Android versionCode workflow remain unchanged.
 
 ## Data / persistence impact
 None. Read-only derived view from `routine.steps`, `preferences` and `runtime.exerciseOverrides`. Existing canonical SQLite session and feedback keys are unchanged.
@@ -62,5 +62,5 @@ Rest card gains a short `A CONTINUACIÓN` panel with title, preparation cue and 
 - AC3: PASS by source inspection and regression cases: next-step overrides and preferences are consumed read-only; no SQLite key/schema changes.
 - AC4: PASS by source inspection and regression cases: final, empty, invalid index return null; existing pause/skip/complete callbacks unchanged.
 - AC5: PASS for scroll/layout source inspection; physical small-phone check BLOCKED until Android device QA.
-- AC6: Initial PR Quality #42919451125 PASS (TypeScript, regression suite, Metro bundle) before version synchronization; final PR Quality and signed Android release PENDING. Full on-device walkthrough BLOCKED by unavailable physical device. No claim of verified Android UX until device testing.
-- AC7: PENDING synchronized release metadata and regression verification.
+- AC6: PASS automated final PR Quality #42919841689 (TypeScript, all regressions, Android Metro export); previous initial PR Quality #42919451125 also PASS. Signed Android on main: PENDING until integration. Physical small-phone walkthrough: BLOCKED by unavailable device; no claim of confirmed UI behavior on real Android.
+- AC7: PASS, synchronized app/package/lock version and four release regression assertions in final PR Quality #42919841689. Unchanged Android package/signing/versionCode workflow verified by diff; update install still needs physical test.
