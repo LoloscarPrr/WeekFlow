@@ -19,7 +19,7 @@ Mientras la sesión esté en descanso, ofrecer una vista previa compacta y fiel 
 - Introduce a pure next-step read-model `src/move/nextStepPreview.ts` from the existing routine, preferences and stored step overrides.
 - Render that preview exclusively during the rest phase in `src/move/MovePlayer.tsx`, with compact reusable styles.
 - Add deterministic Move unit/structure regression checks to existing Quality.
-- No app build/version change in this targeted PR; next release version belongs to the release integration step.
+- Bump only the synchronized display version metadata to 0.5.36 as the next standalone release; retain the existing Android workflow's monotonic versionCode and signing.
 
 ## Non-goals
 - No images or animations misrepresented as true technique diagrams.
@@ -33,6 +33,7 @@ Mientras la sesión esté en descanso, ofrecer una vista previa compacta y fiel 
 - [ ] AC4 — Final/no-next-step cases never invent another exercise, throw or interfere with `Saltar descanso`, `Pausar`, `Continuar`, and completion.
 - [ ] AC5 — Existing UI on a small Android screen remains scrollable/readable, keeping primary controls accessible without additional navigation or permissions.
 - [ ] AC6 — Relevant Move regression tests, TypeScript/Quality/Metro Android checks and physical Android QA reported accurately as PASS or BLOCKED.
+- [ ] AC7 — Display version metadata and version regression assertion agree on 0.5.36; package name, signing and monotonic Android versionCode workflow remain unchanged.
 
 ## Data / persistence impact
 None. Read-only derived view from `routine.steps`, `preferences` and `runtime.exerciseOverrides`. Existing canonical SQLite session and feedback keys are unchanged.
@@ -61,4 +62,5 @@ Rest card gains a short `A CONTINUACIÓN` panel with title, preparation cue and 
 - AC3: PASS by source inspection and regression cases: next-step overrides and preferences are consumed read-only; no SQLite key/schema changes.
 - AC4: PASS by source inspection and regression cases: final, empty, invalid index return null; existing pause/skip/complete callbacks unchanged.
 - AC5: PASS for scroll/layout source inspection; physical small-phone check BLOCKED until Android device QA.
-- AC6: PENDING automated PR Quality and Metro; full on-device walkthrough BLOCKED by unavailable physical device. No claim of verified Android UX until device testing.
+- AC6: Initial PR Quality #42919451125 PASS (TypeScript, regression suite, Metro bundle) before version synchronization; final PR Quality and signed Android release PENDING. Full on-device walkthrough BLOCKED by unavailable physical device. No claim of verified Android UX until device testing.
+- AC7: PENDING synchronized release metadata and regression verification.
