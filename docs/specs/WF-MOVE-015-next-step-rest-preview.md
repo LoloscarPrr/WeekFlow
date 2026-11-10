@@ -1,6 +1,6 @@
 # WF-MOVE-015 — Próximo ejercicio claro durante el descanso
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Blueprint: WeekFlow Blueprint Maestro v4.0
 
@@ -55,5 +55,10 @@ Rest card gains a short `A CONTINUACIÓN` panel with title, preparation cue and 
 - [ ] Full Quality and Metro build on PR.
 - [ ] Manual 30-minute session on Android, including small screen, long names, pause/skip; BLOCKED when no phone access.
 
-## Verification result
-Pending code and CI.
+## Verification result — 2026-11-10
+- AC1: PASS by source inspection: preview derives the actual `currentStepIndex + 1`, renders catalog title/cue, and returns null if missing.
+- AC2: PASS by source inspection and added TypeScript regression cases: set number/reps, timed duration, and next AMRAP round/circuit.
+- AC3: PASS by source inspection and regression cases: next-step overrides and preferences are consumed read-only; no SQLite key/schema changes.
+- AC4: PASS by source inspection and regression cases: final, empty, invalid index return null; existing pause/skip/complete callbacks unchanged.
+- AC5: PASS for scroll/layout source inspection; physical small-phone check BLOCKED until Android device QA.
+- AC6: PENDING automated PR Quality and Metro; full on-device walkthrough BLOCKED by unavailable physical device. No claim of verified Android UX until device testing.
