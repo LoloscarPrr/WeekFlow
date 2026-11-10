@@ -8,6 +8,7 @@ import {
   routineStyleLabel,
 } from '@/src/move/library';
 import { moveStyles as styles } from '@/src/move/styles';
+import { getMoveNextStepPreview } from '@/src/move/nextStepPreview';
 import { formatMoveTime, type MoveController } from '@/src/move/useMoveController';
 
 export function MovePlayer({ move }: { move: MoveController }) {
@@ -36,7 +37,9 @@ export function MovePlayer({ move }: { move: MoveController }) {
   const resting = runtime.phase === 'rest';
   const isSet = stepDefinition.mode === 'set';
   const isAmrap = stepDefinition.mode === 'amrap';
-  const nextStep = routine.steps[Math.min(currentStepIndex + 1, routine.steps.length - 1)];
+  const upcoming = resting
+    ? getMoveNextStepPreview(routine.steps, currentStepIndex, preferences, runtime.exerciseOverrides)
+    : null;
   const equipment = resting || isAmrap ? null : moveExerciseEquipmentLabel(currentExercise, preferences);
 
   const counter = resting
@@ -46,10 +49,6 @@ export function MovePlayer({ move }: { move: MoveController }) {
       : isAmrap
         ? `AMRAP · ronda ${stepDefinition.roundNumber ?? 1} de ${stepDefinition.roundCount ?? 1}`
         : `Ejercicio ${currentStepIndex + 1} de ${routine.steps.length}`;
-
-  const restNext = nextStep.mode === 'amrap'
-    ? `ronda ${nextStep.roundNumber ?? 1} del AMRAP`
-    : nextStep.exercise.title;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -85,7 +84,28 @@ export function MovePlayer({ move }: { move: MoveController }) {
           </View>
 
           {resting ? (
-            <Text style={styles.playerCopy}>Respira y recupera. Después: {restNext}.</Text>
+            <>
+              <Text style={styles.playerCopy}>Respira y recupera sin apurarte.</Text>
+              {upcoming ? (
+                <View style={styles.nextPreviewCard}>
+                  <Text style={styles.nextPreviewLabel}>A CONTINUACIÓN</Text>
+                  <Text style={styles.nextPreviewTitle}>{upcoming.title}</Text>
+                  <Text style={styles.nextPreviewMeta}>{upcoming.detail}</Text>
+                  {upcoming.equipment ? (
+                    <Text style={styles.nextPreviewEquipment}>Equipo: {upcoming.equipment}</Text>
+                  ) : null}
+                  <Text style={styles.nextPreviewCue}>{upcoming.instruction}</Text>
+                  {upcoming.circuit.map((item) => (
+                    <View key={item.id} style={styles.nextPreviewCircuitRow}>
+                      <Text style={styles.nextPreviewCircuitName}>{item.title}</Text>
+                      <Text style={styles.nextPreviewCircuitReps}>{item.repsLabel}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.playerCopy}>Ya no hay más ejercicios después de este descanso.</Text>
+              )}
+            </>
           ) : isAmrap ? (
             <View style={styles.amrapBox}>
               <Text style={styles.amrapTitle}>REPETIR DURANTE 5 MIN</Text>

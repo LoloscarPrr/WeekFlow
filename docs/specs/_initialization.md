@@ -1,22 +1,22 @@
-# TLC Initialization Snapshot — WF-NOTIFY-007 (2026-11-05)
+# TLC Initialization Snapshot — WF-MOVE-015 (2026-11-10)
 
 ## Repository/ref
-- `LoloscarPrr/WeekFlow` main `f321c94e8f60b1931b82e00165be5550a6be06a3`, WeekFlow 0.5.34, working branch `fix/wf-notify-007-long-idle-reliability`.
-- Current app: Android app `com.weekflow.app`, Expo SDK 57, `expo-notifications` 57, signed main Android #41737690719 PASS and Quality #41737691005 PASS.
-- Product: WeekFlow (two-week roster, Brain, Move, habit and rest); no other app in scope.
+- `LoloscarPrr/WeekFlow` main `ddcc426fd32079c205a9f24a0ab5646c5b071473`, working branch `feature/wf-move-015-rest-preview`.
+- Current main technical display version: 0.5.35; working branch synchronizes next release to 0.5.36 (`package.json`, `package-lock.json`, `app.json`, version regression); Android package `com.weekflow.app`, `versionCode` 114 in `app.json`, Expo SDK 57.
+- Product blueprint: WeekFlow Blueprint Maestro v4.0 (2026-09-30). Technical version is distinct from product roadmap phase. Preserve current visual identity and local-first state.
 
-## Sources/context
-- Root AGENTS.md; `.agents/skills/tlc-spec-driven/SKILL.md`; master WeekFlow Blueprint v4.0 and product scope as reflected in repository docs; WF-NOTIFY-005 and WF-NOTIFY-006 current specs; `src/services/notifications.ts`, `src/notifications/reconciliation.ts` and `app/notifications.tsx` inspected.
-- User reports 5-second notification arrives with screen locked; after 24–48h without opening app, scheduled alarms can be delayed, and opening app appears to restore normal delivery.
-- Native Android Doze may defer date-based notifications; Expo SDK 57 has no JS exact-alarm permission probe or `alarmClock` trigger property. SDK 58 adds both. The user has not performed a representative 24-hour DATE trigger test.
-- Current reconciliation computes both obsolete native alarm IDs and new alarms, but cancels obsolete IDs before programming replacements. A native scheduling failure can therefore leave the old reminder lost.
-- Current 5-second test is a TIME_INTERVAL trigger and cannot prove long-idle DATE reliability.
+## Product phase and relevant sources
+- Product phase focus: Core stability and Move end-to-end guided workouts. The blueprint prioritizes Move before adding unrelated modules, with no obligatory OCR work.
+- Inspected `AGENTS.md`, `.agents/skills/tlc-spec-driven/SKILL.md`, blueprint v4.0, `docs/specs/WF-MOVE-011-timer-cadence.md`, `docs/specs/WF-MOVE-013-classic-exercise-priority.md`, `src/move/MovePlayer.tsx`, `src/move/useMoveController.ts`, `src/move/library.ts`, `src/move/runtime.ts`, `src/move/styles.ts`, and existing Move tests.
+- `WF-NOTIFY-007` already protects native alarms when rescheduling. Actual 24–48h physical Android delivery remains BLOCKED on user-device testing, not solved by this Move change.
+- `WF-MOVE-014` remains reserved for genuine offline exercise illustrations. This spec does not claim to add illustrated assets.
 
-## Phase decision
-- NOW `WF-NOTIFY-007`: stage replacements safely and provide a representative optional 24h DATE alarm test and diagnostic readout of scheduler state before reconciliation; preserve existing schedule and opt-in.
-- BACKLOG `WF-NOTIFY-008`: adopt Expo SDK 58 / selected `delivery: 'alarmClock'` only for justified time-critical reminder categories, with Android permission query and native build and policy review. Do not silently migrate SDK in this bugfix.
-- Do not claim Doze delivery is fixed without physical 24–48h validation.
+## Baseline/check status
+- Repository main signed Android #42109242897: PASS on 2026-11-05 (pre-change), observed in GitHub Actions.
+- Full Quality for current branch: NOT RUN before changes; CI will be checked on the PR.
+- Physical Android guided-session and long-idle notification tests: UNAVAILABLE in this environment.
 
-## Baseline and uncertainties
-- Quality PASS, signed Android PASS at main `f321c94e8f60b1931b82e00165be5550a6be06a3`.
-- Phone background test NOT RUN; alarm special access can vary by Android version. No access to user device.
+## Constraints and decision
+- No changes to SQLite, session progression, timers, resume/pause, feedback, planning, notifications, Android signing, or previously saved data.
+- Keep Move useful on small phones and during late-night/low-energy sessions; all cues are derived from existing exercise catalog rather than fabricated guidance.
+- NEXT: `WF-MOVE-015 — Próximo ejercicio claro durante el descanso`, Phase decision NOW. Scope: read-only preview of the next workout step while resting.

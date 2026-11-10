@@ -7,7 +7,10 @@ import {
   resolveMoveTrainingStyle,
   routineForDuration,
   routineExercisePrescription,
+  exerciseById,
+  moveExerciseEquipmentLabel,
 } from '../src/move/library';
+import { getMoveNextStepPreview } from '../src/move/nextStepPreview';
 import { TRAINER_SET_TEMPLATES } from '../src/move/trainerTemplates';
 
 function ok(value: unknown, message: string) {
@@ -149,5 +152,53 @@ ok(!sourceText.includes('77.5') && !sourceText.includes('77,5'), 'plantillas no 
 ok(TRAINER_SET_TEMPLATES.some((template) => template.items.some((item) => item.reps === '5')), 'fuente conserva 5x5');
 ok(TRAINER_SET_TEMPLATES.some((template) => template.items.some((item) => item.reps === '6–8')), 'fuente conserva 4x6–8');
 ok(TRAINER_SET_TEMPLATES.some((template) => template.items.some((item) => item.reps === '10/lado')), 'fuente conserva 3x10 por lado');
+
+// Rest phase announces the actual NEXT step (never repeats the current/last).
+const originalSeriesJson = JSON.stringify(setRoutine.steps);
+const nextSeriesStep = setRoutine.steps[1];
+const seriesRestPreview = getMoveNextStepPreview(setRoutine.steps, 0, fullyEquippedStrength);
+ok(Boolean(seriesRestPreview), 'rest preview exists when the next series exists');
+equal(seriesRestPreview?.title, nextSeriesStep.exercise.title, 'series preview names the next exercise');
+equal(
+  seriesRestPreview?.detail,
+  `Serie ${nextSeriesStep.setNumber ?? 1} de ${nextSeriesStep.setCount ?? 1} · ${nextSeriesStep.repsLabel ?? '—'} repeticiones`,
+  'series preview shows exact next set prescription',
+);
+equal(seriesRestPreview?.instruction, nextSeriesStep.exercise.cue, 'rest cue comes from existing catalog');
+equal(
+  seriesRestPreview?.equipment ?? null,
+  moveExerciseEquipmentLabel(nextSeriesStep.exercise, fullyEquippedStrength),
+  'rest equipment derives only from registered profile',
+);
+equal(JSON.stringify(setRoutine.steps), originalSeriesJson, 'reading a preview does not rewrite any steps');
+
+// Persisted next-step substitutions must not display the unswapped catalog exercise.
+const overrides = { '1': 'breathing' };
+const previewWithSwap = getMoveNextStepPreview(setRoutine.steps, 0, fullyEquippedStrength, overrides);
+equal(previewWithSwap?.title, exerciseById('breathing', nextSeriesStep.exercise).title, 'rest preview follows saved next-step swap');
+equal(overrides['1'], 'breathing', 'preview leaves overrides untouched');
+equal(JSON.stringify(setRoutine.steps), originalSeriesJson, 'swap preview does not mutate routine');
+
+// Timed and AMRAP previews preserve their respective prescriptions.
+const intervalForPreview = routineForDuration(20, prefs({ trainingStyle: 'intervalos' }), 'moderada');
+const nextInterval = intervalForPreview.steps[1];
+const timedPreview = getMoveNextStepPreview(intervalForPreview.steps, 0, prefs({ trainingStyle: 'intervalos' }));
+ok(timedPreview?.detail.startsWith('Trabajo · '), 'timed preview shows a work-duration label');
+equal(timedPreview?.title, nextInterval.exercise.title, 'timed preview names actual next exercise');
+const nextAmrapStep = amrap.steps[1];
+const amrapRestPreview = getMoveNextStepPreview(amrap.steps, 0, conditioning);
+equal(amrapRestPreview?.title, 'Circuito AMRAP', 'AMRAP announces the next circuit round');
+ok(amrapRestPreview?.detail.includes(`Ronda ${nextAmrapStep.roundNumber} de ${nextAmrapStep.roundCount}`), 'AMRAP shows next round count');
+equal(
+  JSON.stringify(amrapRestPreview?.circuit),
+  JSON.stringify((nextAmrapStep.circuit ?? []).map(item => ({
+    id: item.exercise.id, title: item.exercise.title, repsLabel: item.repsLabel,
+  }))),
+  'AMRAP rest lists real next circuit items and their repetitions',
+);
+equal(getMoveNextStepPreview(amrap.steps, amrap.steps.length - 1, conditioning), null, 'no phantom extra AMRAP round at end');
+equal(getMoveNextStepPreview(setRoutine.steps, setRoutine.steps.length - 1, fullyEquippedStrength), null, 'no phantom exercise after final set');
+equal(getMoveNextStepPreview([], 0, fullyEquippedStrength), null, 'empty plan is safe');
+equal(getMoveNextStepPreview(setRoutine.steps, -1, fullyEquippedStrength), null, 'invalid index is safe');
 
 console.log('Move structured workout regression tests passed.');
