@@ -1,22 +1,20 @@
-# TLC Initialization Snapshot — WF-MOVE-015 (2026-11-10)
+# TLC Initialization Snapshot — WF-UX-003 (2026-11-15)
 
-## Repository/ref
-- `LoloscarPrr/WeekFlow` main `ddcc426fd32079c205a9f24a0ab5646c5b071473`, working branch `feature/wf-move-015-rest-preview`.
-- Current main technical display version: 0.5.35; working branch synchronizes next release to 0.5.36 (`package.json`, `package-lock.json`, `app.json`, version regression); Android package `com.weekflow.app`, `versionCode` 114 in `app.json`, Expo SDK 57.
-- Product blueprint: WeekFlow Blueprint Maestro v4.0 (2026-09-30). Technical version is distinct from product roadmap phase. Preserve current visual identity and local-first state.
+## Repository and ref
+- Repository `LoloscarPrr/WeekFlow`; main/base `02468af5f21f26c062a26f474482490a143dc63c` (WeekFlow 0.5.36).
+- Working branch `feature/wf-ux-003-compact-action-first`.
+- Expo SDK 57, Android `com.weekflow.app`, signed release workflow preserves monotonic versionCode and permanent key; no native edits planned.
 
-## Product phase and relevant sources
-- Product phase focus: Core stability and Move end-to-end guided workouts. The blueprint prioritizes Move before adding unrelated modules, with no obligatory OCR work.
-- Inspected `AGENTS.md`, `.agents/skills/tlc-spec-driven/SKILL.md`, blueprint v4.0, `docs/specs/WF-MOVE-011-timer-cadence.md`, `docs/specs/WF-MOVE-013-classic-exercise-priority.md`, `src/move/MovePlayer.tsx`, `src/move/useMoveController.ts`, `src/move/library.ts`, `src/move/runtime.ts`, `src/move/styles.ts`, and existing Move tests.
-- `WF-NOTIFY-007` already protects native alarms when rescheduling. Actual 24–48h physical Android delivery remains BLOCKED on user-device testing, not solved by this Move change.
-- `WF-MOVE-014` remains reserved for genuine offline exercise illustrations. This spec does not claim to add illustrated assets.
+## Product priority and source of truth
+- WeekFlow Blueprint Maestro v4.0: reduce mental load rather than add features; Ahora displays one priority, Semana remains compact and manually editable, Move closes its guided experience, UI/keyboard must remain usable on small phones; advanced planning requires explicit confirmation.
+- Read root `AGENTS.md` and `.agents/skills/tlc-spec-driven/SKILL.md`, relevant UX and Week/Move specs, current `app/index.tsx`, `app/week.tsx`, `src/components/WeeklyPlannerPreview.tsx`, `src/components/ImportantEventCard.tsx`, `src/move/MovePlan.tsx` and `src/move/styles.ts`.
+- Current two open PRs #75 and #110 are historical branches; no open competing PR on the current 0.5.36 files at initialization. Avoid writes to main until review/CI.
 
-## Baseline/check status
-- Repository main signed Android #42109242897: PASS on 2026-11-05 (pre-change), observed in GitHub Actions.
-- Full Quality for current branch: NOT RUN before changes; CI will be checked on the PR.
-- Physical Android guided-session and long-idle notification tests: UNAVAILABLE in this environment.
+## Baseline and constraints
+- 0.5.36 release and main Quality #42920129152 both PASS (historical); new branch Quality NOT RUN.
+- Physical Android visual/keyboard QA: UNAVAILABLE in this tool environment.
+- No backend, scheduling, data migration, persistence, notification, identity, signing or exercise engine edits. No changes to the Brain proposal confirmation semantics.
+- Feature scope: action-first condensed Move, single-week selector and on-demand event/planner in Semana, denser energy controls in Ahora; small-screen touch targets must remain operable.
 
-## Constraints and decision
-- No changes to SQLite, session progression, timers, resume/pause, feedback, planning, notifications, Android signing, or previously saved data.
-- Keep Move useful on small phones and during late-night/low-energy sessions; all cues are derived from existing exercise catalog rather than fabricated guidance.
-- NEXT: `WF-MOVE-015 — Próximo ejercicio claro durante el descanso`, Phase decision NOW. Scope: read-only preview of the next workout step while resting.
+## Next locked spec
+- `WF-UX-003 — Acción primero, formularios cuando hagan falta`, Phase decision NOW because it directly addresses excessive visible form controls and repetitious content in existing modules.
