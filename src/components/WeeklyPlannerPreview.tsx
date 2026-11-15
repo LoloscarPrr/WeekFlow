@@ -23,11 +23,11 @@ function label(dateKey: string) {
 }
 export function WeeklyPlannerPreview({ week, selectedWeek = 0 }: { week: WeekSchedule; selectedWeek?: 0 | 1 }) {
   const [proposal, setProposal] = useState<WeeklyProposal | null>(null);
-  const [weekOffset, setWeekOffset] = useState<0 | 1>(selectedWeek);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [confirmed, setConfirmed] = useState(() => loadConfirmedWeeklyPlanForOffset(selectedWeek));
   useEffect(() => {
-    setWeekOffset(selectedWeek);
     setProposal(null);
+    setSettingsOpen(false);
     setConfirmed(loadConfirmedWeeklyPlanForOffset(selectedWeek));
   }, [selectedWeek]);
   const [movePreferences, setMovePreferences] = useState(() => loadMovePreferences());
@@ -54,29 +54,33 @@ export function WeeklyPlannerPreview({ week, selectedWeek = 0 }: { week: WeekSch
     Alert.alert('Semana confirmada', 'Las sesiones quedaron guardadas sin borrar tus hábitos ni el historial.');
   }
   function preview() {
-    if (weekOffset === 1 && !hasPreparedNextWeek()) {
+    if (selectedWeek === 1 && !hasPreparedNextWeek()) {
       setProposal(null);
       Alert.alert('Horario pendiente', 'Primero configura o copia el horario de la próxima semana. Brain no debe suponer días libres que aún no confirmaste.');
       return;
     }
     const day = loadDayState();
     setProposal(proposeWeeklyPlan({
-      week: loadWeekStateForOffset(weekOffset),
-      previousWeek: weekOffset === 1 ? loadWeekStateForOffset(0) : loadPreviousWeekState(),
+      week: loadWeekStateForOffset(selectedWeek),
+      previousWeek: selectedWeek === 1 ? loadWeekStateForOffset(0) : loadPreviousWeekState(),
       habits: loadHabitsState(),
       settings: day.settings,
       energy: day.energy,
       energyByDate: loadDailyEnergy(),
       now: new Date(),
-      weekOffset,
+      weekOffset: selectedWeek,
       move: { preferences: loadMovePreferences(), history: loadMoveHistory() },
     }));
   }
   return (
     <View style={styles.card}>
-      <Text style={styles.eyebrow}>WEEKFLOW BRAIN · VISTA PREVIA</Text>
-      <Text style={styles.title}>Planear pilares y hábitos</Text>
-      <Text style={styles.copy}>Aquí defines cuántas sesiones de Move quieres esta semana. Brain combinará tu perfil físico, turnos, recuperación y Hábitos. Nada cambia en el calendario sin tu confirmación.</Text>
+      <Text style={styles.title}>Organizar semana</Text>
+      {confirmed ? <Text style={styles.summary}>✓ Plan confirmado · {confirmed.moveSlots?.length ?? 0} Move · {confirmed.slots.length} hábitos</Text> : null}
+      <Pressable accessibilityRole="button" accessibilityState={{ expanded: settingsOpen }} style={styles.settingsToggle} onPress={() => setSettingsOpen((open) => !open)}>
+        <Text style={styles.settingsText}>Move · {movePreferences.weeklyTargetSessions} por semana · {movePreferences.preferredSessionMinutes} min</Text>
+        <Text style={styles.settingsArrow}>{settingsOpen ? '−' : '+'}</Text>
+      </Pressable>
+      {settingsOpen ? (
       <View style={styles.moveSettings}>
         <Text style={styles.heading}>🏃 Move · sesiones por semana</Text>
         <View style={styles.chips}>
@@ -103,16 +107,11 @@ export function WeeklyPlannerPreview({ week, selectedWeek = 0 }: { week: WeekSch
             </Pressable>
           ))}
         </View>
-        <Text style={styles.copy}>Músculos, material y nivel se ajustan en el pilar Move. Si cambias estos valores, pulsa «Ver propuesta semanal» y confirma la nueva distribución.</Text>
       </View>
-      {confirmedWeekNeedsReview(weekOffset) ? (
+      ) : null}
+      {confirmedWeekNeedsReview(selectedWeek) ? (
         <Text style={styles.warning}>Cambiaste turnos desde la confirmación anterior. Revisa y confirma una propuesta nueva para evitar contradicciones en Brain y recordatorios.</Text>
       ) : null}
-      {confirmed ? <Text style={styles.heading}>Plan confirmado: semana del {label(confirmed.weekStart)} · {(confirmed.moveSlots?.length ?? 0)} Move · {confirmed.slots.length} hábitos</Text> : null}
-      <View style={styles.weekChoice}>
-        <Pressable accessibilityRole="button" style={[styles.choice, weekOffset === 0 && styles.choiceActive]} onPress={() => { setWeekOffset(0); setProposal(null); setConfirmed(loadConfirmedWeeklyPlan()); }}><Text style={styles.choiceText}>Esta semana</Text></Pressable>
-        <Pressable accessibilityRole="button" style={[styles.choice, weekOffset === 1 && styles.choiceActive]} onPress={() => { setWeekOffset(1); setProposal(null); setConfirmed(loadConfirmedWeeklyPlanForOffset(1)); }}><Text style={styles.choiceText}>Próxima semana</Text></Pressable>
-      </View>
       <Pressable accessibilityRole="button" style={styles.button} onPress={preview}>
         <Text style={styles.buttonText}>{proposal ? 'Volver a calcular' : 'Ver propuesta semanal'}</Text>
       </Pressable>
@@ -159,18 +158,17 @@ export function WeeklyPlannerPreview({ week, selectedWeek = 0 }: { week: WeekSch
   );
 }
 const styles = StyleSheet.create({
-  moveSettings: { gap: 10, backgroundColor: colors.surface2, borderRadius: 14, padding: 12, marginVertical: 5 },
+  moveSettings: { gap: 9, backgroundColor: colors.surface2, borderRadius: 14, padding: 12, marginVertical: 5 },
+  summary: { color: '#9DD9BD', fontSize: 12, lineHeight: 17 },
+  settingsToggle: { minHeight: 44, paddingHorizontal: 12, borderRadius: 13, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface2, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  settingsText: { color: '#B3CBE6', fontSize: 12, fontWeight: '800', flex: 1 },
+  settingsArrow: { color: '#92B9E6', fontSize: 19, fontWeight: '900' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { borderWidth: 1, borderColor: colors.line, borderRadius: 12, paddingHorizontal: 12, minHeight: 42, justifyContent: 'center' },
   chipSelected: { borderColor: colors.blue, backgroundColor: '#173B68' },
   chipText: { color: colors.muted, fontSize: 12, fontWeight: '800' },
   chipTextSelected: { color: colors.text },
-  weekChoice: { flexDirection: 'row', gap: 8 },
-  choice: { flex: 1, padding: 10, borderRadius: 12, borderWidth: 1, borderColor: colors.line, alignItems: 'center' },
-  choiceActive: { backgroundColor: '#173B68', borderColor: colors.blue },
-  choiceText: { color: colors.text, fontSize: 12, fontWeight: '800' },
-  card: { marginTop: 12, padding: 16, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, gap: 9 },
-  eyebrow: { color: '#76AFFF', letterSpacing: 1.3, fontSize: 10, fontWeight: '900' },
+  card: { marginTop: 10, padding: 13, borderRadius: 17, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, gap: 8 },
   title: { color: colors.text, fontSize: 17, fontWeight: '900' },
   copy: { color: colors.muted, fontSize: 12, lineHeight: 17 },
   button: { backgroundColor: colors.blue, borderRadius: 14, minHeight: 46, justifyContent: 'center', alignItems: 'center' },

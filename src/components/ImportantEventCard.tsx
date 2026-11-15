@@ -23,6 +23,7 @@ type Props = {
 
 export function ImportantEventCard({ moments, onSave, onDelete }: Props) {
   const [title, setTitle] = useState('');
+  const [adding, setAdding] = useState(false);
   const [when, setWhen] = useState(() => defaultImportantEventWhen());
   const [picker, setPicker] = useState<PickerMode | null>(null);
   const sortedMoments = useMemo(
@@ -45,6 +46,7 @@ export function ImportantEventCard({ moments, onSave, onDelete }: Props) {
       title: cleanTitle,
     });
     setTitle('');
+    setAdding(false);
   }
 
   function applyPickedValue(selected: Date) {
@@ -58,8 +60,14 @@ export function ImportantEventCard({ moments, onSave, onDelete }: Props) {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.heading}>Evento importante</Text>
-
+      <View style={styles.headingRow}>
+        <Text style={styles.heading}>Eventos importantes{sortedMoments.length ? ` · ${sortedMoments.length}` : ''}</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel={adding ? 'Cancelar nuevo evento' : 'Agregar evento importante'} accessibilityState={{ expanded: adding }} style={styles.addButton} onPress={() => { setAdding((value) => !value); setTitle(''); }}>
+          <Text style={styles.addText}>{adding ? 'Cancelar' : '+ Agregar'}</Text>
+        </Pressable>
+      </View>
+      {adding ? (
+        <>
       <TextInput
         value={title}
         onChangeText={setTitle}
@@ -92,6 +100,9 @@ export function ImportantEventCard({ moments, onSave, onDelete }: Props) {
           <Text style={styles.saveText}>Guardar</Text>
         </Pressable>
       </View>
+
+        </>
+      ) : null}
 
       {sortedMoments.length ? (
         <View style={styles.list}>
@@ -142,7 +153,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
   },
-  heading: { color: colors.text, fontSize: 14, fontWeight: '900' },
+  heading: { color: colors.text, fontSize: 14, fontWeight: '900', flexShrink: 1 },
+  headingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  addButton: { minHeight: 44, paddingHorizontal: 12, justifyContent: 'center', borderRadius: 12, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface2 },
+  addText: { color: '#8FC4FF', fontSize: 12, fontWeight: '900' },
   input: {
     minHeight: 44,
     marginTop: 9,

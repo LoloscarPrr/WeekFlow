@@ -88,6 +88,8 @@ function equipmentSummary(move: MoveController) {
 
 export function MovePlan({ move }: { move: MoveController }) {
   const [profileOpen, setProfileOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const {
     duration,
     setDuration,
@@ -139,9 +141,8 @@ export function MovePlan({ move }: { move: MoveController }) {
           <Text style={styles.smallLabel}>SESIÓN CONFIRMADA · PILAR MOVE</Text>
           <Text style={styles.recommendTitle}>{plannedMove.date} · {plannedMove.start}–{plannedMove.end}</Text>
           <Text style={styles.preferenceCopy}>{plannedMove.muscles} · {plannedMove.durationMin} min · intensidad orientativa {plannedMove.intensity}</Text>
-          <Text style={styles.preferenceCopy}>Esta sesión tiene su propio enfoque muscular. Al iniciarla, Move recalcula intensidad y ejercicios con tu energía y equipamiento reales.</Text>
           {preparedWeekly?.id === plannedMove.id ? (
-            <Text style={styles.preferenceCopy}>✓ Preparado: {describeTargetMuscles(effectivePreferences.targetMuscles)}. Revisa la vista previa y toca «Empezar sesión guiada».</Text>
+            <Text style={styles.preferenceCopy}>✓ Lista para empezar · {describeTargetMuscles(effectivePreferences.targetMuscles)}</Text>
           ) : null}
           <Pressable
             accessibilityRole="button"
@@ -182,6 +183,27 @@ export function MovePlan({ move }: { move: MoveController }) {
               </Pressable>
             ) : null}
 
+            <Text style={styles.sessionSummary}>{optionLabel(MOVE_FOCUS_OPTIONS, preferences.focus)} · {describeTargetMuscles(effectivePreferences.targetMuscles)} · {routineStyleLabel(routine.style)}</Text>
+            <Text style={styles.compactLabel}>Tiempo disponible</Text>
+            <View style={styles.durationRow}>
+              {MOVE_DURATIONS.map((item) => (
+                <Pressable key={item} accessibilityRole="button" accessibilityLabel={`Entrenar ${item} minutos`} style={[styles.duration, duration === item && styles.durationActive]} onPress={() => setDuration(item)}>
+                  <Text style={[styles.durationText, duration === item && styles.durationTextActive]}>{item} min</Text>
+                </Pressable>
+              ))}
+            </View>
+            {!hasCompatibleTarget ? (
+              <Text style={styles.settingWarning}>No hay ejercicios compatibles con este enfoque y tus restricciones. Revísalos en los ajustes de abajo.</Text>
+            ) : null}
+            <Pressable disabled={!hasCompatibleTarget} style={[styles.primaryButton, !hasCompatibleTarget && styles.disabled]} onPress={startSession}>
+              <Text style={styles.primaryButtonText}>Empezar sesión guiada</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityState={{ expanded: detailsOpen }} style={styles.disclosureButton} onPress={() => setDetailsOpen((open) => !open)}>
+              <Text style={styles.disclosureTitle}>Ajustar entrenamiento</Text>
+              <Text style={styles.disclosureArrow}>{detailsOpen ? '−' : '+'}</Text>
+            </Pressable>
+            {detailsOpen ? (
+              <>
             <Text style={styles.smallLabel}>Perfil</Text>
             <View style={styles.preferenceButton}>
               <Text style={styles.preferenceIcon}>👤</Text>
@@ -345,8 +367,6 @@ export function MovePlan({ move }: { move: MoveController }) {
               })}
             </View>
 
-            <Text style={styles.preferenceCopy}>La frecuencia y duración de tu semana se configuran en Semana → Organizar semana. Aquí ajustas el entrenamiento: músculos, material y dificultad.</Text>
-
             <Text style={styles.smallLabel}>Músculos de la sesión · {describeTargetMuscles(effectivePreferences.targetMuscles)}</Text>
             {preparedWeekly ? <Text style={styles.preferenceCopy}>Enfoque temporal del plan semanal. No modifica tu perfil general.</Text> : null}
             <View style={styles.profileChips}>
@@ -392,23 +412,19 @@ export function MovePlan({ move }: { move: MoveController }) {
                 );
               })}
             </View>
+            <Text style={styles.preferenceCopy}>Frecuencia semanal: Semana → Organizar semana.</Text>
 
-            <Text style={styles.smallLabel}>¿Cuánto tiempo tienes?</Text>
-            <View style={styles.durationRow}>
-              {MOVE_DURATIONS.map((item) => (
-                <Pressable key={item} style={[styles.duration, duration === item && styles.durationActive]} onPress={() => setDuration(item)}>
-                  <Text style={[styles.durationText, duration === item && styles.durationTextActive]}>{item}</Text>
-                  <Text style={[styles.durationUnit, duration === item && styles.durationTextActive]}>min</Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Pressable disabled={!hasCompatibleTarget} style={[styles.primaryButton, !hasCompatibleTarget && { opacity: 0.45 }]} onPress={startSession}>
-              <Text style={styles.primaryButtonText}>Empezar sesión guiada</Text>
-            </Pressable>
+              </>
+            ) : null}
           </View>
 
-          <Text style={styles.section}>VISTA PREVIA</Text>
+          <Pressable accessibilityRole="button" accessibilityState={{ expanded: previewOpen }} style={styles.previewToggle} onPress={() => setPreviewOpen((open) => !open)}>
+            <Text style={styles.previewToggleText}>Ver ejercicios · {preview.length} movimientos</Text>
+            <Text style={styles.disclosureArrow}>{previewOpen ? '−' : '+'}</Text>
+          </Pressable>
+          {previewOpen ? (
+            <>
+
           <View style={styles.libraryCard}>
             {preview.map((exercise, index) => {
               const equipment = moveExerciseEquipmentLabel(exercise, preferences);
@@ -427,7 +443,9 @@ export function MovePlan({ move }: { move: MoveController }) {
               );
             })}
             <Text style={styles.libraryNote}>{routineStyleLabel(routine.style)} · {routineSummary(routine)}</Text>
-          </View>
+          </View> 
+            </>
+          ) : null}
         </>
       ) : null}
 

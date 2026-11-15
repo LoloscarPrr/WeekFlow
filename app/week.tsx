@@ -62,6 +62,7 @@ export default function WeekScreen() {
 
           <View style={styles.hero}>
             <Text style={styles.title}>Semana</Text>
+            <Text style={styles.weekRange}>{weekRange(selectedMonday)}</Text>
           </View>
 
           <View style={styles.weekTabs}>
@@ -79,9 +80,8 @@ export default function WeekScreen() {
               </Pressable>
             ))}
           </View>
-          <Text style={styles.weekRange}>{weekRange(selectedMonday)}</Text>
           {selectedWeek === 1 && !nextPrepared ? (
-            <Text style={styles.nextHint}>El horario de la próxima semana está vacío. Agrega turnos o copia el actual: Brain no supondrá que se repiten.</Text>
+            <Text style={styles.nextHint}>Próxima semana sin horario. Copia la actual o edita los días.</Text>
           ) : null}
           {selectedWeek === 1 ? (
             <Pressable accessibilityRole="button" style={styles.copyWeekButton} onPress={() => {
@@ -99,13 +99,7 @@ export default function WeekScreen() {
             </Pressable>
           ) : null}
 
-          <View style={styles.summaryCard}>
-            <View style={styles.summaryItem}><Text style={styles.summaryValue}>{summary.workDays}</Text><Text style={styles.summaryLabel}>Jornadas</Text></View>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryItem}><Text style={styles.summaryValue}>{summary.freeDays}</Text><Text style={styles.summaryLabel}>Libres</Text></View>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryItem}><Text style={styles.summaryValue}>{summary.total}</Text><Text style={styles.summaryLabel}>Programadas</Text></View>
-          </View>
+          <Text style={styles.summaryLine}>{summary.workDays} jornadas · {summary.freeDays} libres · {summary.total} programadas</Text>
 
           <View style={styles.daysCard}>
             {week.shifts.map((shift, index) => {
@@ -150,10 +144,10 @@ export default function WeekScreen() {
                           <View style={styles.breakRow}>
                             <View style={{ flex: 1 }}>
                               <Text style={styles.breakTitle}>Colación</Text>
-                              <Text style={styles.breakCopy}>Duración entre 0 y 180 minutos.</Text>
                             </View>
                             <View style={styles.breakInputWrap}>
                               <TextInput
+                                accessibilityLabel="Duración de colación, entre 0 y 180 minutos"
                                 value={String(shift.breakMinutes ?? 0)}
                                 onChangeText={(value) => {
                                   const digits = value.replace(/\D/g, '').slice(0, 3);
@@ -220,29 +214,25 @@ export default function WeekScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   keyboardShell: { flex: 1 },
-  content: { paddingHorizontal: 18, paddingTop: 18, paddingBottom: 96 },
-  hero: { marginTop: 14, marginBottom: 10 },
+  content: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 104 },
+  hero: { marginTop: 4, marginBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
   title: { color: colors.text, fontWeight: '900', fontSize: 24, lineHeight: 29 },
-  weekTabs: { flexDirection: 'row', gap: 10, marginBottom: 8 },
-  weekTab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 14, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
+  weekTabs: { flexDirection: 'row', gap: 8, marginBottom: 8 },
+  weekTab: { flex: 1, minHeight: 44, justifyContent: 'center', alignItems: 'center', borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
   weekTabActive: { backgroundColor: '#173B68', borderColor: colors.blue },
   weekTabText: { color: colors.muted, fontSize: 13, fontWeight: '800' },
   weekTabTextActive: { color: colors.text },
-  weekRange: { color: colors.muted, fontSize: 11, fontWeight: '700', marginBottom: 12 },
+  weekRange: { color: colors.muted, fontSize: 11, fontWeight: '700' },
+  summaryLine: { color: '#A8BED7', fontSize: 12, lineHeight: 17, marginBottom: 10, fontWeight: '800' },
   nextHint: { color: colors.muted, fontSize: 12, lineHeight: 18, marginBottom: 10 },
   copyWeekButton: { padding: 12, borderRadius: 12, borderColor: colors.line, backgroundColor: colors.surface2, borderWidth: 1, alignItems: 'center', marginBottom: 12 },
   copyWeekText: { color: colors.text, fontWeight: '800', fontSize: 13 },
-  summaryCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 18, paddingVertical: 11, paddingHorizontal: 6, marginBottom: 12 },
-  summaryItem: { flex: 1, alignItems: 'center' },
-  summaryValue: { color: colors.text, fontWeight: '900', fontSize: 16 },
-  summaryLabel: { color: colors.muted, fontSize: 10, marginTop: 2 },
-  summaryDivider: { width: 1, height: 30, backgroundColor: colors.line },
   daysCard: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 20, overflow: 'hidden' },
   dayBlock: { borderBottomWidth: 1, borderBottomColor: colors.line },
   dayBlockLast: { borderBottomWidth: 0 },
-  dayRow: { minHeight: 62, paddingHorizontal: 16, paddingVertical: 11, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  dayRow: { minHeight: 54, paddingHorizontal: 14, paddingVertical: 7, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   day: { color: colors.text, fontSize: 15, fontWeight: '900' },
-  dayShift: { color: '#71BFFF', fontSize: 13, fontWeight: '800', marginTop: 3 },
+  dayShift: { color: '#71BFFF', fontSize: 12, fontWeight: '800', marginTop: 2 },
   dayOff: { color: '#7EDAA3' },
   chevron: { color: colors.muted, fontSize: 24, transform: [{ rotate: '0deg' }] },
   chevronOpen: { transform: [{ rotate: '180deg' }], color: colors.blue },
@@ -254,13 +244,12 @@ const styles = StyleSheet.create({
   segmentText: { color: colors.muted, fontWeight: '800', fontSize: 14 },
   segmentTextActive: { color: colors.text },
   times: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
-  timeButton: { flex: 1, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.line, borderRadius: 16, padding: 13 },
+  timeButton: { flex: 1, minHeight: 54, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.line, borderRadius: 13, padding: 10 },
   timeLabel: { color: colors.muted, fontSize: 11, fontWeight: '700' },
   timeValue: { color: colors.text, fontSize: 20, fontWeight: '900', marginTop: 4 },
   timeArrow: { color: colors.blue, fontSize: 20, fontWeight: '900' },
-  breakRow: { marginTop: 10, padding: 12, borderRadius: 15, backgroundColor: '#081628', borderWidth: 1, borderColor: colors.line, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  breakRow: { marginTop: 8, padding: 9, borderRadius: 13, backgroundColor: '#081628', borderWidth: 1, borderColor: colors.line, flexDirection: 'row', alignItems: 'center', gap: 12 },
   breakTitle: { color: colors.text, fontSize: 12, fontWeight: '900' },
-  breakCopy: { color: colors.muted, fontSize: 10, lineHeight: 14, marginTop: 3 },
   breakInputWrap: { minWidth: 94, minHeight: 42, paddingHorizontal: 10, borderRadius: 13, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.line, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6 },
   breakInput: { minWidth: 44, color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'right', paddingVertical: 6 },
   breakUnit: { color: colors.muted, fontSize: 10, fontWeight: '800' },
