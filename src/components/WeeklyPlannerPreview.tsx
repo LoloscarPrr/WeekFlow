@@ -75,9 +75,9 @@ export function WeeklyPlannerPreview({ week, selectedWeek = 0 }: { week: WeekSch
   return (
     <View style={styles.card}>
       <Text style={styles.title}>Organizar semana</Text>
-      {confirmed ? <Text style={styles.summary}>✓ Plan confirmado · ${(confirmed.moveSlots?.length ?? 0)} Move · ${confirmed.slots.length} hábitos</Text> : null}
+      {confirmed ? <Text style={styles.summary}>✓ Plan confirmado · {confirmed.moveSlots?.length ?? 0} Move · {confirmed.slots.length} hábitos</Text> : null}
       <Pressable accessibilityRole="button" accessibilityState={{ expanded: settingsOpen }} style={styles.settingsToggle} onPress={() => setSettingsOpen((open) => !open)}>
-        <Text style={styles.settingsText}>Move · ${movePreferences.weeklyTargetSessions} por semana · ${movePreferences.preferredSessionMinutes} min</Text>
+        <Text style={styles.settingsText}>Move · {movePreferences.weeklyTargetSessions} por semana · {movePreferences.preferredSessionMinutes} min</Text>
         <Text style={styles.settingsArrow}>{settingsOpen ? '−' : '+'}</Text>
       </Pressable>
       {settingsOpen ? (
