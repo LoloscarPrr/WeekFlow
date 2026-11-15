@@ -1,6 +1,6 @@
 # WF-UX-003 — Acción primero, formularios cuando hagan falta
 
-Status: LOCKED
+Status: IMPLEMENTING
 Owner: WeekFlow
 Blueprint: WeekFlow Blueprint Maestro v4.0
 
@@ -18,7 +18,8 @@ A person opening the app can understand today's priority, edit a shift or start 
 - Move: put duration and start near the first card; collapse routine tuning, physical-profile editor and full exercise preview under visible toggles. Show compact current choices. Keep disabled-state explanation visible if no eligible exercise.
 - Semana: one canonical week selector; weekly planner follows selected week without a redundant local selector. Start with concise planner summary, reveal session settings on demand and always show pending-confirmation warning. Events list is always visible; creation fields expand on demand.
 - Ahora: shorten vertical spacing and energy-button height without shrinking tap targets under 44 px.
-- Small spacing adjustments on selected core screens where safe.
+- Food: streamline empty meal log, shorten shortcut/context panels and preserve recipe/ingredient actions.
+- Rest: remove duplicated pillar heading and make recovery cards denser without changing sleep guidance.
 - Add structure/regression checks in Quality.
 
 ## Non-goals
@@ -32,11 +33,12 @@ A person opening the app can understand today's priority, edit a shift or start 
 - [ ] AC3 — Weekly planner uses `selectedWeek` as the sole week selector, warns if existing confirmed plan needs review and never confirms without showing the proposal.
 - [ ] AC4 — Important moments remain listed even when event creation is folded; tapping the creation trigger reveals the original date/time/name controls.
 - [ ] AC5 — Now retains four energy choices, actual exit/replan and upcoming timeline, with compact touch targets (>=44 px).
-- [ ] AC6 — No data-schema, session logic, notification, date, signing, navigation or version identifier change in the implementation.
+- [ ] AC6 — No data-schema, session logic, notification, date, signing or navigation changes; only technical display version increments to 0.5.37 via established release gates.
+- [ ] AC8 — Food and Rest keep their registered meal/rest flows with less empty-state repetition and denser cards.
 - [ ] AC7 — Targeted regressions and complete Quality/Metro pass; Android physical QA/build status reported accurately.
 
 ## Data/persistence impact
-None. All UI expand/collapse state is local and ephemeral; existing state sources and saved schedules/history are unchanged.
+None. All UI expand/collapse state is local and ephemeral; existing state sources and saved schedules/history are unchanged. Release display metadata moves from 0.5.36 to 0.5.37; Android versionCode continues to be assigned by the signed build workflow.
 
 ## UI/UX impact
 Primary action above optional forms, folded details by default, one source of truth for selected week, concise actionable summaries and tap targets >=44 px.
@@ -54,4 +56,4 @@ Primary action above optional forms, folded details by default, one source of tr
 - Physical Android scroll/keyboard/tap validation marked BLOCKED without device.
 
 ## Verification result
-Pending implementation and checks.
+Implementation in progress. GitHub PR Quality and Android signing, plus physical-device QA, are required before Done.
