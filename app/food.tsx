@@ -513,8 +513,6 @@ const styles = StyleSheet.create({
   recipeList: { gap: 10 },
   libraryButton: { marginTop: 10, borderRadius: 14, borderWidth: 1, borderColor: colors.line, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   libraryButtonText: { color: '#91BDF4', fontSize: 11, fontWeight: '900' },
-  emptyCard: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 20, padding: 17 },
-  emptyTitle: { color: colors.text, fontSize: 15, fontWeight: '900' },
   emptyCopy: { color: colors.muted, fontSize: 13, lineHeight: 20, marginTop: 5 },
   logCard: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 22, paddingHorizontal: 16 },
   logRow: { flexDirection: 'row', gap: 10, alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.line },
