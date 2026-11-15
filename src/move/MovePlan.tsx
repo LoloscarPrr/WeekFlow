@@ -183,7 +183,7 @@ export function MovePlan({ move }: { move: MoveController }) {
               </Pressable>
             ) : null}
 
-            <Text style={styles.sessionSummary}>${optionLabel(MOVE_FOCUS_OPTIONS, preferences.focus)} · ${describeTargetMuscles(effectivePreferences.targetMuscles)} · ${routineStyleLabel(routine.style)}</Text>
+            <Text style={styles.sessionSummary}>{optionLabel(MOVE_FOCUS_OPTIONS, preferences.focus)} · {describeTargetMuscles(effectivePreferences.targetMuscles)} · {routineStyleLabel(routine.style)}</Text>
             <Text style={styles.compactLabel}>Tiempo disponible</Text>
             <View style={styles.durationRow}>
               {MOVE_DURATIONS.map((item) => (
