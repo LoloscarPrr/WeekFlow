@@ -412,6 +412,7 @@ export function MovePlan({ move }: { move: MoveController }) {
                 );
               })}
             </View>
+            <Text style={styles.preferenceCopy}>Frecuencia semanal: Semana → Organizar semana.</Text>
 
               </>
             ) : null}
