@@ -105,7 +105,6 @@ function MiniStat({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   content: { paddingHorizontal: 18, paddingTop: 10, paddingBottom: 104 },
-  eyebrow: { color: '#76AFFF', fontWeight: '800', letterSpacing: 4, fontSize: 14, marginTop: 24 },
   title: { color: colors.text, fontWeight: '900', fontSize: 23, lineHeight: 29, marginTop: 10 },
   contextCard: { marginTop: 9, backgroundColor: '#142A48', borderWidth: 1, borderColor: '#315987', borderRadius: 18, padding: 14 },
   contextEyebrow: { color: '#79B6FF', fontWeight: '900', fontSize: 11, letterSpacing: 2 },
