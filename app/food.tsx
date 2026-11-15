@@ -399,11 +399,7 @@ export default function FoodScreen() {
           </Pressable>
 
           <Text style={styles.section}>HOY</Text>
-          {foodDay.entries.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyTitle}>Todavía no has registrado nada.</Text>
-            </View>
-          ) : (
+          {foodDay.entries.length ? (
             <View style={styles.logCard}>
               {foodDay.entries.map((entry, index) => (
                 <View key={entry.id} style={[styles.logRow, index === foodDay.entries.length - 1 && styles.logRowLast]}>
@@ -423,11 +419,11 @@ export default function FoodScreen() {
                 </View>
               ))}
             </View>
-          )}
+          ) : null}
 
           {!manualOpen ? (
             <Pressable style={styles.manualButton} onPress={() => setManualOpen(true)}>
-              <Text style={styles.manualButtonText}>+ Comí otra cosa</Text>
+              <Text style={styles.manualButtonText}>{foodDay.entries.length ? '+ Registrar otra comida' : '+ Registrar una comida'}</Text>
             </Pressable>
           ) : (
             <View style={styles.manualCard}>
@@ -470,25 +466,25 @@ export default function FoodScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   keyboardShell: { flex: 1 },
-  content: { padding: 22, paddingBottom: 148 },
+  content: { paddingHorizontal: 18, paddingTop: 10, paddingBottom: 120 },
   eyebrow: { color: '#76AFFF', fontWeight: '800', letterSpacing: 4, fontSize: 14, marginTop: 24 },
   title: { color: colors.text, fontWeight: '900', fontSize: 30, lineHeight: 36, marginTop: 6 },
-  contextCard: { marginTop: 12, backgroundColor: '#12304E', borderWidth: 1, borderColor: '#29577D', borderRadius: 24, padding: 18 },
+  contextCard: { marginTop: 9, backgroundColor: '#12304E', borderWidth: 1, borderColor: '#29577D', borderRadius: 19, padding: 14 },
   contextEyebrow: { color: '#79B6FF', fontWeight: '900', fontSize: 11, letterSpacing: 2 },
-  contextTitle: { color: colors.text, fontSize: 22, fontWeight: '900', marginTop: 6 },
-  contextCopy: { color: '#B8C9DE', fontSize: 14, lineHeight: 21, marginTop: 7 },
-  shiftText: { color: '#78AEEC', fontSize: 12, fontWeight: '800', marginTop: 12 },
-  sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 28, marginBottom: 10, gap: 10 },
+  contextTitle: { color: colors.text, fontSize: 19, fontWeight: '900', marginTop: 4 },
+  contextCopy: { color: '#B8C9DE', fontSize: 12, lineHeight: 18, marginTop: 5 },
+  shiftText: { color: '#78AEEC', fontSize: 11, fontWeight: '800', marginTop: 7 },
+  sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 17, marginBottom: 8, gap: 10 },
   sectionInline: { flex: 1, color: '#76AFFF', fontWeight: '800', letterSpacing: 3, fontSize: 12 },
-  section: { color: '#76AFFF', fontWeight: '800', letterSpacing: 4, fontSize: 14, marginTop: 30, marginBottom: 12 },
+  section: { color: '#76AFFF', fontWeight: '800', letterSpacing: 2.2, fontSize: 12, marginTop: 18, marginBottom: 8 },
   sectionMeta: { color: colors.muted, fontSize: 10, fontWeight: '800' },
-  pantryCard: { borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, borderRadius: 20, padding: 14 },
+  pantryCard: { borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, borderRadius: 16, padding: 11 },
   pantryEmpty: { color: colors.muted, fontSize: 12, lineHeight: 18 },
   pantryChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
   pantryChip: { borderRadius: 10, borderWidth: 1, borderColor: '#2B5A87', backgroundColor: '#102B4B', paddingHorizontal: 9, paddingVertical: 7 },
   pantryChipText: { color: '#B7D6FA', fontSize: 10, fontWeight: '900' },
   pantryInputBox: { marginTop: 10 },
-  pantryAddButton: { marginTop: 10, borderRadius: 13, borderWidth: 1, borderColor: '#356596', minHeight: 42, alignItems: 'center', justifyContent: 'center' },
+  pantryAddButton: { marginTop: 8, borderRadius: 12, borderWidth: 1, borderColor: '#356596', minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   pantryAddText: { color: '#91BDF4', fontSize: 11, fontWeight: '900' },
   input: { minHeight: 48, borderWidth: 1, borderColor: '#294768', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11, color: colors.text, backgroundColor: colors.surface2, fontSize: 14 },
   inlineActions: { flexDirection: 'row', gap: 8, marginTop: 10 },
@@ -498,11 +494,11 @@ const styles = StyleSheet.create({
   saveDisabled: { opacity: 0.4 },
   saveText: { color: '#FFFFFF', fontWeight: '900', fontSize: 12 },
   quickActions: { flexDirection: 'row', gap: 7, marginTop: 10 },
-  quickButton: { flex: 1, minHeight: 92, borderRadius: 18, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, padding: 11 },
-  quickIcon: { fontSize: 20 },
-  quickTitle: { color: colors.text, fontSize: 11, fontWeight: '900', marginTop: 6 },
+  quickButton: { flex: 1, minHeight: 74, borderRadius: 14, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, padding: 9 },
+  quickIcon: { fontSize: 18 },
+  quickTitle: { color: colors.text, fontSize: 11, fontWeight: '900', marginTop: 3 },
   quickCopy: { color: colors.muted, fontSize: 8, marginTop: 2 },
-  preferenceToggle: { marginTop: 12, minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 17, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, padding: 13 },
+  preferenceToggle: { marginTop: 9, minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, padding: 10 },
   preferenceTitle: { color: colors.text, fontSize: 12, fontWeight: '900' },
   preferenceCopy: { color: colors.muted, fontSize: 9, lineHeight: 14, marginTop: 3 },
   preferenceArrow: { color: '#76AFFF', fontSize: 22, fontWeight: '800' },
@@ -521,7 +517,7 @@ const styles = StyleSheet.create({
   emptyTitle: { color: colors.text, fontSize: 15, fontWeight: '900' },
   emptyCopy: { color: colors.muted, fontSize: 13, lineHeight: 20, marginTop: 5 },
   logCard: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 22, paddingHorizontal: 16 },
-  logRow: { flexDirection: 'row', gap: 12, alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.line },
+  logRow: { flexDirection: 'row', gap: 10, alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.line },
   logRowLast: { borderBottomWidth: 0 },
   logTime: { color: '#76AFFF', fontSize: 11, fontWeight: '900' },
   logTitle: { color: colors.text, fontSize: 15, fontWeight: '900', marginTop: 2 },
@@ -531,7 +527,7 @@ const styles = StyleSheet.create({
   editTimeText: { color: '#76AFFF', fontSize: 11, fontWeight: '900' },
   removeButton: { paddingHorizontal: 8, paddingVertical: 8 },
   removeText: { color: '#88A5C7', fontSize: 11, fontWeight: '800' },
-  manualButton: { marginTop: 14, borderWidth: 1, borderColor: colors.line, borderRadius: 17, paddingVertical: 14, alignItems: 'center' },
+  manualButton: { marginTop: 10, minHeight: 46, borderWidth: 1, borderColor: colors.line, borderRadius: 13, justifyContent: 'center', alignItems: 'center' },
   manualButtonText: { color: '#91BDF4', fontSize: 13, fontWeight: '900' },
   manualCard: { marginTop: 14, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 20, padding: 16 },
   manualLabel: { color: colors.text, fontSize: 14, fontWeight: '900', marginBottom: 10 },
