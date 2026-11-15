@@ -1,7 +1,7 @@
 # TLC Initialization Snapshot — WF-UX-003 (2026-11-15)
 
 ## Repository and ref
-- Repository `LoloscarPrr/WeekFlow`; main/base `02468af5f21f26c062a26f474482490a143dc63c` (WeekFlow 0.5.36).
+- Repository `LoloscarPrr/WeekFlow`; main/base `02468af5f21f26c062a26f474482490a143dc63c` (WeekFlow 0.5.36); working release version 0.5.37 synchronized in app/package/lockfile/tests.
 - Working branch `feature/wf-ux-003-compact-action-first`.
 - Expo SDK 57, Android `com.weekflow.app`, signed release workflow preserves monotonic versionCode and permanent key; no native edits planned.
 
