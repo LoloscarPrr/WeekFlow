@@ -418,7 +418,7 @@ export function MovePlan({ move }: { move: MoveController }) {
           </View>
 
           <Pressable accessibilityRole="button" accessibilityState={{ expanded: previewOpen }} style={styles.previewToggle} onPress={() => setPreviewOpen((open) => !open)}>
-            <Text style={styles.previewToggleText}>Ver ejercicios · ${preview.length} movimientos</Text>
+            <Text style={styles.previewToggleText}>Ver ejercicios · {preview.length} movimientos</Text>
             <Text style={styles.disclosureArrow}>{previewOpen ? '−' : '+'}</Text>
           </Pressable>
           {previewOpen ? (
