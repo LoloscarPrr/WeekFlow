@@ -193,7 +193,7 @@ export function MovePlan({ move }: { move: MoveController }) {
               ))}
             </View>
             {!hasCompatibleTarget ? (
-              <Text style={styles.settingWarning}>No hay ejercicios compatibles con este enfoque y tus restricciones. Abre «Ajustar entrenamiento» para cambiarlo.</Text>
+              <Text style={styles.settingWarning}>No hay ejercicios compatibles con este enfoque y tus restricciones. Revísalos en los ajustes de abajo.</Text>
             ) : null}
             <Pressable disabled={!hasCompatibleTarget} style={[styles.primaryButton, !hasCompatibleTarget && styles.disabled]} onPress={startSession}>
               <Text style={styles.primaryButtonText}>Empezar sesión guiada</Text>
