@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   },
   statusTitle: { color: '#8BBEFF', fontWeight: '900', fontSize: 12 },
   statusBody: { color: colors.text, fontSize: 12, lineHeight: 18, marginTop: 4 },
-  statusWarning: { color: '#F3C581', fontSize: 12, lineHeight: 18, marginTop: 6 }
+  statusWarning: { color: '#F3C581', fontSize: 12, lineHeight: 18, marginTop: 6 },
   diagnosticButton: {
     borderRadius: 12, backgroundColor: '#2E77D9', paddingVertical: 13,
     paddingHorizontal: 12, marginTop: 12, alignItems: 'center',
