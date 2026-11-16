@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { getExactAlarmPermissionStatus, type ExactAlarmPermissionStatus } from '@/src/notifications/exactAlarmPermission';
 import * as Notifications from 'expo-notifications';
 import { loadConfirmedWeeklyPlan } from '@/src/brain/weeklyPlanPersistence';
 import { loadHabitsState } from '@/src/habits/persistence';
@@ -130,6 +131,7 @@ export async function getScheduledReminders() {
 export type NotificationDeliveryDiagnostics = {
   appEnabled: boolean;
   permissionGranted: boolean;
+  exactAlarmPermission: ExactAlarmPermissionStatus;
   channelEnabled: boolean | null;
   scheduledManagedCount: number;
   beforeLastSyncManagedCount: number | null;
@@ -140,9 +142,10 @@ let preSyncSnapshot: { managed: number; checkedAt: string } | null = null;
 
 /** Native scheduling is not proof of delivery on Android; show both facts. */
 export async function getNotificationDeliveryDiagnostics(): Promise<NotificationDeliveryDiagnostics> {
-  const [permission, requests] = await Promise.all([
+  const [permission, requests, exactAlarmPermission] = await Promise.all([
     Notifications.getPermissionsAsync(),
     Notifications.getAllScheduledNotificationsAsync(),
+    getExactAlarmPermissionStatus(),
   ]);
   const channel = Platform.OS === 'android'
     ? await Notifications.getNotificationChannelAsync(WEEKFLOW_NOTIFICATION_CHANNEL)
@@ -150,6 +153,7 @@ export async function getNotificationDeliveryDiagnostics(): Promise<Notification
   return {
     appEnabled: loadNotificationPreferences().enabled,
     permissionGranted: permission.granted,
+    exactAlarmPermission,
     channelEnabled: Platform.OS === 'android'
       ? Boolean(channel && channel.importance !== Notifications.AndroidImportance.NONE)
       : null,
