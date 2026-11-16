@@ -1,20 +1,21 @@
-# TLC Initialization Snapshot — WF-UX-003 (2026-11-15)
+# TLC Initialization Snapshot — WF-NOTIFY-008 (2026-11-16)
 
-## Repository and ref
-- Repository `LoloscarPrr/WeekFlow`; main/base `02468af5f21f26c062a26f474482490a143dc63c` (WeekFlow 0.5.36); working release version 0.5.37 synchronized in app/package/lockfile/tests.
-- Working branch `feature/wf-ux-003-compact-action-first`.
-- Expo SDK 57, Android `com.weekflow.app`, signed release workflow preserves monotonic versionCode and permanent key; no native edits planned.
+## Repository / baseline
+- LoloscarPrr/WeekFlow main baseline `4c18944b4cbf46a56df4d56194555be42b4cc899`, signed WeekFlow 0.5.37; working branch `feature/wf-notify-008-exact-alarm-permission`.
+- Current Expo SDK 57, expo-notifications ~57.0.7, Android com.weekflow.app. Workflow assigns monotonic versionCode and signs with the existing permanent keystore.
+- User's Redmi 12 5G (Android 15, Xiaomi) shows notifications allowed and 11 scheduled reminders, but no clear exact-alarm entry in the normal Android permission list. Those screenshots do not establish whether exact alarm special access was granted.
+- Existing permission `android.permission.SCHEDULE_EXACT_ALARM` is already declared in app.json. `USE_EXACT_ALARM` is not appropriate.
+- Official Android documentation: check `AlarmManager.canScheduleExactAlarms()`, request via `Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM` only on user action, and recheck on activity resume.
+- Expo SDK57 notification APIs do not expose the exact-alarm permission methods documented in newer SDK versions. A small autolinked local Expo native module avoids risky broad SDK changes.
+- Source of truth: Blueprint Maestro v4.0, `docs/specs/WF-NOTIFY-007-long-idle-reliability.md`, `src/services/notifications.ts`, `app/notifications.tsx`, `app/_layout.tsx`, release/build workflow, QA tests.
+- Two old open PRs (#75, #110) are unrelated. Work isolated from main until Quality + native Android build pass.
+- Previous signed Android and full Quality on main: PASS; user-device delivery at 24/48h remains BLOCKED and not implied by scheduled alarm counts.
 
-## Product priority and source of truth
-- WeekFlow Blueprint Maestro v4.0: reduce mental load rather than add features; Ahora displays one priority, Semana remains compact and manually editable, Move closes its guided experience, UI/keyboard must remain usable on small phones; advanced planning requires explicit confirmation.
-- Read root `AGENTS.md` and `.agents/skills/tlc-spec-driven/SKILL.md`, relevant UX and Week/Move specs, current `app/index.tsx`, `app/week.tsx`, `src/components/WeeklyPlannerPreview.tsx`, `src/components/ImportantEventCard.tsx`, `src/move/MovePlan.tsx` and `src/move/styles.ts`.
-- Current two open PRs #75 and #110 are historical branches; no open competing PR on the current 0.5.36 files at initialization. Avoid writes to main until review/CI.
+## Phase decision
+WF-NOTIFY-008 — exact alarm status and settings: NOW as a core reliability/diagnostic correction. No persistence, notification scheduling, WorkManager, autostart, Smart Silence or Doze bypass change.
 
-## Baseline and constraints
-- 0.5.36 release and main Quality #42920129152 both PASS (historical); new branch Quality NOT RUN.
-- Physical Android visual/keyboard QA: UNAVAILABLE in this tool environment.
-- No backend, scheduling, data migration, persistence, notification, identity, signing or exercise engine edits. No changes to the Brain proposal confirmation semantics.
-- Feature scope: action-first condensed Move, single-week selector and on-demand event/planner in Semana, denser energy controls in Ahora; small-screen touch targets must remain operable.
-
-## Next locked spec
-- `WF-UX-003 — Acción primero, formularios cuando hagan falta`, Phase decision NOW because it directly addresses excessive visible form controls and repetitious content in existing modules.
+## Work/verification
+- Add `modules/weekflow-exact-alarms` local Android bridge for the actual OS status and user-requested settings.
+- Display allowed/blocked/unavailable separately from notification and channel status; refresh on foreground.
+- Keep 5-second and 24-hour diagnostic tests and plan reconciliation unchanged.
+- Next release display: 0.5.38. Physical Redmi QA and alarm delivery still pending after build.

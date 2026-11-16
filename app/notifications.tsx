@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { AppState } from 'react-native';
+import { openExactAlarmPermissionSettings } from '@/src/notifications/exactAlarmPermission';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { Brand } from '@/src/components/Brand';
@@ -75,7 +77,34 @@ export default function NotificationPreferencesScreen() {
     }
   }
 
-  useEffect(() => { void refreshDiagnostics(); }, []);
+  useEffect(() => {
+    void refreshDiagnostics();
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void refreshDiagnostics();
+    });
+    return () => subscription.remove();
+  }, []);
+
+  async function openExactAlarmSettings() {
+    setCheckingDiagnostics(true);
+    try {
+      const result = await openExactAlarmPermissionSettings();
+      if (result === 'app-details') {
+        setStatus('Android abrió los detalles de WeekFlow: busca «Otros permisos» o «Alarmas y recordatorios».');
+      } else if (result === 'unavailable') {
+        setStatus('No fue posible abrir el acceso especial desde WeekFlow. Revisa los ajustes de Xiaomi.');
+        await Linking.openSettings();
+      } else if (result === 'not-needed') {
+        setStatus('En esta versión de Android no se requiere un permiso especial para las alarmas exactas.');
+      } else {
+        setStatus('Revisa el permiso de «Alarmas y recordatorios» y regresa a WeekFlow. Se comprobará nuevamente.');
+      }
+    } catch {
+      setStatus('No fue posible abrir la configuración de alarmas de Android.');
+    } finally {
+      setCheckingDiagnostics(false);
+    }
+  }
 
   async function testNotification() {
     setCheckingDiagnostics(true);
@@ -196,12 +225,23 @@ export default function NotificationPreferencesScreen() {
           <Text style={styles.statusTitle}>DIAGNÓSTICO DE ANDROID</Text>
           <Text style={styles.statusBody}>WeekFlow: {diagnostics ? (diagnostics.appEnabled ? 'activado' : 'apagado') : 'comprobando…'}</Text>
           <Text style={styles.statusBody}>Permiso de notificaciones: {diagnostics ? (diagnostics.permissionGranted ? 'permitido' : 'bloqueado') : 'comprobando…'}</Text>
+          <Text style={[styles.statusBody, diagnostics?.exactAlarmPermission === 'blocked' && styles.statusWarning]}>Alarmas exactas: {diagnostics?.exactAlarmPermission === 'allowed' ? 'permitidas' : diagnostics?.exactAlarmPermission === 'blocked' ? 'sin permiso especial' : 'sin verificar'}</Text>
           <Text style={styles.statusBody}>Canal de recordatorios: {diagnostics?.channelEnabled === null || diagnostics === null ? 'no disponible' : diagnostics.channelEnabled ? 'activo' : 'bloqueado'}</Text>
           <Text style={styles.statusBody}>Recordatorios pendientes en Android: {diagnostics?.scheduledManagedCount ?? '—'}</Text>
           <Text style={styles.statusBody}>Antes de la última sincronización: {diagnostics?.beforeLastSyncManagedCount ?? '—'} avisos pendientes</Text>
           <Text style={styles.statusBody}>Última revisión: {diagnostics?.lastSyncAt ? new Date(diagnostics.lastSyncAt).toLocaleString('es-CL') : 'Sin datos en esta sesión'}</Text>
-          <Text style={styles.statusBody}>Si la prueba de 5 segundos funciona pero los avisos reales se retrasan, programa la prueba de 24 horas. Es una alarma con fecha, no un temporizador. Android puede aplazarla durante el reposo prolongado.</Text>
-          <Text style={styles.statusBody}>En Android 14+ revisa también Ajustes → Apps → Acceso especial → Alarmas y recordatorios → WeekFlow. En Xiaomi/Redmi activa batería «Sin restricciones» y el inicio automático. Android puede retrasar alarmas incluso si aquí aparecen como programadas.</Text>
+          {diagnostics?.exactAlarmPermission === 'blocked' ? (
+            <Text style={styles.statusWarning}>Android no ha permitido programar alarmas exactas. Los recordatorios con hora pueden retrasarse.</Text>
+          ) : null}
+          {diagnostics?.exactAlarmPermission === 'unavailable' ? (
+            <Text style={styles.statusBody}>No se pudo comprobar el permiso especial en este dispositivo. Los avisos pendientes no confirman su entrega.</Text>
+          ) : null}
+          <Text style={styles.statusBody}>«Alarmas y recordatorios» es un permiso distinto de Notificaciones. En Xiaomi también puedes revisar batería «Sin restricciones». Android puede retrasar alarmas durante el reposo.</Text>
+          {diagnostics?.exactAlarmPermission !== 'allowed' ? (
+            <Pressable style={styles.diagnosticButton} disabled={checkingDiagnostics} onPress={() => void openExactAlarmSettings()} accessibilityRole="button" accessibilityLabel="Abrir ajustes del permiso de alarmas exactas">
+              <Text style={styles.diagnosticButtonText}>Revisar alarmas exactas</Text>
+            </Pressable>
+          ) : null}
           <Pressable style={styles.diagnosticButton} disabled={checkingDiagnostics} onPress={() => void testNotification()} accessibilityRole="button" accessibilityLabel="Probar notificación en cinco segundos">
             <Text style={styles.diagnosticButtonText}>Probar notificación en 5 segundos</Text>
           </Pressable>
@@ -283,6 +323,7 @@ const styles = StyleSheet.create({
   },
   statusTitle: { color: '#8BBEFF', fontWeight: '900', fontSize: 12 },
   statusBody: { color: colors.text, fontSize: 12, lineHeight: 18, marginTop: 4 },
+  statusWarning: { color: '#F3C581', fontSize: 12, lineHeight: 18, marginTop: 6 },
   diagnosticButton: {
     borderRadius: 12, backgroundColor: '#2E77D9', paddingVertical: 13,
     paddingHorizontal: 12, marginTop: 12, alignItems: 'center',
