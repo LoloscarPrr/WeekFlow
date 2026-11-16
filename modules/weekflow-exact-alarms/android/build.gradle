@@ -1,0 +1,15 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.weekflow'
+version = '0.5.38'
+
+android {
+  namespace "expo.modules.weekflowalarms"
+  defaultConfig {
+    versionCode 1
+    versionName '0.5.38'
+  }
+}
