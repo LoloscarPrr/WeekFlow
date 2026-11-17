@@ -1,6 +1,6 @@
 # WF-NOTIFY-009 — Activación explícita de alarmas exactas
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Date: 2026-11-17
 Blueprint: WeekFlow Blueprint Maestro v4.0
@@ -37,5 +37,9 @@ NOW, fase de confiabilidad y permisos Android observada en dispositivo real.
 - AC7: Quality completo, Android Metro y compilación firmada 0.5.39; QA física Xiaomi pendiente.
 - AC8: Paquete Android `com.weekflow.app`, firma y versionCode monotónico de CI preservados.
 
-## Verification
-Pending.
+## Verification — 2026-11-17
+- AC1–AC6: PASS by source inspection and new structural regression; a single user-approved explanation is triggered only when OS status is blocked and reminders are enabled, with a prominent repeatable button on Notificaciones.
+- AC7: PR Quality #44087766857 PASS (TypeScript, full regression suite, Android Metro export). Signed Android build PENDING after merge; real-device Xiaomi approval and 24h delivery still BLOCKED until tested.
+- AC8: PASS by code comparison — `com.weekflow.app`, release signing workflow and monotonic Android versionCode remain unchanged; release metadata 0.5.39 synchronized in app/package/lock/test.
+- Native permission had already been checked in APK 0.5.38, including local module class. This release changes *when and how the user is asked*, not the OS capability or alarm scheduling engine.
+
