@@ -30,3 +30,17 @@ export function saveNotificationPreferences(
   sqliteStateStore.write(NOTIFICATION_PREFERENCES_KEY, sanitized);
   return sanitized;
 }
+
+/**
+ * Remember an explicit response to the one-time Android special-access
+ * explanation. This is not the OS permission itself; always query AlarmManager.
+ */
+const EXACT_ALARM_OFFER_SEEN_KEY = 'notification-exact-alarm-offer-v1';
+
+export function hasSeenExactAlarmPermissionOffer(): boolean {
+  return sqliteStateStore.read<boolean>(EXACT_ALARM_OFFER_SEEN_KEY) === true;
+}
+
+export function markExactAlarmPermissionOfferSeen(): void {
+  sqliteStateStore.write(EXACT_ALARM_OFFER_SEEN_KEY, true);
+}
