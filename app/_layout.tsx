@@ -5,6 +5,7 @@ import { AppState, StyleSheet, View } from 'react-native';
 import { BottomNav } from '@/src/components/BottomNav';
 import { useAdaptiveLayout } from '@/src/presentation/layout/useAdaptiveLayout';
 import { syncLivePlanReminders } from '@/src/services/notifications';
+import { offerExactAlarmAccessIfNeeded } from '@/src/notifications/exactAlarmPermission';
 import { shouldShowOnboarding } from '@/src/onboarding/persistence';
 import { syncCrashReportingConsent } from '@/src/privacy/crashReporting';
 import { colors } from '@/src/theme/colors';
@@ -34,6 +35,11 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (onboardingRequired !== false) return;
+
+    // Ask once with an explanation. Only a deliberate tap opens special access.
+    void offerExactAlarmAccessIfNeeded().catch((error) => {
+      console.warn('Could not offer special alarm access', error);
+    });
 
     void syncLivePlanReminders().catch((error) => {
       console.warn('Could not sync WeekFlow reminders', error);
