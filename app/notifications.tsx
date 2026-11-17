@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AppState } from 'react-native';
-import { openExactAlarmPermissionSettings } from '@/src/notifications/exactAlarmPermission';
+import { openExactAlarmPermissionSettings, offerExactAlarmAccessIfNeeded } from '@/src/notifications/exactAlarmPermission';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { Brand } from '@/src/components/Brand';
@@ -153,6 +153,9 @@ export default function NotificationPreferencesScreen() {
       })
       .catch(() => {
         setStatus('Preferencias guardadas, pero no pudimos verificar los avisos del sistema.');
+      })
+      .finally(() => {
+        if (saved.enabled) void offerExactAlarmAccessIfNeeded();
       });
   }
 
@@ -182,6 +185,33 @@ export default function NotificationPreferencesScreen() {
             accessibilityLabel="Permitir recordatorios de WeekFlow"
           />
         </View>
+
+        {preferences.enabled ? (
+          <View style={styles.permissionCard}>
+            <Text style={styles.permissionTitle}>Alarmas y recordatorios</Text>
+            <Text style={styles.permissionState}>
+              {diagnostics?.exactAlarmPermission === 'allowed'
+                ? '✓ Acceso especial permitido'
+                : diagnostics?.exactAlarmPermission === 'blocked'
+                  ? 'Acceso especial pendiente'
+                  : 'Comprobando acceso especial'}
+            </Text>
+            <Text style={styles.permissionHelp}>
+              Android controla por separado los avisos normales y las alarmas con hora. WeekFlow necesita que autorices este acceso para mejorar su puntualidad.
+            </Text>
+            {diagnostics?.exactAlarmPermission !== 'allowed' ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Revisar alarmas exactas y abrir el permiso especial de Android"
+                style={styles.permissionAction}
+                disabled={checkingDiagnostics}
+                onPress={() => void openExactAlarmSettings()}
+              >
+                <Text style={styles.permissionActionText}>Activar alarmas exactas</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
 
         <Text style={styles.section}>QUÉ QUIERES RECIBIR</Text>
 
@@ -237,11 +267,6 @@ export default function NotificationPreferencesScreen() {
             <Text style={styles.statusBody}>No se pudo comprobar el permiso especial en este dispositivo. Los avisos pendientes no confirman su entrega.</Text>
           ) : null}
           <Text style={styles.statusBody}>«Alarmas y recordatorios» es un permiso distinto de Notificaciones. En Xiaomi también puedes revisar batería «Sin restricciones». Android puede retrasar alarmas durante el reposo.</Text>
-          {diagnostics?.exactAlarmPermission !== 'allowed' ? (
-            <Pressable style={styles.diagnosticButton} disabled={checkingDiagnostics} onPress={() => void openExactAlarmSettings()} accessibilityRole="button" accessibilityLabel="Abrir ajustes del permiso de alarmas exactas">
-              <Text style={styles.diagnosticButtonText}>Revisar alarmas exactas</Text>
-            </Pressable>
-          ) : null}
           <Pressable style={styles.diagnosticButton} disabled={checkingDiagnostics} onPress={() => void testNotification()} accessibilityRole="button" accessibilityLabel="Probar notificación en cinco segundos">
             <Text style={styles.diagnosticButtonText}>Probar notificación en 5 segundos</Text>
           </Pressable>
@@ -273,6 +298,12 @@ const styles = StyleSheet.create({
   eyebrow: { color: '#76AFFF', fontWeight: '800', letterSpacing: 4, fontSize: 14 },
   title: { color: colors.text, fontWeight: '900', fontSize: 30, lineHeight: 36, marginTop: 6 },
   lead: { color: colors.muted, fontSize: 14, lineHeight: 21, marginTop: 10 },
+  permissionCard: { marginTop: 10, padding: 14, borderRadius: 17, borderWidth: 1, borderColor: '#36669B', backgroundColor: colors.surface },
+  permissionTitle: { color: colors.text, fontWeight: '900', fontSize: 15 },
+  permissionState: { color: '#9EC6F6', fontWeight: '800', fontSize: 12, marginTop: 4 },
+  permissionHelp: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 7 },
+  permissionAction: { minHeight: 48, marginTop: 12, backgroundColor: '#2E77D9', borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
+  permissionActionText: { color: colors.text, fontSize: 14, fontWeight: '900' },
   masterCard: {
     minHeight: 100,
     padding: 16,
