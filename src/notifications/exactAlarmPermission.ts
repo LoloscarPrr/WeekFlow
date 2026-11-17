@@ -61,7 +61,7 @@ export function offerExactAlarmAccessIfNeeded(): Promise<void> {
     markExactAlarmPermissionOfferSeen();
     Alert.alert(
       'Permitir alarmas de WeekFlow',
-      'Los recordatorios de trabajo y momentos importantes necesitan acceso a «Alarmas y recordatorios». Android lo controla por separado de Notificaciones. ¿Quieres revisar ese permiso ahora?',
+      'Para que los avisos de trabajo y momentos importantes intenten sonar a la hora indicada, Android requiere un permiso especial separado de Notificaciones. ¿Quieres abrirlo ahora?',
       [
         { text: 'Más tarde', style: 'cancel' },
         { text: 'Abrir permisos', onPress: () => { void openExactAlarmPermissionSettings(); } },
@@ -70,8 +70,9 @@ export function offerExactAlarmAccessIfNeeded(): Promise<void> {
   })();
 
   permissionOfferInFlight = pending;
-  void pending.finally(() => {
-    if (permissionOfferInFlight === pending) permissionOfferInFlight = null;
-  });
+  void pending.then(
+    () => { if (permissionOfferInFlight === pending) permissionOfferInFlight = null; },
+    () => { if (permissionOfferInFlight === pending) permissionOfferInFlight = null; },
+  );
   return pending;
 }
