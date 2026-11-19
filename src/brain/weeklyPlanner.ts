@@ -100,8 +100,10 @@ function workingIntervals(week: WeekSchedule, monday: Date, previousWeek?: WeekS
     const date = new Date(monday);
     date.setDate(date.getDate() + offset);
     const day = (date.getDay() + 6) % 7;
-    const source = offset === -1 && previousWeek ? previousWeek : week;
-    const shift = source.shifts.find(s => s.day === day);
+    // The preceding Sunday belongs only to the previous anchored week.
+    // Without that roster, do not invent a Sunday shift from this week's plan.
+    const source = offset === -1 ? previousWeek : week;
+    const shift = source?.shifts.find(s => s.day === day);
     const a = shift ? minuteOf(shift.start) : null;
     const b = shift ? minuteOf(shift.end) : null;
     if (!shift || shift.type === 'off' || a === null || b === null) continue;
@@ -176,7 +178,10 @@ export function proposeWeeklyPlan(input: PlannerInput): WeeklyProposal {
   for (let i = -1; i < 7; i++) {
     const date = new Date(monday);
     date.setDate(date.getDate() + i);
-    const shift = input.week.shifts.find(s => s.day === (date.getDay() + 6) % 7);
+    // Match workingIntervals: last Sunday is the previous week's real roster,
+    // not the coming Sunday copied backwards into the current Monday.
+    const source = i === -1 ? input.previousWeek : input.week;
+    const shift = source?.shifts.find(s => s.day === (date.getDay() + 6) % 7);
     if (!shift || shift.type === 'off') continue;
     const start = minuteOf(shift.start);
     const end = minuteOf(shift.end);

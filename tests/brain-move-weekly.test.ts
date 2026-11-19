@@ -72,4 +72,38 @@ const nightWeek={
 const overnight = proposeWeeklyPlan({...input, week:nightWeek});
 ok(!overnight.moveSlots.some(s=>s.date==='2026-10-28'),'no entrena el día posterior a turno nocturno');
 ok(overnight.warnings.some(x=>x.includes('nocturnos')),'advierte adaptación de noches');
+// WF-BRAIN-019: a Monday's recovery comes from the actual previous Sunday,
+// never from the future Sunday of the week being proposed.
+const nextMonday = new Date(2026, 10, 2, 8, 0);
+const sundayNight = {
+  ...defaultWeekState,
+  shifts: defaultWeekState.shifts.map(s => s.day === 6
+    ? { ...s, type: 'night' as const, start: '22:00', end: '06:00' } : s),
+};
+const boundaryInput = { ...input, now: nextMonday, week: defaultWeekState };
+const beforeBoundary = JSON.stringify({ previousWeek: sundayNight, week: boundaryInput.week, move });
+const afterPreviousNight = proposeWeeklyPlan({ ...boundaryInput, previousWeek: sundayNight });
+ok(!afterPreviousNight.moveSlots.some(s => s.date === '2026-11-02'),
+  'Sunday overnight from previousWeek protects the following Monday from Move');
+ok(afterPreviousNight.warnings.some(w => w.includes('posteriores a turnos nocturnos')),
+  'actual previous Sunday night produces a visible recovery explanation');
+
+const upcomingSunday = proposeWeeklyPlan({
+  ...boundaryInput, week: sundayNight, previousWeek: defaultWeekState,
+});
+ok(upcomingSunday.moveSlots.some(s => s.date === '2026-11-02'),
+  'a future Sunday night must not suppress Monday with an off previous Sunday');
+const previousUnknown = proposeWeeklyPlan({ ...boundaryInput, week: sundayNight });
+ok(previousUnknown.moveSlots.some(s => s.date === '2026-11-02'),
+  'unknown previous week must not invent a night shift from the coming Sunday');
+
+const nextWeekPriorSunday = proposeWeeklyPlan({
+  ...input, weekOffset: 1, week: defaultWeekState, previousWeek: sundayNight,
+});
+eq(nextWeekPriorSunday.weekStart, '2026-11-02', 'two-roster preview anchors next Monday');
+ok(!nextWeekPriorSunday.moveSlots.some(s => s.date === '2026-11-02'),
+  'next-week preview protects Monday after the current Sunday night');
+eq(JSON.stringify({ previousWeek: sundayNight, week: boundaryInput.week, move }), beforeBoundary,
+  'preview keeps both canonical rosters and Move history unchanged');
+
 console.log('Move as independent weekly pillar regression tests passed.');
