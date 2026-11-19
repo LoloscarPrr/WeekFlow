@@ -1,6 +1,6 @@
 # WF-BRAIN-019 — Recuperación correcta del domingo previo al cambiar de semana
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Base: main @ 9c0278b7e6b37a06e597edc08d80096235870a58
 
@@ -22,10 +22,10 @@ El domingo anterior al lunes visible procede **solo** de `previousWeek` cuando e
 - Sin nuevas pantallas ni mensajes, sin cambios de frecuencia/intensidad de Move, sin nuevos parsers OCR, sin tocar flujo de confirmación, recordatorios, firma Android o lógica de preferencias.
 
 ## Acceptance criteria
-- [ ] AC1: con domingo previo nocturno en `previousWeek` y semana visible con lunes libre, la propuesta no programa Move el lunes y declara protección del descanso.
-- [ ] AC2: un domingo nocturno **solo** en la semana visible no bloquea el lunes anterior; ocurre tanto con `previousWeek` explícitamente libre como sin `previousWeek`.
-- [ ] AC3: en vista de la próxima semana (`weekOffset=1`) se utiliza el domingo de la semana corriente transmitida como `previousWeek` para proteger el siguiente lunes.
-- [ ] AC4: las propuestas mantienen pureza (`preview` sin mutación); los planes existentes con noche martes-miércoles siguen protegiendo el miércoles y el resto de la suite no regresa.
+- [x] AC1: con domingo previo nocturno en `previousWeek` y semana visible con lunes libre, la propuesta no programa Move el lunes y declara protección del descanso.
+- [x] AC2: un domingo nocturno **solo** en la semana visible no bloquea el lunes anterior; ocurre tanto con `previousWeek` explícitamente libre como sin `previousWeek`.
+- [x] AC3: en vista de la próxima semana (`weekOffset=1`) se utiliza el domingo de la semana corriente transmitida como `previousWeek` para proteger el siguiente lunes.
+- [x] AC4: las propuestas mantienen pureza (`preview` sin mutación); los planes existentes con noche martes-miércoles siguen protegiendo el miércoles y el resto de la suite no regresa.
 
 ## Data / persistence impact
 Ninguno: tipos, SQLite, identificadores de semana, historial, migración y guardado de planes no cambian. Solo se corrige el cálculo efímero de propuesta. El plan confirmado actual no se sobreescribe automáticamente.
@@ -41,18 +41,20 @@ Ningún control nuevo. Los horarios propuestos por Semana y Asistente resultan c
 - Sibling screens/components: `WeeklyPlannerPreview`, `useAssistantController`, `weeklyPlanPersistence` ya transmiten `previousWeek`, sin modificaciones previstas.
 
 ## Verification plan
-- [ ] Tests de regresión nuevos en `tests/brain-move-weekly.test.ts`.
-- [ ] GitHub Actions Quality (TypeScript, tests, Metro Android).
-- [ ] Inspección de diff para asegurar que se tocan solo motor, tests y documentación TLC.
+- [x] Tests de regresión nuevos en `tests/brain-move-weekly.test.ts`.
+- [x] GitHub Actions Quality (TypeScript, tests, Metro Android).
+- [x] Inspección de diff para asegurar que se tocan solo motor, tests y documentación TLC.
 - [ ] Prueba física de planificación en Redmi, si la función está expuesta en APK (externa a esta sesión).
-- [ ] Registrar evidencias AC como PASS/BLOCKED.
+- [x] Registrar evidencias AC como PASS/BLOCKED.
 
 ## Implementation notes
 Fijar el origen de información del domingo anterior de forma explícita; no tratar `week` como una repetición semanal para fechas fuera de su ancla.
 
-## Verification result
-- AC1: PENDING
-- AC2: PENDING
-- AC3: PENDING
-- AC4: PENDING
-- Android físico: BLOCKED (sin prueba en dispositivo por esta sesión).
+## Verification result (2026-11-19)
+- AC1: **PASS** — caso `afterPreviousNight` verifica que el lunes tras la noche real del domingo anterior no tenga Move y explique recuperación.
+- AC2: **PASS** — `upcomingSunday` y `previousUnknown` verifican que un domingo futuro no bloquee el lunes anterior, con y sin semana pasada.
+- AC3: **PASS** — `nextWeekPriorSunday` verifica el lunes de la próxima semana con `weekOffset=1`.
+- AC4: **PASS (automatizado)** — instantáneas no mutan, regresión ya existente de miércoles tras martes nocturno; todas las pruebas de regresión y TypeScript completadas.
+- GitHub Quality **PASS**: run `44553184450`, ejecuta `npm run quality` y exportación Metro Android. Diff PR #159 limitado al motor, test y documentos TLC.
+- Release Android de esta revisión: **NOT RUN** (workflow solo corre en `main` al integrar).
+- Android físico: **BLOCKED** (actualización y flujo real pendientes de comprobar en Redmi); por eso el estado permanece `VERIFYING` y no `DONE`.
