@@ -23,5 +23,8 @@ Reference: [OWASP MASVS](https://mas.owasp.org/MASVS/) / [MASTG](https://mas.owa
 ## Grafana — separate privacy gate
 WeekFlow already uses consent-controlled Firebase Crashlytics for errors. Grafana should show **aggregated operational metrics** (build failures, crash totals, latency/error rates) from an authenticated server-side source, not a direct APK-to-Grafana connection. No Grafana endpoint, credentials, dashboard or data export is configured by this change. Keep personal schedules, food records, profiles and raw crash payloads out of dashboards by default. A separate spec and infrastructure access are required before any real connection.
 
+## First scan snapshot (2026-11-19/20)
+GitHub Security workflow run `44650512437` completed and reported **17 npm production dependency findings**, **11 high/critical**. This is an initial vulnerability inventory, not an indication that all findings are reachable through the Android APK. No packages were upgraded or problems automatically corrected. Triage is required before any severity enforcement or release claim.
+
 ## Remediation order after scan
 Review actual high/critical advisories for whether affected code is shipped/exploitable; prioritize network/auth/storage vulnerabilities and supported upgrades. Do not blindly upgrade Expo/React Native transitive dependencies or weaken signed-build gates.
