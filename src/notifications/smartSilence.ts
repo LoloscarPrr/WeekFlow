@@ -52,6 +52,7 @@ export function buildProtectedRestWindows(
   week: WeekSchedule,
   now = new Date(),
   horizonDays = 14,
+  weekForDate?: (date: Date) => WeekSchedule,
 ): ProtectedRestWindow[] {
   const windows: ProtectedRestWindow[] = [];
   const horizon = new Date(now);
@@ -63,7 +64,9 @@ export function buildProtectedRestWindows(
     date.setHours(0, 0, 0, 0);
     date.setDate(date.getDate() + offset);
 
-    const shift = shiftForCalendarDate(week, date);
+    // Each date has its own anchored roster. Never copy this week's shifts
+    // into last Sunday or a separate, possibly unprepared, next week.
+    const shift = shiftForCalendarDate(weekForDate?.(date) ?? week, date);
     if (shift.type === 'off' || !shift.start) continue;
 
     const startsAt = localDateTime(localDateKey(date), shift.start);
@@ -99,8 +102,9 @@ export function nextProtectedRestWindow(
   dayState: DayState,
   week: WeekSchedule,
   now = new Date(),
+  weekForDate?: (date: Date) => WeekSchedule,
 ): ProtectedRestWindow | null {
-  return buildProtectedRestWindows(dayState, week, now)
+  return buildProtectedRestWindows(dayState, week, now, 14, weekForDate)
     .find((window) => window.endsAt > now) ?? null;
 }
 
