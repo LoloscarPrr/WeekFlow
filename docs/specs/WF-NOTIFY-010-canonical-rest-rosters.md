@@ -1,6 +1,6 @@
 # WF-NOTIFY-010 — Silencio Inteligente con semanas reales
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Date: 2026-11-19
 Blueprint: WeekFlow Maestro v4.0
@@ -30,12 +30,12 @@ Para cada fecha evaluada, Smart Silence debe usar `loadWeekStateForDate(date)`, 
 - No ajustes de UI visual salvo usar hora real correcta de la ventana informada.
 
 ## Acceptance criteria
-- [ ] AC1: domingo nocturno de la semana anterior protege la recuperación del lunes, aunque la semana actual tenga domingo libre.
-- [ ] AC2: turno futuro de la siguiente semana produce ventanas propias; los turnos de esta semana no se repiten en una siguiente semana no preparada.
-- [ ] AC3: las ventanas se ordenan y Smart Silence conserva su regla de permitir avisos prioritarios, silenciar secundarios dentro de descanso y permitir avisos fuera.
-- [ ] AC4: sincronización real, programación individual y etiqueta de configuración usan fuente canónica por fecha; sin consultas al historial paralelo.
-- [ ] AC5: firmas de la API legacy sin resolvedor y resto de pruebas existentes siguen funcionando; ningún cambio SQLite ni consentimiento.
-- [ ] AC6: package/app/lock/test alineados a `0.5.40`, paquete `com.weekflow.app` y versionCode CI monotónico.
+- [x] AC1: domingo nocturno de la semana anterior protege la recuperación del lunes, aunque la semana actual tenga domingo libre.
+- [x] AC2: turno futuro de la siguiente semana produce ventanas propias; los turnos de esta semana no se repiten en una siguiente semana no preparada.
+- [x] AC3: las ventanas se ordenan y Smart Silence conserva su regla de permitir avisos prioritarios, silenciar secundarios dentro de descanso y permitir avisos fuera.
+- [x] AC4: sincronización real, programación individual y etiqueta de configuración usan fuente canónica por fecha; sin consultas al historial paralelo.
+- [x] AC5: firmas de la API legacy sin resolvedor y resto de pruebas existentes siguen funcionando; ningún cambio SQLite ni consentimiento.
+- [x] AC6: package/app/lock/test alineados a `0.5.40`, paquete `com.weekflow.app` y versionCode CI monotónico.
 - [ ] AC7: Quality incluyendo TypeScript, regresiones y Metro Android PASS; compilación firmada Android PASS o motivo explícito de bloqueo.
 - [ ] AC8: prueba física de funcionamiento con semanas cambiantes y recepción 24h/48h en Redmi, BLOCKED hasta prueba real.
 
@@ -54,11 +54,19 @@ El texto "Próximo descanso protegido" refleja el horario verdadero de la semana
 - Rendimiento: resolver solo fechas de ventana solicitada; no crear estados secundarios.
 
 ## Verification plan
-- [ ] Pruebas puras en `tests/smart-silence.test.ts`.
-- [ ] Prueba estructural de servicios/UI en `tests/smart-silence-structure.test.cjs`.
+- [x] Pruebas puras en `tests/smart-silence.test.ts`.
+- [x] Prueba estructural de servicios/UI en `tests/smart-silence-structure.test.cjs`.
 - [ ] Quality PR, Android signed build tras merge.
 - [ ] Registro de PASS/BLOCKED por criterio, incluyendo QA física.
-- [ ] Changelog de revisión y metadata sincronizada.
+- [x] Changelog de revisión y metadata sincronizada.
 
 ## Verification result
-- AC1–AC8: PENDING
+- AC1: **PASS (automatizado)** — caso de noche de domingo anterior protege lunes; 'move' se silencia en recuperación y prioridad 'important' pasa.
+- AC2: **PASS (automatizado)** — horario del lunes siguiente se consulta cuando existe y queda vacío sin semana preparada; no inventa turnos.
+- AC3: **PASS (automatizado)** — ventanas en orden, decisiones de silencio y excepciones originales sin regresión.
+- AC4: **PASS (estructural)** — `scheduleReminder`, `performLivePlanReminderSync` y la tarjeta Notificaciones pasan `loadWeekStateForDate`.
+- AC5: **PASS (diff/CI)** — sin cambios en SQLite, esquema, preferencias, prioridad, permisos ni lógica de programación nativa. API legacy sigue admitida.
+- AC6: **PASS (CI)** — app/package/lock/test muestran `0.5.40`; package Android `com.weekflow.app`; firmante y versionCode monotónico conservados en workflow.
+- AC7: **PASS Quality PR** — ejecución #44644569670: TypeScript, toda la suite de regresión y Metro Android. **Signed release: PENDING** hasta integrar en main.
+- AC8: **BLOCKED** — entregar notificación durante 24/48 horas, reposo/reinicio y cambio de turnos requiere el dispositivo físico Redmi; no afirmar puntualidad garantizada.
+- Identidad visual sin cambios; changelog 0.5.40 incluido.
