@@ -1,0 +1,50 @@
+name: Security baseline (OWASP MASVS)
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
+  schedule:
+    - cron: "17 12 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22.13'
+          package-manager-cache: false
+
+      - name: Verify audit reporter behavior
+        run: node tests/security-audit-report.test.cjs
+
+      # npm audit returns code 1 when vulnerabilities exist. Collect its JSON
+      # instead of mistaking findings for a failed scanner or a secure build.
+      - name: Inventory production dependencies
+        shell: bash
+        run: |
+          set +e
+          npm audit --omit=dev --json > "$RUNNER_TEMP/weekflow-npm-audit.json" 2> "$RUNNER_TEMP/weekflow-npm-audit-stderr.log"
+          audit_status=$?
+          set -e
+          node scripts/security-audit-report.cjs \
+            "$RUNNER_TEMP/weekflow-npm-audit.json" \
+            "$GITHUB_STEP_SUMMARY" \
+            "$audit_status"
+
+      # Findings are an explicit warning during the first inventory phase.
+      # Unavailable/invalid audits fail, never silently indicate "secure".
+      # A separate reviewed spec can make high/critical findings blocking.
