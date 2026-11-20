@@ -1,6 +1,6 @@
 # WF-SEC-001 — Línea base OWASP MASVS + auditoría de dependencias
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Date: 2026-11-19
 Phase decision: NOW
@@ -34,13 +34,13 @@ WeekFlow tiene comprobaciones funcionales y compilación firmada, pero carece de
 - No actualización de versión, permisos, firma Android, token de GitHub, esquema SQLite ni APIs de WeekFlow.
 
 ## Acceptance criteria
-- [ ] AC1 — El workflow ejecuta escaneo en PR de dependencias/seguridad, push de main, agenda semanal y manual, sin acceso de escritura ni secretos.
-- [ ] AC2 — El reporte distingue altas/críticas de hallazgos leves y **no afirma seguridad garantizada**; muestra conteos, no detalles sensibles.
-- [ ] AC3 — Escaneo inválido o fallido no produce resultado verde; los hallazgos de dependencias son informativos en el primer inventario.
-- [ ] AC4 — Pruebas con JSON vacío/alto/crítico/error cubren fail-closed del parser.
-- [ ] AC5 — Matriz MASVS cubre STORAGE, CRYPTO, AUTH, NETWORK, PLATFORM, CODE, RESILIENCE y PRIVACY con evidencia vs pendientes; Grafana no recibe datos por defecto.
-- [ ] AC6 — No cambian APK, preferencias, telemetría, package version, SQLite, permisos, ni claves.
-- [ ] AC7 — Quality del PR pasa; workflow de seguridad concluye o documenta explícitamente hallazgos/bloqueo. Las pruebas dinámicas y observabilidad externa permanecen pendientes.
+- [x] AC1 — El workflow ejecuta escaneo en PR de dependencias/seguridad, push de main, agenda semanal y manual, sin acceso de escritura ni secretos.
+- [x] AC2 — El reporte distingue altas/críticas de hallazgos leves y **no afirma seguridad garantizada**; muestra conteos, no detalles sensibles.
+- [x] AC3 — Escaneo inválido o fallido no produce resultado verde; los hallazgos de dependencias son informativos en el primer inventario.
+- [x] AC4 — Pruebas con JSON vacío/alto/crítico/error cubren fail-closed del parser.
+- [x] AC5 — Matriz MASVS cubre STORAGE, CRYPTO, AUTH, NETWORK, PLATFORM, CODE, RESILIENCE y PRIVACY con evidencia vs pendientes; Grafana no recibe datos por defecto.
+- [x] AC6 — No cambian APK, preferencias, telemetría, package version, SQLite, permisos, ni claves.
+- [x] AC7 — Quality del PR pasa; workflow de seguridad concluye o documenta explícitamente hallazgos/bloqueo. Las pruebas dinámicas y observabilidad externa permanecen pendientes.
 
 ## Data and persistence
 Ningún cambio de datos, SQLite, respaldo o migraciones. Solo lectura del manifiesto y árbol de dependencias npm desde GitHub Actions.
@@ -56,11 +56,19 @@ Ningún cambio dentro de la APK ni indicador de certificación; nuevo resumen Gi
 - Pendiente revisión manual de APK/restricciones Android, autenticación Firebase y flujo remoto IA.
 
 ## Verification
-- [ ] Node tests de parser.
-- [ ] GitHub Quality de PR.
+- [x] Node tests de parser.
+- [x] GitHub Quality de PR.
 - [ ] GitHub Security baseline de PR / ejecución programada.
-- [ ] Revision de cambios acotada a CI y documentación, sin APK nueva.
-- [ ] Evidencia PASS/BLOCKED por criterio.
+- [x] Revision de cambios acotada a CI y documentación, sin APK nueva.
+- [x] Evidencia PASS/BLOCKED por criterio.
 
 ## Verification results
-- AC1–AC7: PENDING
+- AC1: **PASS** — workflow propio con PR, push main, cron semanal y disparo manual, solo `contents: read`; sin secrets.
+- AC2: **PASS** — reporte de conteos por severidad en GitHub Summary; reconoce hallazgos no remediados y que no constituye certificación MASVS.
+- AC3: **PASS** — parser falla ante JSON corrupto/error/missing metadata; escaneo válido con avisos es advertencia y no un bloqueo automático en esta fase.
+- AC4: **PASS** — `tests/security-audit-report.test.cjs` ejecutado por Security workflow #44650512437.
+- AC5: **PASS (documental)** — matriz de ocho grupos MASVS con los controles no verificados explícitos; Grafana marcado como fase independiente de privacidad.
+- AC6: **PASS por diff** — solamente CI, código del reporte, pruebas y documentación; ni versionado, ni SQLite, ni APK, ni Crashlytics alterados.
+- AC7: **PASS CI en PR** — Security baseline GitHub Actions #44650512437 SUCCESS (escaneo ejecutado) y Quality #44650508359 SUCCESS.
+- **Hallazgos del primer inventario:** 17 vulnerabilidades en dependencias npm de producción, de las cuales 11 son altas/críticas. **No corregidas** por el inventario y no equivalen a 17 explotaciones confirmadas. Crear triage priorizado antes de aprobar cualquier actualización de librerías.
+- Escaneo nativo Android/MASTG y pruebas físicas: **NOT RUN**, fuera del alcance, deben ser fase posterior.
