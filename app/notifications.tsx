@@ -17,7 +17,7 @@ import {
   syncLivePlanReminders,
   type NotificationDeliveryDiagnostics,
 } from '@/src/services/notifications';
-import { loadDayState, loadWeekState } from '@/src/state/persistence';
+import { loadDayState, loadWeekState, loadWeekStateForDate } from '@/src/state/persistence';
 import { colors } from '@/src/theme/colors';
 
 type PreferenceKey = 'departure' | 'important' | 'rest';
@@ -53,7 +53,7 @@ function hm(date: Date) {
 }
 
 function protectedWindowLabel() {
-  const window = nextProtectedRestWindow(loadDayState(), loadWeekState());
+  const window = nextProtectedRestWindow(loadDayState(), loadWeekState(), new Date(), loadWeekStateForDate);
   if (!window) return 'No hay una ventana de descanso próxima que proteger.';
   return `Próximo descanso protegido: ${hm(window.startsAt)}–${hm(window.endsAt)}.`;
 }
