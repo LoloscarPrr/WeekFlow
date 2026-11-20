@@ -18,4 +18,11 @@ ok(policy.includes("kind === 'important' || kind === 'departure' || kind === 're
 ok(service.includes('interruptionDecision'), 'servicio debe aplicar política');
 ok(service.includes('buildProtectedRestWindows'), 'servicio debe calcular ventanas');
 
+// WF-NOTIFY-010: every caller must source the actual anchored roster per date.
+ok(policy.includes('weekForDate?.(date) ?? week'), 'Smart Silence accepts a canonical roster resolver');
+ok(service.includes('loadWeekStateForDate'), 'native notification service reads canonical week per date');
+ok(service.includes('new Date(), 14, loadWeekStateForDate'), 'individual scheduling resolves per-date calendar');
+ok(service.includes('now, 14, loadWeekStateForDate'), 'bulk sync resolves per-date calendar');
+ok(screen.includes('new Date(), loadWeekStateForDate'), 'settings preview uses the same per-date calendar');
+
 console.log('Smart silence structure tests passed.');
