@@ -1,24 +1,22 @@
-# TLC Initialization Snapshot — WF-NOTIFY-010 (2026-11-19)
+# TLC Initialization Snapshot — WF-SEC-001 (2026-11-19)
 
-## Repository and ref
-- Repo: `LoloscarPrr/WeekFlow`; base `main` SHA `cee59aa5b73610377537d570eb7aa98573215fcd`; working branch `feature/wf-notify-010-canonical-rest-rosters`.
-- Current app version `0.5.39` (app.json, package.json, package-lock.json); Android `com.weekflow.app`, repository versionCode 114 and monotonic CI signed release versionCode.
-- Expo SDK 57; React Native 0.86; Android local-first/SQLite.
-- Branch and identity confirmed; previous consolidation `WF-BRAIN-019` merged on main.
+## Repository, baseline and build metadata
+- Repository: `LoloscarPrr/WeekFlow`, `main` base SHA `8336ff9f947cf82d1027b20e323cc65275edc504`, working branch `feature/wf-sec-001-owasp-baseline`.
+- App and package version: `0.5.40`; Android package `com.weekflow.app`; signed versionCode is assigned monotonically by Android release workflow. **No app build metadata change** in this security-only phase.
+- Expo SDK 57, React Native 0.86, npm lockfile; local SQLite, optional network integrations and Firebase Crashlytics (consent-gated).
+- Sources read: `AGENTS.md`, `.agents/skills/tlc-spec-driven/SKILL.md`, `docs/specs/_template.md`, Quality workflow, package manifest, Crashlytics spec; Blueprint Maestro v4.0 from project context.
+- Related specs: `WF-CORE-005` Crashlytics, `WF-CORE-008` reproducible builds, `WF-NOTIFY-010` notifications.
 
-## Canonical product basis
-- Blueprint Maestro v4.0, 2026-09-30, section Core/Rest/Notifications: real dates, midnight rollover, canonical calendar, protected sleep, no spam, physical QA and reversible actions.
-- Read repository `AGENTS.md`, `.agents/skills/tlc-spec-driven/SKILL.md`, current notification code, service, screen and tests; existing specs `WF-NOTIFY-004`, `WF-NOTIFY-007`, `WF-NOTIFY-009`, and weekly two-roster architecture.
-- This is **consolidation phase 2**, not a new feature. Next spec: `WF-NOTIFY-010`, canonical weeks for Smart Silence.
+## Current phase and baseline checks
+- Consolidation / security and monitoring foundation requested; avoid feature creep and sending private device data to a dashboard.
+- GitHub Quality and signed Android build for `main` SHA `8336ff9`: **PASS** (2026-11-19/20).
+- Security dependency scan in repo: **NOT RUN / NOT CONFIGURED**, no `.github/workflows/security-baseline.yml`.
+- Manual OWASP MASVS/MASTG mobile assessment, Android dynamic analysis, threat modeling and external Grafana service: **NOT RUN**.
+- Local tests: **NOT RUN** prior to this change.
 
-## Baseline and status
-- GitHub Actions `Quality` and `Build WeekFlow Native Android` on `main` SHA `cee59aa`: **PASS**, run 44553905101 and 44553905189 (2026-11-19).
-- Local TypeScript/test execution: **NOT RUN**; new branch CI is mandatory.
-- Native 24h / 48h notification delivery and Xiaomi permission verification: **BLOCKED** pending physical Android test. Signed release passing is not proof of delivery.
-
-## Verified problem / constraints
-- `src/notifications/smartSilence.ts` calculates a 14-day window by repeatedly selecting a shift from **the same current week schedule**, including previous Sunday and next week.
-- `src/state/weekScheduleWindow.ts` already has authoritative `loadWeekForDate(date)`: prior, current, next; unprepared dates return an explicit empty week.
-- `src/services/notifications.ts` currently passes only `loadWeekState()` to Smart Silence, and `app/notifications.tsx` shows next rest from the same repeated roster.
-- Scope: allow pure planner to resolve each date via canonical schedule, wire both native scheduler callsites and settings display, verify regression around next-week and previous Sunday; preserve priority exceptions, user preferences, SQLite, notification permission flows, signing key, package ID, tests 5s/24h and scheduling engine.
-- Proposed technical display version: `0.5.40` with monotonic versionCode via existing workflow; full build and phone validation required.
+## Known constraints and scope
+- OWASP MASVS/MASTG are mobile security standards/testing methodologies, not SDKs or automatic compliance certificates.
+- Do not claim encrypted SQLite, end-to-end security, or Grafana connectivity without verification.
+- Preserve privacy; no production credentials on-device or in reports; independent least-privilege CI workflow reports dependency audit counts without posting package data to external analytics.
+- Existing Quality and Android signing must remain functional; no dependency upgrades until findings are triaged.
+- Proposed spec: `WF-SEC-001 — Baseline OWASP MASVS + audit de dependencias en CI`, phase **NOW**.
