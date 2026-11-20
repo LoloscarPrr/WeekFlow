@@ -101,7 +101,7 @@ export async function scheduleReminder(reminder: WeekFlowReminder): Promise<stri
 
   const dayState = loadDayState();
   const weekState = loadWeekState();
-  const windows = buildProtectedRestWindows(dayState, weekState);
+  const windows = buildProtectedRestWindows(dayState, weekState, new Date(), 14, loadWeekStateForDate);
   const decision = interruptionDecision(
     preferences,
     (reminder.kind ?? 'general') as SmartSilenceReminderKind,
@@ -276,7 +276,7 @@ async function performLivePlanReminderSync(now: Date): Promise<number> {
       kind: 'move' as const,
     }];
   });
-  const windows = buildProtectedRestWindows(dayState, weekState, now);
+  const windows = buildProtectedRestWindows(dayState, weekState, now, 14, loadWeekStateForDate);
   const reminders = [
     ...allReminders.filter(reminder => isReminderKindEnabled(preferences, reminder.kind)),
     ...habitReminders,
