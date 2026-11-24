@@ -1,0 +1,79 @@
+name: Security triage (candidate, no auto-merge)
+
+on:
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-and-propose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Node 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22.13'
+          package-manager-cache: false
+
+      - name: Test triage parser
+        run: node tests/security-triage.test.cjs
+
+      - name: Audit installed production dependency graph
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/weekflow-triage"
+          cp package-lock.json "$RUNNER_TEMP/weekflow-triage/base-package-lock.json"
+          set +e
+          npm audit --omit=dev --json > "$RUNNER_TEMP/weekflow-triage/before.json"
+          exit_code=$?
+          set -e
+          node scripts/security-triage.cjs "$RUNNER_TEMP/weekflow-triage/before.json" before "$exit_code"
+
+      - name: Propose non-major auto remediation in isolated CI workspace
+        shell: bash
+        run: |
+          set +e
+          npm audit fix --package-lock-only --ignore-scripts --no-fund > "$RUNNER_TEMP/weekflow-triage/npm-fix.log" 2>&1
+          fix_code=$?
+          set -e
+          echo "npm audit fix exit code: $fix_code (non-zero can mean remaining advisories)"
+          if [ "$fix_code" -gt 1 ]; then
+            echo "::warning::npm audit fix encountered a tool failure; review logs before using candidate."
+          fi
+          cp package-lock.json "$RUNNER_TEMP/weekflow-triage/candidate-package-lock.json"
+          set +e
+          npm audit --omit=dev --json > "$RUNNER_TEMP/weekflow-triage/after.json"
+          exit_code=$?
+          set -e
+          node scripts/security-triage.cjs "$RUNNER_TEMP/weekflow-triage/after.json" after "$exit_code"
+          if cmp -s "$RUNNER_TEMP/weekflow-triage/base-package-lock.json" package-lock.json; then
+            echo "Candidate lockfile unchanged."
+          else
+            echo "Candidate lockfile changed; MANUAL review required before adoption."
+          fi
+
+      - name: Upload unmerged candidate for human review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekflow-security-triage-candidate
+          path: |
+            ${{ runner.temp }}/weekflow-triage/base-package-lock.json
+            ${{ runner.temp }}/weekflow-triage/candidate-package-lock.json
+            ${{ runner.temp }}/weekflow-triage/before-triage.json
+            ${{ runner.temp }}/weekflow-triage/after-triage.json
+            ${{ runner.temp }}/weekflow-triage/npm-fix.log
+          retention-days: 2
+          if-no-files-found: warn
+
+      # Do NOT auto-write changes to the PR branch or main.
+      # Adopting changed lockfiles requires separate code review/Quality/Android validation.
