@@ -1,6 +1,6 @@
 {
   "name": "weekflow",
-  "version": "0.5.41",
+  "version": "0.5.42",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
@@ -35,7 +35,8 @@
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zustand": "^5.0.8",
     "@react-native-firebase/auth": "26.3.2",
-    "expo-linking": "~57.0.13"
+    "expo-linking": "~57.0.13",
+    "lottie-react-native": "~7.3.8"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
