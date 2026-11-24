@@ -1,0 +1,48 @@
+name: Lottie pilot lockfile preparation
+
+on:
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prepare-lock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22.13'
+          package-manager-cache: false
+
+      - name: Resolve Expo 57 Lottie package and lockfile (candidate only)
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      - name: Verify candidate dependencies without changing the repo
+        run: |
+          npm ci --no-audit --no-fund
+          node tests/lottie-completion-structure.test.cjs
+          node -e "const p=require('./package-lock.json'); if(p.packages['node_modules/lottie-react-native']?.version?.split('.')[0]!=='7') process.exit(1);"
+
+      - name: Export Android JS bundle with Lottie
+        run: npx expo export --platform android --output-dir "${RUNNER_TEMP}/weekflow-lottie-metro" --clear
+
+      - name: Upload candidate lockfile for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekflow-lottie-package-lock-candidate
+          path: package-lock.json
+          retention-days: 2
+          if-no-files-found: error
+
+      # This workflow NEVER pushes, alters main, or signs APKs.
+      # Candidate requires review and an explicit commit to the PR.
