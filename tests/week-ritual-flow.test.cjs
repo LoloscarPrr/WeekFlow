@@ -26,7 +26,7 @@ assert(updateWeek.includes('export function completeWeekRitual'), 'Canonical rit
 assert(weekScreen.includes("week.organizedAt ? 'SEMANA ORGANIZADA' : 'RITUAL DE LA SEMANA'"), 'Week screen must render compact open/done ritual states');
 assert(!weekScreen.includes('Listo. Tu semana ya está organizada.'), 'Week screen must not repeat the completion state in two titles');
 assert(weekScreen.includes('Listo, organizar semana'), 'Open week must expose exactly one clear completion action');
-assert(weekScreen.includes('onPress={completeRitual}'), 'Completion button must call the controller action');
+assert(weekScreen.includes('onPress={() => { completeRitual(); setCelebratingWeek(selectedMonday); }}'), 'Completion button must persist the ritual through the controller before requesting animation');
 assert(!weekScreen.includes('styles.ritualSummary'), 'No duplicate summary inside the ritual card');
 assert(weekScreen.includes('summary.workDays'), 'Week summary must retain actual work-day data');
 assert(weekScreen.includes('summary.freeDays'), 'Week summary must retain actual free-day data');
