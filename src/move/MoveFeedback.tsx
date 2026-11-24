@@ -1,4 +1,5 @@
 import { KeyboardAwareTextInput as TextInput } from '@/src/components/KeyboardAwareScrollView';
+import { CompletionAnimation } from '@/src/components/CompletionAnimation';
 import { Pressable, Text, View } from 'react-native';
 import { moveStyles as styles } from '@/src/move/styles';
 import { MOVE_FEEDBACK, moveRecordDuration, type MoveController } from '@/src/move/useMoveController';
@@ -8,12 +9,15 @@ type MoveFeedbackProps = {
 };
 
 export function MoveFeedback({ move }: MoveFeedbackProps) {
-  const { feedback, feedbackNote, setFeedbackNote, noteSaved, setNoteSaved, lastRecord, applyFeedback, skipFeedback, saveNote, resetFinished } = move;
+  const { feedback, feedbackNote, setFeedbackNote, noteSaved, setNoteSaved, lastRecord, celebratingSessionId, clearCompletionAnimation, applyFeedback, skipFeedback, saveNote, resetFinished } = move;
   if (!lastRecord) return null;
 
   return (
     <View style={styles.finishCard}>
-      <Text style={styles.finishIcon}>✓</Text>
+      <CompletionAnimation
+        play={!lastRecord.endedEarly && celebratingSessionId === lastRecord.id}
+        onComplete={clearCompletionAnimation}
+      />
       <Text style={styles.finishTitle}>{lastRecord.endedEarly ? 'Listo por hoy' : 'Sesión completada'}</Text>
       <Text style={styles.finishSummary}>Hecho · {moveRecordDuration(lastRecord)}{typeof lastRecord.actualSeconds === 'number' ? ` · plan ${lastRecord.plannedMinutes} min` : ''}</Text>
       <Text style={styles.finishCopy}>¿Cómo se sintió esta sesión?</Text>
