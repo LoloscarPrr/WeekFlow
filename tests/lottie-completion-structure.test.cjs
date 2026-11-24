@@ -29,7 +29,7 @@ assert.match(component, /<Text style=\{styles\.staticTick\}>✓<\/Text>/, 'stati
 
 assert.match(moveController, /setCelebratingSessionId\(record\.endedEarly \? null : record\.id\)/,
   'only a full session can trigger celebration');
-assert.match(moveController, /setCelebratingSessionId\(null\);[\s\S]*?setActiveSession\(active\)/,
+assert.match(moveController, /setActiveSession\(active\);\s*setCelebratingSessionId\(null\)/,
   'restored state cannot trigger a new celebration');
 assert.match(moveFeedback, /play=\{!lastRecord\.endedEarly && celebratingSessionId === lastRecord\.id\}/,
   'feedback animation is bound to the completed session identity');
