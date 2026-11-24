@@ -1,6 +1,6 @@
 # WF-UX-004 — Microanimaciones Lottie en confirmaciones de Move y Semana
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Date: 2026-11-24
 Blueprint: WeekFlow Maestro v4.0 (flujo del usuario, feedback real de Move, Semana canónica)
@@ -15,7 +15,7 @@ Las confirmaciones de Move y del ritual semanal son estáticas. Se desea una res
 - Al pulsar "Listo, organizar semana" aparece la misma animación una vez sobre la tarjeta ya guardada de Semana. Nunca se anima al recargar ni por abrir una semana previamente organizada.
 - Ninguna animación se repite continuamente. No hay red, sonido, notificación, haptic ni telemetría nueva.
 - Si Android pide reducir movimiento, se muestra confirmación estática; las etiquetas son legibles y la interfaz sigue operable.
-- Assets originales Lottie JSON simples sin imágenes externas y respetuosos con branding existente. Duración 1–1.2 s.
+- Assets originales Lottie JSON simples sin imágenes externas y respetuosos con branding existente. Duración 1–1.5 s.
 
 ## Roadmap and scope
 NOW — mejora UI de confirmaciones en dos superficies ya estabilizadas. Todo el resto queda BACKLOG.
@@ -61,5 +61,17 @@ One-shot (<1.5s), tamaño compacto de 64–76 pt, app azul/verde, fallback texto
 3. Build Android firmado tras merge; prueba real reducción de movimiento/batería/instalación y captura de visual en Redmi = BLOCKED si no hay dispositivo.
 4. AC reportados como PASS/BLOCKED, con enlace a PR/CI.
 
-## Verification results
-PENDING.
+## Verification results — 2026-11-24
+
+- **AC1 PASS (automated)**: `assets/animations/weekflow-complete.json` is local, vector-only, two shape layers, 120×120, 30fps for 40 frames (1.33s), no external assets; one-shot render.
+- **AC2 PASS (code/test)**: `CompletionAnimation` checks `AccessibilityInfo.isReduceMotionEnabled`, responds to reduce-motion changes, uses a ✓ static fallback; decorative view remains inaccessible while parent status text is readable. Physical Android accessibility verification: **BLOCKED**.
+- **AC3 PASS (code/test)**: controller records an ephemeral `celebratingSessionId` only if `endedEarly` is false; cleared on focus refresh/start/return and when Lottie completes. Existing SQLite feedback recovery never enables it.
+- **AC4 PASS (code/test)**: Week ritual still calls canonical `completeRitual` once, then triggers only for the selected Monday; blur, tab switch and finish clear the ephemeral animation state. Existing `tests/week-ritual-flow.test.cjs` now checks both persistent call and ephemeral motion.
+- **AC5 PASS (isolated CI)**: native `lottie-react-native@7.3.8` resolved using `~7.3.8` via read-only PR #164 workflow run **45338930472**; `package-lock.json` candidate reviewed and committed with only this new package and root version/dependency changes, preserving previous security patches. `npm ci` and Android JS export passed.
+- **AC6 PASS (CI)**: Quality **45339384122** full TypeScript/regressions/Metro Android PASS, Security baseline **45339383940** PASS; Security triage **45339383925** PASS. Early Quality failures were caused by unsynchronized lockfile and old test requiring exact `onPress={completeRitual}`; both resolved with correct lockfile and test retaining persistent action checks.
+- **AC7 PENDING**: native Android signed APK 0.5.42 will be checked after merge; no claim of native Lottie runtime until signing and device validation. **BLOCKED physical**: installation in Redmi, animation frame pacing, battery use, reduce motion in Settings.
+- **AC8 PASS (diff)**: unchanged package `com.weekflow.app`, signed release workflow and monotonic versionCode; no changes to SQLite, intents, Firebase, permissions, Brain, rest or notifications. Technical version `0.5.42` synchronized in app/package/lock/structural test.
+- A successful Metro export does not prove that native Android renders each frame. Do not declare visual QA done without observing the actual APK.
+
+Status remains VERIFYING pending Android native / physical QA.
+
