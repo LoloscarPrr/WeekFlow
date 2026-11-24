@@ -1,4 +1,7 @@
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { KeyboardAwareTextInput as TextInput } from '@/src/components/KeyboardAwareScrollView';
+import { CompletionAnimation } from '@/src/components/CompletionAnimation';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker from '@expo/ui/community/datetime-picker';
@@ -21,6 +24,9 @@ function weekRange(mondayKey: string): string {
 
 
 export default function WeekScreen() {
+  const [celebratingWeek, setCelebratingWeek] = useState<string | null>(null);
+  // Coming back to an already organized week must never replay animation.
+  useFocusEffect(useCallback(() => () => setCelebratingWeek(null), []));
   const {
     week,
     currentWeek,
@@ -72,7 +78,7 @@ export default function WeekScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={offset === 0 ? 'Editar horario de esta semana' : 'Editar horario de la próxima semana'}
                 style={[styles.weekTab, selectedWeek === offset && styles.weekTabActive]}
-                onPress={() => selectWeek(offset)}
+                onPress={() => { setCelebratingWeek(null); selectWeek(offset); }}
               >
                 <Text style={[styles.weekTabText, selectedWeek === offset && styles.weekTabTextActive]}>
                   {offset === 0 ? 'Esta semana' : 'Próxima semana'}
@@ -183,11 +189,19 @@ export default function WeekScreen() {
           <WeeklyPlannerPreview week={currentWeek} selectedWeek={selectedWeek} />
 
           <View style={[styles.ritualCard, week.organizedAt ? styles.ritualCardDone : null]}>
-            <Text style={[styles.ritualEyebrow, week.organizedAt ? styles.ritualEyebrowDone : null]}>
-              {week.organizedAt ? 'SEMANA ORGANIZADA' : 'RITUAL DE LA SEMANA'}
-            </Text>
+            <View style={styles.ritualStatusRow}>
+              {week.organizedAt ? (
+                <CompletionAnimation
+                  play={celebratingWeek === selectedMonday}
+                  onComplete={() => setCelebratingWeek(null)}
+                />
+              ) : null}
+              <Text style={[styles.ritualEyebrow, week.organizedAt ? styles.ritualEyebrowDone : null]}>
+                {week.organizedAt ? 'SEMANA ORGANIZADA' : 'RITUAL DE LA SEMANA'}
+              </Text>
+            </View>
             {!week.organizedAt ? (
-              <Pressable style={styles.ritualButton} onPress={completeRitual}>
+              <Pressable style={styles.ritualButton} onPress={() => { completeRitual(); setCelebratingWeek(selectedMonday); }}>
                 <Text style={styles.ritualButtonText}>Listo, organizar semana</Text>
               </Pressable>
             ) : null}
@@ -256,6 +270,7 @@ const styles = StyleSheet.create({
   freeCopy: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 12 },
   ritualCard: { marginTop: 12, padding: 15, borderRadius: 18, backgroundColor: '#0B1E35', borderWidth: 1, borderColor: '#28558B' },
   ritualCardDone: { backgroundColor: '#0D251E', borderColor: '#2C6F55' },
+  ritualStatusRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   ritualEyebrow: { color: '#76AFFF', fontWeight: '900', letterSpacing: 1.8, fontSize: 9 },
   ritualEyebrowDone: { color: '#8EE5B2' },
   ritualTitle: { color: colors.text, fontWeight: '900', fontSize: 16, marginTop: 6 },
