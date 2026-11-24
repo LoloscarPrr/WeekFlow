@@ -100,6 +100,9 @@ export function useMoveController() {
   const [activeSession, setActiveSession] = useState<ActiveMoveSession | null>(initialActive);
   const [runtime, setRuntime] = useState<MoveRuntime | null>(() => loadMoveRuntime(initialActive?.id));
   const [finished, setFinished] = useState(() => !initialActive && feedbackPendingFor(initialRecord));
+  // Only a newly completed, real session can trigger completion motion.
+  // Restoring an unanswered feedback request from SQLite never replays it.
+  const [celebratingSessionId, setCelebratingSessionId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(initialRecord?.feedback ?? null);
   const [feedbackNote, setFeedbackNote] = useState('');
   const [noteSaved, setNoteSaved] = useState(false);
@@ -184,6 +187,7 @@ export function useMoveController() {
       : null);
     setLastRecord(record);
     setActiveSession(active);
+    setCelebratingSessionId(null);
     if (active) setPreparedWeekly(null);
     setRuntime(loadMoveRuntime(active?.id));
     if (active) {
@@ -373,6 +377,7 @@ export function useMoveController() {
     setPreparedWeekly(null);
     setRuntime(nextRuntime);
     setFinished(false);
+    setCelebratingSessionId(null);
     setFeedback(null);
     setFeedbackNote('');
     setNoteSaved(false);
@@ -416,6 +421,7 @@ export function useMoveController() {
     setActiveSession(null);
     setRuntime(null);
     setFinished(true);
+    setCelebratingSessionId(record.endedEarly ? null : record.id);
     setDuration((previous) => Math.max(30, previous));
     setFeedback(null);
     setFeedbackNote('');
@@ -523,6 +529,7 @@ export function useMoveController() {
   }
 
   function resetFinished() {
+    setCelebratingSessionId(null);
     setFinished(false);
     setFeedback(null);
     setFeedbackNote('');
@@ -536,6 +543,8 @@ export function useMoveController() {
     duration,
     setDuration,
     finished,
+    celebratingSessionId,
+    clearCompletionAnimation: () => setCelebratingSessionId(null),
     feedback,
     feedbackNote,
     setFeedbackNote,
