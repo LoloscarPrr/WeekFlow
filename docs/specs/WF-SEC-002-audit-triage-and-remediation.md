@@ -1,6 +1,6 @@
 # WF-SEC-002 — Triage de advisories npm y remediación compatible con Android
 
-Status: LOCKED
+Status: VERIFYING
 Owner: WeekFlow
 Date: 2026-11-24
 Phase decision: NOW — fase 3.1 aprobada de consolidación de seguridad
@@ -53,4 +53,14 @@ Sin interfaz nueva. No enviar PII, horarios ni datos Crashlytics a un backend nu
 - Actualizar AC como PASS/BLOCKED con enlaces a runs.
 
 ## Verification
-PENDING (locked before implementation).
+- **AC1 PASS** — first CI #45330965937 inspected 17 packages (11 high), actual names/severity/via/fix availability; explains grouped underlying cause and Android-reachability uncertainty.
+- **AC2 PASS** — read-only GitHub Actions PR `Security triage` produced ephemeral original/candidate lockfile artifact; no automatic source write or merge. Candidate reviewed before explicit GitHub source edit.
+- **AC3 PASS** — strict triage parser tests passed in #45330965937 and subsequent runs. Separates malformed audit JSON and valid findings.
+- **AC4 PASS provisional** — adopted only the first controlled 28 lockfile entry differences, no SDK Expo or RN major changes; candidate's Quality `npm ci`, TypeScript/regressions, Metro #45331316753 PASS, and security scan #45331316717 PASS. Final version 0.5.41 Quality still needs same checks on final head before merge.
+- **AC5 PASS** — `docs/security/WF-SEC-002-triage-2026-11-24.md` records residual 11 package advisories (8 high / 3 moderate), groups Firebase / Router / Expo, explains why suggested major downgrade/upgrades or overrides were rejected.
+- **AC6 PENDING** — Android package, signing and monotonic versionCode remain configured; 0.5.41 signed release build on main after merge; physical upgrade on Redmi requires user.
+- **AC7 PENDING FINAL CI** — PR checks must be green on final docs/spec head before merge. Android native CI after merge required.
+- **Not validated**: whether JS Firebase/Router dependencies are reachable in Android bundle, full mobile MASTG, physical real-device behavior, Grafana connection; no OWASP certification claim.
+
+Security baseline counts from the CI environment can change with newly published advisories; these results are a dated snapshot, not a promise of zero flaws.
+
