@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { requestClosedAppPushTest } from '@/src/notifications/remotePushTest';
 import { AppState } from 'react-native';
 import { openExactAlarmPermissionSettings, offerExactAlarmAccessIfNeeded } from '@/src/notifications/exactAlarmPermission';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -119,6 +120,18 @@ export default function NotificationPreferencesScreen() {
     }
   }
 
+
+  async function testRemotePush() {
+    setCheckingDiagnostics(true);
+    try {
+      const at = await requestClosedAppPushTest();
+      setStatus('Prueba remota solicitada para ' + at.toLocaleTimeString('es-CL') + '. Sal de WeekFlow y bloquea el teléfono. Solicitud aceptada no significa entrega.');
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'No fue posible solicitar la prueba remota.');
+    } finally {
+      setCheckingDiagnostics(false);
+    }
+  }
 
   async function testLongIdle() {
     setCheckingDiagnostics(true);
@@ -272,6 +285,10 @@ export default function NotificationPreferencesScreen() {
           </Pressable>
           <Pressable style={styles.diagnosticLink} disabled={checkingDiagnostics} onPress={() => void testLongIdle()} accessibilityRole="button" accessibilityLabel="Probar alarma de agenda después de 24 horas">
             <Text style={styles.diagnosticButtonText}>Probar alarma con fecha en 24 horas</Text>
+          </Pressable>
+          <Text style={styles.statusBody}>Piloto remoto: envía solo el identificador push de este teléfono al servidor WeekFlow, con tu cuenta verificada. No envía tu agenda ni modifica alarmas. Requiere internet y autorización del piloto.</Text>
+          <Pressable style={styles.diagnosticLink} disabled={checkingDiagnostics || !preferences.enabled} onPress={() => void testRemotePush()} accessibilityRole="button">
+            <Text style={styles.diagnosticButtonText}>Probar push con WeekFlow cerrada (15 s)</Text>
           </Pressable>
           <Pressable style={styles.diagnosticLink} disabled={checkingDiagnostics} onPress={() => void refreshDiagnostics()} accessibilityRole="button">
             <Text style={styles.diagnosticButtonText}>Actualizar diagnóstico</Text>
