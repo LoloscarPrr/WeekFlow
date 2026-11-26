@@ -8,6 +8,11 @@ on:
   schedule:
     - cron: "17 12 * * 1"
   workflow_dispatch:
+    inputs:
+      enforce_high_critical:
+        description: 'Block commercial dependency approval when high/critical findings remain'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -35,16 +40,20 @@ jobs:
       # instead of mistaking findings for a failed scanner or a secure build.
       - name: Inventory production dependencies
         shell: bash
+        env:
+          ENFORCE_HIGH_CRITICAL: ${{ github.event_name == 'workflow_dispatch' && inputs.enforce_high_critical == true }}
         run: |
           set +e
           npm audit --omit=dev --json > "$RUNNER_TEMP/weekflow-npm-audit.json" 2> "$RUNNER_TEMP/weekflow-npm-audit-stderr.log"
           audit_status=$?
           set -e
+          flags=()
+          if [[ "$ENFORCE_HIGH_CRITICAL" == "true" ]]; then flags+=(--enforce); fi
           node scripts/security-audit-report.cjs \
             "$RUNNER_TEMP/weekflow-npm-audit.json" \
             "$GITHUB_STEP_SUMMARY" \
-            "$audit_status"
+            "$audit_status" "${flags[@]}"
 
       # Findings are an explicit warning during the first inventory phase.
       # Unavailable/invalid audits fail, never silently indicate "secure".
-      # A separate reviewed spec can make high/critical findings blocking.
+      # Manual commercial mode blocks high/critical; automatic Alpha inventory remains informational.
