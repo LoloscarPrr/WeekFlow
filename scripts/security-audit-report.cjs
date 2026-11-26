@@ -37,6 +37,10 @@ function evaluateAudit(raw, exitCode = 0) {
   return { counts, total, highOrCritical: counts.high + counts.critical };
 }
 
+function auditDecision(result, enforce = false) {
+  return enforce && result.highOrCritical > 0 ? 'blocked' : 'inventory-only';
+}
+
 function formatSummary(result) {
   const c = result.counts;
   const status = result.total === 0
@@ -59,16 +63,30 @@ function formatSummary(result) {
 }
 
 if (require.main === module) {
-  const [reportPath, summaryPath, code] = process.argv.slice(2);
+  const [reportPath, summaryPath, code, ...flags] = process.argv.slice(2);
   try {
-    if (!reportPath || !summaryPath) throw new Error('Missing report or summary file path');
+    if (!reportPath || !summaryPath || code === undefined || !/^\d+$/.test(code)) {
+      throw new Error('Missing or invalid report, summary or exit status');
+    }
+    if (flags.length > 1 || (flags.length === 1 && flags[0] !== '--enforce')) {
+      throw new Error('Unknown security audit option');
+    }
+    const enforce = flags.includes('--enforce');
     const parsed = evaluateAudit(fs.readFileSync(reportPath, 'utf8'), Number(code));
-    const summary = formatSummary(parsed);
+    const decision = auditDecision(parsed, enforce);
+    const summary = formatSummary(parsed) + '\nRelease dependency policy: ' +
+      (enforce ? (decision === 'blocked' ? 'BLOCKED: high/critical findings remain.' :
+        'PASS: no high/critical npm findings reported; not full release approval.') :
+        'Inventory only (not a release approval).') + '\n';
     fs.appendFileSync(summaryPath, summary + '\n');
     process.stdout.write('Security audit completed: ' + parsed.total + ' reported findings.\n');
     if (parsed.highOrCritical > 0) {
       process.stdout.write('::warning title=OWASP dependency review::' +
         parsed.highOrCritical + ' high/critical production dependency findings need triage.\n');
+    }
+    if (decision === 'blocked') {
+      console.error('Release dependency gate blocked: high/critical findings require remediation.');
+      process.exitCode = 1;
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown audit error';
@@ -79,4 +97,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { evaluateAudit, formatSummary };
+module.exports = { evaluateAudit, formatSummary, auditDecision };
