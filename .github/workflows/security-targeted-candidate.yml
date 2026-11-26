@@ -1,0 +1,115 @@
+name: Targeted dependency candidate (no release)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/security-targeted-candidate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        candidate: [grpc, router, combined]
+    env:
+      CANDIDATE: ${{ matrix.candidate }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22.13'
+          package-manager-cache: false
+      - name: Baseline audit (aggregate only)
+        shell: bash
+        run: |
+          set +e
+          npm audit --omit=dev --json > "$RUNNER_TEMP/before.json" 2>"$RUNNER_TEMP/before.err"
+          code=$?
+          set -e
+          node scripts/security-audit-report.cjs "$RUNNER_TEMP/before.json" "$GITHUB_STEP_SUMMARY" "$code"
+      - name: Generate isolated candidate manifest
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const p = JSON.parse(fs.readFileSync('package.json','utf8'));
+          p.overrides ||= {};
+          if (['grpc','combined'].includes(process.env.CANDIDATE)) {
+            p.overrides['@firebase/firestore'] = {
+              ...(p.overrides['@firebase/firestore'] || {}),
+              '@grpc/grpc-js': '1.14.7'
+            };
+          }
+          if (['router','combined'].includes(process.env.CANDIDATE)) {
+            p.overrides['expo-router'] = {
+              ...(p.overrides['expo-router'] || {}),
+              'query-string': '9.5.1'
+            };
+          }
+          fs.writeFileSync('package.json', JSON.stringify(p,null,2)+'\n');
+          NODE
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Candidate audit and improvement requirement
+        shell: bash
+        run: |
+          set +e
+          npm audit --omit=dev --json > "$RUNNER_TEMP/after.json" 2>"$RUNNER_TEMP/after.err"
+          code=$?
+          set -e
+          node scripts/security-audit-report.cjs "$RUNNER_TEMP/after.json" "$GITHUB_STEP_SUMMARY" "$code"
+          node <<'NODE'
+          const fs=require('node:fs');
+          const path=require('node:path');
+          const {evaluateAudit}=require('./scripts/security-audit-report.cjs');
+          const read=(n)=>evaluateAudit(fs.readFileSync(path.join(process.env.RUNNER_TEMP,n+'.json'),'utf8'));
+          const before=read('before'), after=read('after');
+          if(after.highOrCritical>=before.highOrCritical || after.total>before.total ||
+             after.counts.critical>before.counts.critical) {
+            throw Error('Candidate did not improve high/critical findings without regression');
+          }
+          console.log('High/critical entries: '+before.highOrCritical+' -> '+after.highOrCritical);
+          NODE
+      - name: Reproducible dependency install
+        run: npm ci --no-audit --no-fund
+      - name: Dependency API compatibility smoke
+        shell: bash
+        run: |
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const {createRequire}=require('node:module');
+          if(['grpc','combined'].includes(process.env.CANDIDATE)){
+            const req=createRequire(require.resolve('@firebase/firestore/package.json'));
+            const grpc=req('@grpc/grpc-js');
+            assert.equal(typeof grpc.Client,'function');
+            assert.equal(typeof grpc.credentials.createInsecure,'function');
+          }
+          if(['router','combined'].includes(process.env.CANDIDATE)){
+            const req=createRequire(require.resolve('expo-router/package.json'));
+            const ns=req('query-string');
+            const qs=ns.default||ns;
+            assert.equal(qs.parse('day=1').day,'1');
+            assert.equal(qs.stringify({day:'1'}),'day=1');
+          }
+          NODE
+      - name: Full quality checks
+        run: npm run quality
+      - name: Android Metro smoke
+        run: npx expo export --platform android --output-dir "$RUNNER_TEMP/weekflow-bundle" --clear
+      - name: Preserve candidate only after passing
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekflow-sec003-${{ matrix.candidate }}-review-only
+          path: |
+            package.json
+            package-lock.json
+          retention-days: 3
+          if-no-files-found: error
