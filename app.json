@@ -2,7 +2,7 @@
   "expo": {
     "name": "WeekFlow",
     "slug": "weekflow",
-    "version": "0.5.42",
+    "version": "0.5.43",
     "orientation": "portrait",
     "scheme": "weekflow",
     "userInterfaceStyle": "dark",

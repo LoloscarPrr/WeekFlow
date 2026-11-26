@@ -8,3 +8,7 @@ verify_jwt = false
 # The function fails closed unless server secrets, quota RPC and opt-in flag exist.
 [functions.brain-chat]
 verify_jwt = false
+
+# Firebase ID token is verified by the allowlisted pilot handler.
+[functions.weekflow-push-test]
+verify_jwt = false
