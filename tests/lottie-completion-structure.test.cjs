@@ -16,8 +16,8 @@ assert.deepEqual(animation.assets, [], 'no remote images, fonts or media');
 assert.equal(animation.layers.length, 2, 'simple ring and check; not a heavyweight scene');
 assert.ok(animation.layers.every(layer => layer.ty === 4), 'vector shapes only');
 assert.equal(pkg.dependencies['lottie-react-native'], '~7.3.8', 'native Lottie pinned for Expo SDK 57');
-assert.equal(pkg.version, '0.5.43');
-assert.equal(app.expo.version, '0.5.43');
+assert.equal(pkg.version, '0.5.44');
+assert.equal(app.expo.version, '0.5.44');
 assert.equal(app.expo.android.package, 'com.weekflow.app');
 
 assert.match(component, /isReduceMotionEnabled\(\)/, 'respects Android reduce-motion setting');
