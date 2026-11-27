@@ -1,6 +1,6 @@
 {
   "name": "weekflow",
-  "version": "0.5.43",
+  "version": "0.5.44",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
@@ -43,6 +43,12 @@
     "typescript": "~6.0.3"
   },
   "overrides": {
-    "expo-image": "~57.0.0"
+    "expo-image": "~57.0.0",
+    "@firebase/firestore": {
+      "@grpc/grpc-js": "1.14.7"
+    },
+    "expo-router": {
+      "query-string": "9.5.1"
+    }
   }
 }
